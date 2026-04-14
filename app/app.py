@@ -61,18 +61,26 @@ with st.sidebar:
 navigation = st.navigation(
     {
         "Start Here": [
-            st.Page(overview.render, title="Overview", icon=":material/home:", default=True),
+            st.Page(
+                overview.render,
+                title="Overview",
+                icon=":material/home:",
+                default=True,
+                url_path="overview",
+            ),
         ],
         "Interactive Analysis": [
             st.Page(
                 workforce_explorer.render,
                 title="Workforce Explorer",
                 icon=":material/group:",
+                url_path="workforce-explorer",
             ),
             st.Page(
                 eda_patterns.render,
                 title="EDA & Patterns",
                 icon=":material/analytics:",
+                url_path="eda-patterns",
             ),
         ],
         "Decision Support": [
@@ -80,21 +88,25 @@ navigation = st.navigation(
                 model_threshold_lab.render,
                 title="Model & Threshold Lab",
                 icon=":material/tune:",
+                url_path="model-threshold-lab",
             ),
             st.Page(
                 explainability.render,
                 title="Explainability",
                 icon=":material/visibility:",
+                url_path="explainability",
             ),
             st.Page(
                 manager_action_view.render,
                 title="Manager Action View",
                 icon=":material/badge:",
+                url_path="manager-action-view",
             ),
             st.Page(
                 methods_limitations.render,
                 title="Methods & Limitations",
                 icon=":material/rule:",
+                url_path="methods-limitations",
             ),
         ],
     }
