@@ -12,6 +12,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = REPO_ROOT / "data" / "hr_capstone_dataset.csv"
 FIGURES_DIR = REPO_ROOT / "outputs" / "figures"
 ARTIFACTS_ROOT = REPO_ROOT / "artifacts" / "v2"
+SALARY_ORDER = ["low", "medium", "high"]
+TENURE_BAND_ORDER = ["0-2 years", "3-4 years", "5-6 years", "7+ years"]
+PROJECT_INTENSITY_ORDER = ["Lean", "Balanced", "Stretch", "Extreme"]
 
 COLUMN_RENAMES = {
     "Work_accident": "work_accident",
@@ -69,6 +72,12 @@ V2_REQUIRED_ARTIFACTS = (
     "metadata",
 )
 
+RUNTIME_MODE_LABELS = {
+    "v1_fallback_mode": "V1 fallback mode",
+    "partial_v2_artifact_mode": "partial V2 artifact mode",
+    "full_v2_artifact_mode": "full V2 artifact mode",
+}
+
 V2_ROW_KEY_SOURCE_COLUMNS = [
     "satisfaction_level",
     "last_evaluation",
@@ -81,6 +90,26 @@ V2_ROW_KEY_SOURCE_COLUMNS = [
     "department",
     "salary",
 ]
+
+DEFAULT_PROJECT_METADATA = {
+    "project_name": "Salifort Motors Retention Risk Explorer",
+    "project_subtitle": "Operational HR Analytics Decision App",
+    "dataset_rows_raw": 14999,
+    "duplicates_removed": 3008,
+    "dataset_rows_clean": 11991,
+    "attrition_rate_clean": 0.166,
+    "final_model": "Weighted XGBoost",
+    "selected_threshold": 0.29,
+    "selected_test_recall": 0.937,
+    "selected_test_precision": 0.818,
+    "selected_test_accuracy": 0.955,
+    "model_mode_main": "operational",
+    "artifact_build_date": None,
+    "artifact_version": "v1-fallback",
+    "notes": [
+        "Using public V1 fallback metadata because precomputed V2 metadata is not present."
+    ],
+}
 
 
 def get_repo_root() -> Path:
@@ -110,6 +139,40 @@ def v2_artifacts_available() -> bool:
 def v2_required_artifacts_complete() -> bool:
     status = get_v2_artifact_status()
     return all(status[name] for name in V2_REQUIRED_ARTIFACTS)
+
+
+def artifacts_available(names: list[str] | tuple[str, ...], require_all: bool = True) -> bool:
+    status = get_v2_artifact_status()
+    matches = [status.get(name, False) for name in names]
+    return all(matches) if require_all else any(matches)
+
+
+def get_runtime_mode() -> str:
+    if v2_required_artifacts_complete():
+        return "full_v2_artifact_mode"
+    if v2_artifacts_available():
+        return "partial_v2_artifact_mode"
+    return "v1_fallback_mode"
+
+
+def get_runtime_mode_label() -> str:
+    return RUNTIME_MODE_LABELS[get_runtime_mode()]
+
+
+def get_runtime_mode_summary() -> dict[str, Any]:
+    artifact_status = get_v2_artifact_status()
+    return {
+        "mode": get_runtime_mode(),
+        "label": get_runtime_mode_label(),
+        "artifacts_present": sum(artifact_status.values()),
+        "artifacts_expected": len(artifact_status),
+        "required_artifacts_complete": v2_required_artifacts_complete(),
+        "artifact_status": artifact_status,
+    }
+
+
+def get_default_project_metadata() -> dict[str, Any]:
+    return DEFAULT_PROJECT_METADATA.copy()
 
 
 def _normalize_row_key_value(value: Any) -> str:
@@ -159,11 +222,95 @@ def _load_optional_json(path: Path) -> dict[str, Any] | None:
         return json.load(handle)
 
 
+def _derive_tenure_band(tenure: pd.Series) -> pd.Categorical:
+    return pd.Categorical(
+        pd.cut(
+            tenure,
+            bins=[0, 2, 4, 6, float("inf")],
+            labels=TENURE_BAND_ORDER,
+            include_lowest=True,
+        ),
+        categories=TENURE_BAND_ORDER,
+        ordered=True,
+    )
+
+
+def _derive_project_intensity(number_project: pd.Series) -> pd.Categorical:
+    return pd.Categorical(
+        pd.cut(
+            number_project,
+            bins=[0, 2, 4, 6, float("inf")],
+            labels=PROJECT_INTENSITY_ORDER,
+            include_lowest=True,
+        ),
+        categories=PROJECT_INTENSITY_ORDER,
+        ordered=True,
+    )
+
+
+def prepare_v2_employee_scores(df: pd.DataFrame | None) -> pd.DataFrame | None:
+    if df is None:
+        return None
+
+    prepared = df.copy()
+
+    if "salary" not in prepared.columns and "salary_level" in prepared.columns:
+        prepared["salary"] = prepared["salary_level"]
+
+    if "salary" in prepared.columns:
+        prepared["salary"] = pd.Categorical(
+            prepared["salary"].astype(str),
+            categories=SALARY_ORDER,
+            ordered=True,
+        )
+
+    if "tenure_band" not in prepared.columns and "tenure" in prepared.columns:
+        prepared["tenure_band"] = _derive_tenure_band(prepared["tenure"])
+    elif "tenure_band" in prepared.columns:
+        prepared["tenure_band"] = pd.Categorical(
+            prepared["tenure_band"].astype(str),
+            categories=TENURE_BAND_ORDER,
+            ordered=True,
+        )
+
+    if "project_intensity" not in prepared.columns and "number_project" in prepared.columns:
+        prepared["project_intensity"] = _derive_project_intensity(prepared["number_project"])
+    elif "project_intensity" in prepared.columns:
+        prepared["project_intensity"] = pd.Categorical(
+            prepared["project_intensity"].astype(str),
+            categories=PROJECT_INTENSITY_ORDER,
+            ordered=True,
+        )
+
+    if "attrition_label" not in prepared.columns and "left" in prepared.columns:
+        prepared["attrition_label"] = prepared["left"].map({0: "Retained", 1: "Exited"})
+
+    if "employee_id" not in prepared.columns and "employee_id_v2" in prepared.columns:
+        prepared["employee_id"] = prepared["employee_id_v2"]
+
+    if "high_risk_flag" not in prepared.columns and "selected_threshold_flag" in prepared.columns:
+        prepared["high_risk_flag"] = prepared["selected_threshold_flag"]
+
+    if "screening_score_v1" not in prepared.columns and "attrition_probability" in prepared.columns:
+        prepared["predicted_attrition_percent"] = (prepared["attrition_probability"] * 100).round(1)
+
+    return prepared
+
+
+def prepare_v2_department_exposure(df: pd.DataFrame | None) -> pd.DataFrame | None:
+    if df is None:
+        return None
+    prepared = df.copy()
+    if "department" in prepared.columns:
+        prepared["department"] = prepared["department"].astype(str)
+    return prepared
+
+
 @st.cache_data(show_spinner=False)
 def load_clean_data() -> pd.DataFrame:
     df = pd.read_csv(DATA_PATH).rename(columns=COLUMN_RENAMES).drop_duplicates().copy()
     df = df.reset_index(drop=True)
-    df["salary"] = pd.Categorical(df["salary"], categories=["low", "medium", "high"], ordered=True)
+    df["salary"] = pd.Categorical(df["salary"], categories=SALARY_ORDER, ordered=True)
     return df
 
 
@@ -178,29 +325,11 @@ def load_app_data() -> pd.DataFrame:
 
     df["employee_id"] = [f"SM-{index:05d}" for index in range(1, len(df) + 1)]
     df["attrition_label"] = df["left"].map({0: "Retained", 1: "Exited"})
-    df["tenure_band"] = pd.Categorical(
-        pd.cut(
-            df["tenure"],
-            bins=[0, 2, 4, 6, float("inf")],
-            labels=["0-2 years", "3-4 years", "5-6 years", "7+ years"],
-            include_lowest=True,
-        ),
-        categories=["0-2 years", "3-4 years", "5-6 years", "7+ years"],
-        ordered=True,
-    )
+    df["tenure_band"] = _derive_tenure_band(df["tenure"])
     df["overworked"] = (
         df["average_monthly_hours"].ge(220) | df["number_project"].ge(6)
     ).astype(int)
-    df["project_intensity"] = pd.Categorical(
-        pd.cut(
-            df["number_project"],
-            bins=[0, 2, 4, 6, float("inf")],
-            labels=["Lean", "Balanced", "Stretch", "Extreme"],
-            include_lowest=True,
-        ),
-        categories=["Lean", "Balanced", "Stretch", "Extreme"],
-        ordered=True,
-    )
+    df["project_intensity"] = _derive_project_intensity(df["number_project"])
     df["career_stall_flag"] = (
         df["promotion_last_5years"].eq(0) & df["tenure"].ge(5)
     ).astype(int)
@@ -235,13 +364,22 @@ def load_v2_metadata() -> dict[str, Any] | None:
 
 
 @st.cache_data(show_spinner=False)
+def load_preferred_metadata() -> dict[str, Any]:
+    metadata = get_default_project_metadata()
+    v2_metadata = load_v2_metadata()
+    if v2_metadata:
+        metadata.update(v2_metadata)
+    return metadata
+
+
+@st.cache_data(show_spinner=False)
 def load_v2_employee_scores() -> pd.DataFrame | None:
-    return _load_optional_parquet(V2_ARTIFACT_PATHS["employee_scores"])
+    return prepare_v2_employee_scores(_load_optional_parquet(V2_ARTIFACT_PATHS["employee_scores"]))
 
 
 @st.cache_data(show_spinner=False)
 def load_v2_department_exposure() -> pd.DataFrame | None:
-    return _load_optional_csv(V2_ARTIFACT_PATHS["department_exposure"])
+    return prepare_v2_department_exposure(_load_optional_csv(V2_ARTIFACT_PATHS["department_exposure"]))
 
 
 @st.cache_data(show_spinner=False)
