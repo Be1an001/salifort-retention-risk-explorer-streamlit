@@ -5,14 +5,14 @@ import streamlit as st
 
 def render() -> None:
     st.title("Methods & Limitations")
-    st.caption("Scope, workflow, and deployment notes for the V1 portfolio app.")
+    st.caption("Scope, workflow, and deployment notes for the deployment-focused V1 portfolio app.")
 
     st.subheader("Main Workflow Summary")
     st.markdown(
         "- Clean the checked-in HR dataset and remove duplicate records.\n"
         "- Use notebook-built project artifacts to summarize EDA, validation, threshold tuning, and explainability.\n"
-        "- Present the operational model story through a lightweight Streamlit decision app.\n"
-        "- Add a deterministic V1 screening proxy so the workforce explorer stays interactive without retraining a model in the app."
+        "- Present the operational model story through a lightweight, deployment-focused Streamlit app.\n"
+        "- Use a deterministic V1 screening proxy so the Workforce Explorer stays interactive without in-app retraining."
     )
 
     st.subheader("Operational vs Survey-Rich Note")
@@ -24,7 +24,7 @@ def render() -> None:
     st.subheader("Dataset Note")
     st.markdown(
         "The app uses the repo-local `data/hr_capstone_dataset.csv` file. "
-        "It is a compact, static dataset that makes the project reproducible for local runs and Streamlit Community Cloud without requiring external data services."
+        "It is intentionally kept in the repo to make the project reproducible and to keep Streamlit Community Cloud deployment simple without external data services."
     )
 
     st.subheader("Why the CSV Remains in the Repo")
@@ -37,6 +37,6 @@ def render() -> None:
     st.markdown(
         "- Advanced model visuals are displayed from existing project artifacts rather than regenerated inside the app.\n"
         "- The app does not retrain models or recalculate SHAP values during runtime.\n"
-        "- The Workforce Explorer uses a lightweight V1 screening proxy for interactivity, not the deployed weighted XGBoost probability.\n"
-        "- This is an educational portfolio project and not a real company audit, live HR system, or production employment workflow."
+        "- The Workforce Explorer uses a deterministic V1 screening proxy for interactivity, not the deployed weighted XGBoost probability.\n"
+        "- This is an educational portfolio project, not a real company HR system, audit, or production employment workflow."
     )

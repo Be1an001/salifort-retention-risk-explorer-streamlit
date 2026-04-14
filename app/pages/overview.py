@@ -36,18 +36,18 @@ def render() -> None:
     with left_col:
         st.subheader("Why this project is strong")
         st.markdown(
-            "- It translates a full notebook-style portfolio project into a business-facing decision app.\n"
-            "- It keeps the operational story focused on threshold choice, workforce exposure, and responsible use.\n"
-            "- It shows modeling performance alongside practical manager action guidance instead of stopping at metrics.\n"
-            "- It keeps the deployment footprint lightweight enough for local runs and Streamlit Community Cloud."
+            "- It turns the broader portfolio workflow into a clear public operational app layer.\n"
+            "- It keeps the deployment footprint intentionally lightweight for local runs and Streamlit Community Cloud.\n"
+            "- It separates interactive workforce exploration from the heavier original modeling workflow.\n"
+            "- It keeps the focus on threshold choice, workforce exposure, and responsible use."
         )
 
         st.subheader("Interview Explanation")
         st.info(
-            "This app is the public operational layer of the Salifort Motors retention project. "
-            "The final trained model is a weighted XGBoost classifier tuned around a 0.29 decision "
-            "threshold, while the interactive explorer uses a separate V1 screening proxy so the app "
-            "can remain lightweight, deterministic, and easy to deploy."
+            "This app is the public operational layer of the Salifort Motors portfolio project. "
+            "It is lightweight by design: the interactive explorer uses a separate V1 screening proxy "
+            "for deployment simplicity, while the weighted XGBoost model, threshold choice, and SHAP "
+            "story come from the documented original workflow and checked-in artifacts."
         )
 
     with right_col:

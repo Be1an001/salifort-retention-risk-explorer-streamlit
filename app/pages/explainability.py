@@ -9,7 +9,9 @@ def render() -> None:
     figures = get_figure_paths()
 
     st.title("Explainability")
-    st.caption("Model interpretation view using the existing SHAP artifacts from the original project.")
+    st.caption(
+        "Model interpretation view using existing SHAP artifacts from the original project presentation layer."
+    )
 
     st.image(
         str(figures["16_exec_summary_shap"]),
@@ -40,10 +42,10 @@ def render() -> None:
 
     st.subheader("How to Interpret These Visuals")
     st.markdown(
-        "SHAP helps explain which features pushed the model toward higher or lower attrition risk on average and at selected feature values. "
-        "It is useful for communicating model logic, checking whether the operating story makes sense, and spotting where a threshold-based screening workflow may need human review."
+        "These SHAP visuals are included to communicate model logic from the broader portfolio workflow. "
+        "In this public app, they support the explanation layer while the main framing remains the operational decision-support version focused on screening, threshold choice, and manager review."
     )
 
     st.warning(
-        "SHAP is used here for model interpretation, not causal HR truth. A feature showing high explanatory importance does not prove that changing that feature will cause retention to improve."
+        "SHAP is used here as model interpretation support, not causal HR truth. A feature showing high explanatory importance does not prove that changing that feature will cause retention to improve."
     )
