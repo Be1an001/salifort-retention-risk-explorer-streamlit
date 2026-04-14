@@ -1,0 +1,20 @@
+{
+  "project_name": "Salifort Motors Retention Risk Explorer",
+  "project_subtitle": "Operational HR Analytics Decision App",
+  "dataset_rows_raw": 14999,
+  "duplicates_removed": 3008,
+  "dataset_rows_clean": 11991,
+  "attrition_rate_clean": 0.166,
+  "final_model": "weighted XGBoost",
+  "selected_threshold": 0.29,
+  "selected_test_recall": 0.937,
+  "selected_test_precision": 0.818,
+  "selected_test_accuracy": 0.955,
+  "model_mode_main": "operational",
+  "artifact_build_date": null,
+  "artifact_version": "v2-draft",
+  "notes": [
+    "Populate this file during the offline V2 artifact build process.",
+    "Do not generate final-model metrics inside Streamlit runtime."
+  ]
+}

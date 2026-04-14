@@ -2,10 +2,26 @@ from __future__ import annotations
 
 import streamlit as st
 
+from app.utils.load_data import get_v2_artifact_status, v2_artifacts_available
+
 
 def render() -> None:
     st.title("Methods & Limitations")
     st.caption("Scope, workflow, and deployment notes for the deployment-focused V1 portfolio app.")
+
+    artifact_status = get_v2_artifact_status()
+    available_artifacts = sum(artifact_status.values())
+    total_artifacts = len(artifact_status)
+    if v2_artifacts_available():
+        st.caption(
+            f"V2 artifact-ready loaders are enabled. {available_artifacts} of {total_artifacts} "
+            "expected V2 artifact files are currently present under `artifacts/v2/`."
+        )
+    else:
+        st.caption(
+            "V2 artifact-ready loaders are enabled, but no precomputed V2 artifact files are "
+            "present yet. The app is currently running in V1 fallback mode."
+        )
 
     st.subheader("Main Workflow Summary")
     st.markdown(

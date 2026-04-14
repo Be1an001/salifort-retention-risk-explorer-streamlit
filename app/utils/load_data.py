@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -8,6 +11,7 @@ import streamlit as st
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = REPO_ROOT / "data" / "hr_capstone_dataset.csv"
 FIGURES_DIR = REPO_ROOT / "outputs" / "figures"
+ARTIFACTS_ROOT = REPO_ROOT / "artifacts" / "v2"
 
 COLUMN_RENAMES = {
     "Work_accident": "work_accident",
@@ -41,13 +45,118 @@ FIGURE_PATHS = {
     "16_exec_summary_shap": FIGURES_DIR / "16_exec-summary-shap.png",
 }
 
+V2_ARTIFACT_PATHS = {
+    "employee_scores": ARTIFACTS_ROOT / "employee_scores.parquet",
+    "department_exposure": ARTIFACTS_ROOT / "department_exposure.csv",
+    "threshold_curve": ARTIFACTS_ROOT / "threshold_curve.csv",
+    "validation_model_comparison": ARTIFACTS_ROOT / "validation_model_comparison.csv",
+    "confusion_matrix_at_selected_threshold": ARTIFACTS_ROOT
+    / "confusion_matrix_at_selected_threshold.csv",
+    "shap_importance": ARTIFACTS_ROOT / "shap_importance.csv",
+    "metadata": ARTIFACTS_ROOT / "metadata.json",
+    "employee_shap_sample": ARTIFACTS_ROOT / "employee_shap_sample.parquet",
+    "pr_curve_points": ARTIFACTS_ROOT / "pr_curve_points.parquet",
+    "model_modes_summary": ARTIFACTS_ROOT / "model_modes_summary.json",
+}
+
+V2_REQUIRED_ARTIFACTS = (
+    "employee_scores",
+    "department_exposure",
+    "threshold_curve",
+    "validation_model_comparison",
+    "confusion_matrix_at_selected_threshold",
+    "shap_importance",
+    "metadata",
+)
+
+V2_ROW_KEY_SOURCE_COLUMNS = [
+    "satisfaction_level",
+    "last_evaluation",
+    "number_project",
+    "average_monthly_hours",
+    "tenure",
+    "work_accident",
+    "left",
+    "promotion_last_5years",
+    "department",
+    "salary",
+]
+
 
 def get_repo_root() -> Path:
     return REPO_ROOT
 
 
+def get_artifacts_root() -> Path:
+    return ARTIFACTS_ROOT
+
+
 def get_figure_paths() -> dict[str, Path]:
     return FIGURE_PATHS.copy()
+
+
+def get_v2_artifact_paths() -> dict[str, Path]:
+    return V2_ARTIFACT_PATHS.copy()
+
+
+def get_v2_artifact_status() -> dict[str, bool]:
+    return {name: path.exists() for name, path in V2_ARTIFACT_PATHS.items()}
+
+
+def v2_artifacts_available() -> bool:
+    return any(get_v2_artifact_status().values())
+
+
+def v2_required_artifacts_complete() -> bool:
+    status = get_v2_artifact_status()
+    return all(status[name] for name in V2_REQUIRED_ARTIFACTS)
+
+
+def _normalize_row_key_value(value: Any) -> str:
+    if pd.isna(value):
+        return ""
+    if isinstance(value, float):
+        return f"{value:.10g}"
+    return str(value)
+
+
+def build_v2_row_key(df: pd.DataFrame) -> pd.Series:
+    """Build a deterministic row key from cleaned row content for future artifact joins."""
+
+    canonical_rows = df[V2_ROW_KEY_SOURCE_COLUMNS].apply(
+        lambda row: "|".join(
+            f"{column}={_normalize_row_key_value(row[column])}" for column in V2_ROW_KEY_SOURCE_COLUMNS
+        ),
+        axis=1,
+    )
+    return canonical_rows.map(
+        lambda payload: f"smv2_{hashlib.sha1(payload.encode('utf-8')).hexdigest()[:16]}"
+    )
+
+
+def add_v2_row_identity(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df["employee_id_v2"] = build_v2_row_key(df)
+    return df
+
+
+def _load_optional_csv(path: Path) -> pd.DataFrame | None:
+    if not path.exists():
+        return None
+    return pd.read_csv(path)
+
+
+def _load_optional_parquet(path: Path) -> pd.DataFrame | None:
+    if not path.exists():
+        return None
+    return pd.read_parquet(path)
+
+
+def _load_optional_json(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    with path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
 
 
 @st.cache_data(show_spinner=False)
@@ -61,6 +170,7 @@ def load_clean_data() -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def load_app_data() -> pd.DataFrame:
     df = load_clean_data().copy()
+    df = add_v2_row_identity(df)
 
     salary_as_text = df["salary"].astype(str)
     salary_weight_map = {"low": 1.00, "medium": 1.25, "high": 1.60}
@@ -117,3 +227,53 @@ def load_app_data() -> pd.DataFrame:
     ).round(2)
 
     return df
+
+
+@st.cache_data(show_spinner=False)
+def load_v2_metadata() -> dict[str, Any] | None:
+    return _load_optional_json(V2_ARTIFACT_PATHS["metadata"])
+
+
+@st.cache_data(show_spinner=False)
+def load_v2_employee_scores() -> pd.DataFrame | None:
+    return _load_optional_parquet(V2_ARTIFACT_PATHS["employee_scores"])
+
+
+@st.cache_data(show_spinner=False)
+def load_v2_department_exposure() -> pd.DataFrame | None:
+    return _load_optional_csv(V2_ARTIFACT_PATHS["department_exposure"])
+
+
+@st.cache_data(show_spinner=False)
+def load_v2_threshold_curve() -> pd.DataFrame | None:
+    return _load_optional_csv(V2_ARTIFACT_PATHS["threshold_curve"])
+
+
+@st.cache_data(show_spinner=False)
+def load_v2_validation_model_comparison() -> pd.DataFrame | None:
+    return _load_optional_csv(V2_ARTIFACT_PATHS["validation_model_comparison"])
+
+
+@st.cache_data(show_spinner=False)
+def load_v2_confusion_matrix() -> pd.DataFrame | None:
+    return _load_optional_csv(V2_ARTIFACT_PATHS["confusion_matrix_at_selected_threshold"])
+
+
+@st.cache_data(show_spinner=False)
+def load_v2_shap_importance() -> pd.DataFrame | None:
+    return _load_optional_csv(V2_ARTIFACT_PATHS["shap_importance"])
+
+
+@st.cache_data(show_spinner=False)
+def load_v2_employee_shap_sample() -> pd.DataFrame | None:
+    return _load_optional_parquet(V2_ARTIFACT_PATHS["employee_shap_sample"])
+
+
+@st.cache_data(show_spinner=False)
+def load_v2_pr_curve_points() -> pd.DataFrame | None:
+    return _load_optional_parquet(V2_ARTIFACT_PATHS["pr_curve_points"])
+
+
+@st.cache_data(show_spinner=False)
+def load_v2_model_modes_summary() -> dict[str, Any] | None:
+    return _load_optional_json(V2_ARTIFACT_PATHS["model_modes_summary"])

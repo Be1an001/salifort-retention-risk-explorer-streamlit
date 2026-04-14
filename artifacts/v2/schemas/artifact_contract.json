@@ -1,0 +1,194 @@
+{
+  "contract_version": "0.1.0",
+  "artifacts_root": "artifacts/v2",
+  "runtime_policy": {
+    "v1_fallback_supported": true,
+    "streamlit_runtime_generates_model_outputs": false,
+    "streamlit_runtime_retrains_models": false,
+    "streamlit_runtime_infers_metrics_from_images": false
+  },
+  "join_strategy": {
+    "primary_row_key": "employee_id_v2",
+    "strategy": "deterministic_hash_of_cleaned_row_content",
+    "source_columns": [
+      "satisfaction_level",
+      "last_evaluation",
+      "number_project",
+      "average_monthly_hours",
+      "tenure",
+      "work_accident",
+      "left",
+      "promotion_last_5years",
+      "department",
+      "salary"
+    ],
+    "notes": [
+      "Use the same cleaned dataset conventions as app/utils/load_data.py.",
+      "Do not rely on row order for joins."
+    ]
+  },
+  "required_artifacts": {
+    "employee_scores.parquet": {
+      "format": "parquet",
+      "required_columns": [
+        "employee_id_v2",
+        "department",
+        "salary",
+        "tenure",
+        "number_project",
+        "average_monthly_hours",
+        "last_evaluation",
+        "promotion_last_5years",
+        "work_accident",
+        "left",
+        "salary_level",
+        "overworked",
+        "project_intensity",
+        "career_stall_flag",
+        "undervalued_flag",
+        "tenure_x_projects",
+        "tenure_band",
+        "attrition_probability",
+        "selected_threshold_flag",
+        "risk_decile",
+        "salary_cost_weight",
+        "risk_cost_exposure_index"
+      ],
+      "optional_columns": [
+        "screening_priority_label",
+        "top_driver_tag_1",
+        "top_driver_tag_2"
+      ]
+    },
+    "department_exposure.csv": {
+      "format": "csv",
+      "required_columns": [
+        "department",
+        "headcount",
+        "observed_attrition_rate",
+        "avg_predicted_attrition",
+        "high_risk_employees",
+        "exposure_index",
+        "exposure_per_100_employees",
+        "selected_threshold",
+        "model_mode"
+      ]
+    },
+    "threshold_curve.csv": {
+      "format": "csv",
+      "required_columns": [
+        "threshold",
+        "precision",
+        "recall",
+        "f1",
+        "f2",
+        "accuracy",
+        "roc_auc",
+        "pr_auc",
+        "tp",
+        "fp",
+        "tn",
+        "fn",
+        "cost",
+        "flagged_count",
+        "flagged_rate",
+        "model_name",
+        "model_mode"
+      ]
+    },
+    "validation_model_comparison.csv": {
+      "format": "csv",
+      "required_columns": [
+        "model",
+        "threshold_0_5_recall",
+        "threshold_0_5_f1",
+        "threshold_0_5_pr_auc",
+        "best_threshold",
+        "best_recall",
+        "best_precision",
+        "best_f1",
+        "best_f2",
+        "best_roc_auc",
+        "best_pr_auc",
+        "best_cost",
+        "model_mode"
+      ]
+    },
+    "confusion_matrix_at_selected_threshold.csv": {
+      "format": "csv",
+      "required_columns": [
+        "selected_threshold",
+        "tn",
+        "fp",
+        "fn",
+        "tp",
+        "precision",
+        "recall",
+        "f1",
+        "f2",
+        "accuracy"
+      ]
+    },
+    "shap_importance.csv": {
+      "format": "csv",
+      "required_columns": [
+        "feature",
+        "mean_abs_shap",
+        "rank",
+        "model_name",
+        "model_mode"
+      ]
+    },
+    "metadata.json": {
+      "format": "json",
+      "required_fields": [
+        "project_name",
+        "project_subtitle",
+        "dataset_rows_raw",
+        "duplicates_removed",
+        "dataset_rows_clean",
+        "attrition_rate_clean",
+        "final_model",
+        "selected_threshold",
+        "selected_test_recall",
+        "selected_test_precision",
+        "selected_test_accuracy",
+        "model_mode_main",
+        "artifact_build_date",
+        "artifact_version",
+        "notes"
+      ]
+    }
+  },
+  "optional_artifacts": {
+    "employee_shap_sample.parquet": {
+      "format": "parquet",
+      "required_columns": [
+        "employee_id_v2",
+        "feature",
+        "shap_value",
+        "feature_value",
+        "model_mode"
+      ]
+    },
+    "pr_curve_points.parquet": {
+      "format": "parquet",
+      "required_columns": [
+        "model",
+        "recall",
+        "precision",
+        "model_mode"
+      ]
+    },
+    "model_modes_summary.json": {
+      "format": "json",
+      "required_fields": [
+        "operational_feature_inclusion_summary",
+        "survey_rich_feature_inclusion_summary",
+        "explanatory_notes",
+        "deployment_notes",
+        "comparison_notes"
+      ]
+    }
+  }
+}
