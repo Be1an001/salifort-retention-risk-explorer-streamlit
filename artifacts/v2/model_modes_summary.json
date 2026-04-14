@@ -1,0 +1,12 @@
+{
+  "operational": {
+    "feature_inclusion_summary": "Removes direct satisfaction-based modeling features and keeps the more deployment-like public workflow.",
+    "deployment_notes": "This is the main public mode used by the Streamlit app and the preferred default for offline artifact generation."
+  },
+  "survey_rich": {
+    "feature_inclusion_summary": "Keeps stronger explanatory survey-driven features such as burnout_index and effort_reward_gap.",
+    "deployment_notes": "Useful for comparison and interpretation, but not the main public deployment framing."
+  },
+  "comparison_notes": "Both modes come from the trusted sibling modeling workflow. The operational mode is the main public version in this Streamlit repo.",
+  "source_workflow": "C:\\Users\\akbak\\OneDrive\\Documents\\GitHub\\salifort-motors-attrition-modeling-python\\scripts\\02_salifort_motors_capstone_portfolio_project.py"
+}

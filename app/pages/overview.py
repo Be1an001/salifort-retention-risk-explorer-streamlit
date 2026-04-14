@@ -2,13 +2,19 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app.utils.load_data import get_figure_paths, load_preferred_metadata, load_v2_metadata
+from app.utils.load_data import (
+    get_figure_paths,
+    load_preferred_metadata,
+    load_v2_employee_scores,
+    load_v2_metadata,
+)
 
 
 def render() -> None:
     figures = get_figure_paths()
     metadata = load_preferred_metadata()
     using_v2_metadata = load_v2_metadata() is not None
+    using_v2_rows = load_v2_employee_scores() is not None
 
     def format_percent(value: float) -> str:
         percent_value = value * 100 if value <= 1 else value
@@ -56,9 +62,13 @@ def render() -> None:
         st.subheader("Interview Explanation")
         st.info(
             "This app is the public operational layer of the Salifort Motors portfolio project. "
-            "It is lightweight by design: the interactive explorer uses a separate V1 screening proxy "
-            "for deployment simplicity, while the weighted XGBoost model, threshold choice, and SHAP "
-            "story come from the documented original workflow and checked-in artifacts."
+            "It is lightweight by design: the weighted XGBoost model, threshold choice, and SHAP "
+            "story come from the documented original workflow and checked-in artifacts. "
+            + (
+                "The current runtime is using precomputed V2 row-level artifacts for supported explorer views."
+                if using_v2_rows
+                else "When precomputed V2 row-level artifacts are absent, the explorer falls back to a separate V1 screening proxy for deployment simplicity."
+            )
         )
 
     with right_col:

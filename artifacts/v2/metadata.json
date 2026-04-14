@@ -1,0 +1,23 @@
+{
+  "project_name": "Salifort Motors Retention Risk Explorer",
+  "project_subtitle": "Operational HR Analytics Decision App",
+  "dataset_rows_raw": 14999,
+  "duplicates_removed": 3008,
+  "dataset_rows_clean": 11991,
+  "attrition_rate_clean": 0.1660411975648403,
+  "final_model": "weighted XGBoost",
+  "selected_threshold": 0.29,
+  "selected_test_recall": 0.9371859296482412,
+  "selected_test_precision": 0.8179824561403509,
+  "selected_test_accuracy": 0.9549812421842434,
+  "model_mode_main": "operational",
+  "artifact_build_date": "2026-04-14T19:56:51.002457+00:00",
+  "artifact_version": "v2-offline-operational",
+  "notes": [
+    "Built outside Streamlit runtime from the trusted exported modeling workflow.",
+    "Source workflow: C:\\Users\\akbak\\OneDrive\\Documents\\GitHub\\salifort-motors-attrition-modeling-python\\scripts\\02_salifort_motors_capstone_portfolio_project.py",
+    "Threshold selected using the false-negative-heavy cost rule from the source workflow.",
+    "Public operational source-of-truth in the sibling repo README and walkthrough frames the final public version as weighted XGBoost at threshold 0.29.",
+    "Local rerun metric leader was rf_balanced at 0.27."
+  ]
+}

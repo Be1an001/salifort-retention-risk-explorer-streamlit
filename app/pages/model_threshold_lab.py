@@ -13,6 +13,7 @@ from app.utils.load_data import (
     get_runtime_mode_label,
     load_preferred_metadata,
     load_v2_confusion_matrix,
+    load_v2_pr_curve_points,
     load_v2_threshold_curve,
     load_v2_validation_model_comparison,
 )
@@ -29,6 +30,7 @@ def render() -> None:
     threshold_curve = load_v2_threshold_curve()
     validation_comparison = load_v2_validation_model_comparison()
     confusion_matrix = load_v2_confusion_matrix()
+    pr_curve_points = load_v2_pr_curve_points()
 
     has_core_v2_model_tables = artifacts_available(
         [
@@ -69,11 +71,23 @@ def render() -> None:
 
     with first_row[1]:
         st.subheader("Precision-Recall Context")
-        st.image(
-            str(figures["08_validation_pr_curves"]),
-            caption="Precision-recall curves for model comparison.",
-            use_container_width=True,
-        )
+        if pr_curve_points is not None and not pr_curve_points.empty and {"model", "recall", "precision"}.issubset(pr_curve_points.columns):
+            if px is not None:
+                fig = px.line(
+                    pr_curve_points,
+                    x="recall",
+                    y="precision",
+                    color="model",
+                )
+                fig.update_layout(margin=dict(l=0, r=0, t=10, b=0))
+                st.plotly_chart(fig, use_container_width=True)
+            st.dataframe(pr_curve_points, use_container_width=True, hide_index=True)
+        else:
+            st.image(
+                str(figures["08_validation_pr_curves"]),
+                caption="Precision-recall curves for model comparison.",
+                use_container_width=True,
+            )
 
     second_row = st.columns(2, gap="large")
     with second_row[0]:

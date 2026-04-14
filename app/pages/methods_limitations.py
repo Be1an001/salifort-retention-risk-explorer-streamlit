@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app.utils.load_data import get_runtime_mode_summary
+from app.utils.load_data import get_runtime_mode_summary, load_v2_employee_scores
 
 
 def render() -> None:
     st.title("Methods & Limitations")
-    st.caption("Scope, workflow, and deployment notes for the deployment-focused V1 portfolio app.")
+    st.caption("Scope, workflow, and deployment notes for the deployment-focused portfolio app.")
 
     runtime_summary = get_runtime_mode_summary()
+    using_v2_rows = load_v2_employee_scores() is not None
     if runtime_summary["mode"] == "full_v2_artifact_mode":
         st.caption(
             f"Current runtime mode: {runtime_summary['label']}. "
@@ -32,7 +33,7 @@ def render() -> None:
         "- Clean the checked-in HR dataset and remove duplicate records.\n"
         "- Use notebook-built project artifacts to summarize EDA, validation, threshold tuning, and explainability.\n"
         "- Present the operational model story through a lightweight, deployment-focused Streamlit app.\n"
-        "- Use a deterministic V1 screening proxy so the Workforce Explorer stays interactive without in-app retraining."
+        "- Use precomputed V2 artifacts when they are available, with a deterministic V1 screening proxy fallback for interactive exploration when row-level artifacts are absent."
     )
 
     st.subheader("Operational vs Survey-Rich Note")
@@ -53,12 +54,19 @@ def render() -> None:
         "That improves reproducibility, removes infrastructure friction for reviewers, and keeps deployment simple because the app can load everything it needs from version-controlled files."
     )
 
-    st.subheader("V1 App Limitations")
+    st.subheader("Current App Limitations")
+    explorer_limit_note = (
+        "- The Workforce Explorer is currently using precomputed V2 row-level outputs where they are available, but still falls back to the deterministic V1 screening proxy if those artifacts are missing.\n"
+        if using_v2_rows
+        else "- The Workforce Explorer uses a deterministic V1 screening proxy for interactivity, not the deployed weighted XGBoost probability.\n"
+    )
     st.markdown(
-        "- Advanced model visuals are displayed from existing project artifacts rather than regenerated inside the app.\n"
-        "- The app does not retrain models or recalculate SHAP values during runtime.\n"
-        "- The Workforce Explorer uses a deterministic V1 screening proxy for interactivity, not the deployed weighted XGBoost probability.\n"
-        "- This is an educational portfolio project, not a real company HR system, audit, or production employment workflow."
+        (
+            "- Advanced model visuals are displayed from existing project artifacts rather than regenerated inside the app.\n"
+            "- The app does not retrain models or recalculate SHAP values during runtime.\n"
+            + explorer_limit_note
+            + "- This is an educational portfolio project, not a real company HR system, audit, or production employment workflow."
+        )
     )
 
     st.subheader("How V2 Artifact Support Changes This")

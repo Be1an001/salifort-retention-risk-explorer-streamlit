@@ -276,11 +276,16 @@ def prepare_v2_employee_scores(df: pd.DataFrame | None) -> pd.DataFrame | None:
     if "project_intensity" not in prepared.columns and "number_project" in prepared.columns:
         prepared["project_intensity"] = _derive_project_intensity(prepared["number_project"])
     elif "project_intensity" in prepared.columns:
-        prepared["project_intensity"] = pd.Categorical(
-            prepared["project_intensity"].astype(str),
-            categories=PROJECT_INTENSITY_ORDER,
-            ordered=True,
-        )
+        if pd.api.types.is_numeric_dtype(prepared["project_intensity"]):
+            prepared["project_intensity_value"] = prepared["project_intensity"]
+            if "number_project" in prepared.columns:
+                prepared["project_intensity"] = _derive_project_intensity(prepared["number_project"])
+        else:
+            prepared["project_intensity"] = pd.Categorical(
+                prepared["project_intensity"].astype(str),
+                categories=PROJECT_INTENSITY_ORDER,
+                ordered=True,
+            )
 
     if "attrition_label" not in prepared.columns and "left" in prepared.columns:
         prepared["attrition_label"] = prepared["left"].map({0: "Retained", 1: "Exited"})
