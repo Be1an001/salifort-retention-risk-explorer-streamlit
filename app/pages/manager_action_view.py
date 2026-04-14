@@ -38,7 +38,39 @@ def render() -> None:
                     yaxis_title="Department",
                 )
                 st.plotly_chart(fig, use_container_width=True)
-            st.dataframe(department_exposure, use_container_width=True, hide_index=True)
+            st.caption(
+                f"Using precomputed department exposure at threshold {float(department_exposure['selected_threshold'].iloc[0]):.2f} "
+                f"for `{department_exposure['model_mode'].iloc[0]}` mode."
+                if {"selected_threshold", "model_mode"}.issubset(department_exposure.columns)
+                else "Using precomputed department exposure artifact."
+            )
+            exposure_view = department_exposure.rename(
+                columns={
+                    "department": "Department",
+                    "headcount": "Headcount",
+                    "observed_attrition_rate": "Observed Attrition Rate",
+                    "avg_predicted_attrition": "Avg Predicted Attrition",
+                    "high_risk_employees": "High-Risk Employees",
+                    "exposure_index": "Exposure Index",
+                    "exposure_per_100_employees": "Exposure per 100 Employees",
+                    "selected_threshold": "Selected Threshold",
+                    "model_mode": "Model Mode",
+                }
+            )
+            st.dataframe(
+                exposure_view,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Headcount": st.column_config.NumberColumn(format="%d"),
+                    "Observed Attrition Rate": st.column_config.NumberColumn(format="%.1f%%"),
+                    "Avg Predicted Attrition": st.column_config.NumberColumn(format="%.1f%%"),
+                    "High-Risk Employees": st.column_config.NumberColumn(format="%d"),
+                    "Exposure Index": st.column_config.NumberColumn(format="%.2f"),
+                    "Exposure per 100 Employees": st.column_config.NumberColumn(format="%.2f"),
+                    "Selected Threshold": st.column_config.NumberColumn(format="%.2f"),
+                },
+            )
         else:
             st.image(
                 str(figures["11_department_exposure_total_normalized"]),

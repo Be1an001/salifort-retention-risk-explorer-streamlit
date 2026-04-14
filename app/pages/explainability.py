@@ -56,18 +56,31 @@ def render() -> None:
             f"Using precomputed V2 SHAP importance data for `{model_name}` in `{model_mode}` mode."
         )
         shap_view = shap_importance.sort_values("rank").copy()
+        display_view = shap_view.copy()
+        if "feature" in display_view.columns:
+            display_view["feature"] = display_view["feature"].map(_humanize_feature_name)
         if px is not None and {"feature", "mean_abs_shap"}.issubset(shap_view.columns):
             chart_df = shap_view.sort_values("mean_abs_shap", ascending=True)
+            chart_df = chart_df.assign(feature_label=chart_df["feature"].map(_humanize_feature_name))
             fig = px.bar(
                 chart_df,
                 x="mean_abs_shap",
-                y="feature",
+                y="feature_label",
                 orientation="h",
                 color="rank" if "rank" in chart_df.columns else None,
             )
             fig.update_layout(margin=dict(l=0, r=0, t=10, b=0), xaxis_title="Mean |SHAP|")
             st.plotly_chart(fig, use_container_width=True)
-        st.dataframe(shap_view, use_container_width=True, hide_index=True)
+        st.dataframe(
+            display_view,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "feature": st.column_config.TextColumn("Feature"),
+                "mean_abs_shap": st.column_config.NumberColumn("Mean |SHAP|", format="%.3f"),
+                "rank": st.column_config.NumberColumn("Rank", format="%d"),
+            },
+        )
     else:
         st.caption("Using the V1 SHAP presentation visuals because no V2 SHAP data artifact is present.")
         st.image(
@@ -102,6 +115,7 @@ def render() -> None:
             for feature in top_features
         ]
         st.markdown("\n".join(bullet_lines))
+        st.caption("The list above is driven by the current artifact-backed SHAP ranking rather than a static canned summary.")
     else:
         st.markdown(
             "- Satisfaction level: lower satisfaction is one of the clearest warning signals.\n"
