@@ -15,6 +15,29 @@ from app.utils.load_data import (
 )
 
 
+FEATURE_EXPLANATIONS = {
+    "tenure_x_projects": "Tenure x projects: sustained workload over time is a leading driver in the operational model.",
+    "last_evaluation": "Last evaluation: stronger evaluation signals can align with elevated review attention when paired with workload patterns.",
+    "average_monthly_hours": "Average monthly hours: longer sustained hours reinforce workload pressure.",
+    "number_project": "Number of projects: heavier project load increases model concern, especially at the upper end.",
+    "project_intensity": "Project intensity: the hours-to-project mix helps the model distinguish concentrated workload pressure from normal variation.",
+    "career_stall_flag": "Career stall flag: longer tenure without promotion contributes to screening concern.",
+    "tenure": "Tenure: time at the company matters differently depending on project load and progression history.",
+    "salary_level": "Salary level: lower pay context can contribute to elevated screening risk in the operational workflow.",
+    "work_accident": "Work accident: the model uses accident history as part of the broader employment-pattern context, not as a standalone causal claim.",
+    "undervalued_flag": "Undervalued flag: high effort with limited advancement remains one of the practical warning patterns.",
+    "overworked": "Overworked flag: long hours above the operational workload cutoff reinforce the screening signal.",
+    "promotion_last_5years": "Promotion history: stalled progression remains part of the model's interpretation layer.",
+}
+
+
+def _humanize_feature_name(feature: str) -> str:
+    if feature.startswith("department_"):
+        department_name = feature.replace("department_", "").replace("_", " ")
+        return f"Department ({department_name})"
+    return feature.replace("_", " ").title()
+
+
 def render() -> None:
     figures = get_figure_paths()
     shap_importance = load_v2_shap_importance()
@@ -22,12 +45,16 @@ def render() -> None:
 
     st.title("Explainability")
     st.caption(
-        "Model interpretation view using existing SHAP artifacts from the original project presentation layer."
+        "Model interpretation view using SHAP artifacts from the trusted offline workflow and original project presentation layer."
     )
     st.caption(f"Runtime mode: {get_runtime_mode_label()}.")
 
     if shap_importance is not None and not shap_importance.empty:
-        st.caption("Using precomputed V2 SHAP importance data where available.")
+        model_name = shap_importance["model_name"].iloc[0] if "model_name" in shap_importance.columns else "selected model"
+        model_mode = shap_importance["model_mode"].iloc[0] if "model_mode" in shap_importance.columns else "current mode"
+        st.caption(
+            f"Using precomputed V2 SHAP importance data for `{model_name}` in `{model_mode}` mode."
+        )
         shap_view = shap_importance.sort_values("rank").copy()
         if px is not None and {"feature", "mean_abs_shap"}.issubset(shap_view.columns):
             chart_df = shap_view.sort_values("mean_abs_shap", ascending=True)
@@ -68,13 +95,21 @@ def render() -> None:
         )
 
     st.subheader("Top Drivers in Plain Language")
-    st.markdown(
-        "- Satisfaction level: lower satisfaction is one of the clearest warning signals.\n"
-        "- Number of projects: heavier project load increases model concern, especially at the upper end.\n"
-        "- Average monthly hours: long sustained work hours reinforce workload pressure.\n"
-        "- Tenure: longer time at the company can matter differently depending on promotion history and workload.\n"
-        "- Promotion history and salary context: stalled progression and lower pay bands contribute to screening risk."
-    )
+    if shap_importance is not None and not shap_importance.empty:
+        top_features = shap_importance.sort_values("rank").head(6)["feature"].tolist()
+        bullet_lines = [
+            f"- {_humanize_feature_name(feature)}: {FEATURE_EXPLANATIONS.get(feature, 'This feature is one of the stronger contributors in the current operational explanation layer.')}"
+            for feature in top_features
+        ]
+        st.markdown("\n".join(bullet_lines))
+    else:
+        st.markdown(
+            "- Satisfaction level: lower satisfaction is one of the clearest warning signals.\n"
+            "- Number of projects: heavier project load increases model concern, especially at the upper end.\n"
+            "- Average monthly hours: long sustained work hours reinforce workload pressure.\n"
+            "- Tenure: longer time at the company can matter differently depending on promotion history and workload.\n"
+            "- Promotion history and salary context: stalled progression and lower pay bands contribute to screening risk."
+        )
 
     st.subheader("How to Interpret These Visuals")
     st.markdown(
