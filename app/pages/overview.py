@@ -15,6 +15,9 @@ def render() -> None:
     metadata = load_preferred_metadata()
     using_v2_metadata = load_v2_metadata() is not None
     using_v2_rows = load_v2_employee_scores() is not None
+    final_model_display = (
+        "Weighted XGBoost" if str(metadata["final_model"]).strip().lower() == "weighted xgboost" else str(metadata["final_model"])
+    )
 
     def format_percent(value: float) -> str:
         percent_value = value * 100 if value <= 1 else value
@@ -34,11 +37,12 @@ def render() -> None:
         "responsible retention action without turning the workflow into an automated HR decision engine?"
     )
 
-    top_row = st.columns(4)
+    top_row = st.columns(3)
     top_row[0].metric("Rows After Cleaning", f"{int(metadata['dataset_rows_clean']):,}")
     top_row[1].metric("Attrition Rate", format_percent(float(metadata["attrition_rate_clean"])))
     top_row[2].metric("Duplicates Removed", f"{int(metadata['duplicates_removed']):,}")
-    top_row[3].metric("Final Model", str(metadata["final_model"]))
+
+    st.markdown(f"**Final Model:** {final_model_display}")
 
     bottom_row = st.columns(4)
     bottom_row[0].metric("Decision Threshold", f"{float(metadata['selected_threshold']):.2f}")
