@@ -73,9 +73,9 @@ V2_REQUIRED_ARTIFACTS = (
 )
 
 RUNTIME_MODE_LABELS = {
-    "v1_fallback_mode": "V1 fallback mode",
-    "partial_v2_artifact_mode": "partial V2 artifact mode",
-    "full_v2_artifact_mode": "full V2 artifact mode",
+    "v1_fallback_mode": "fallback",
+    "partial_v2_artifact_mode": "mixed artifact",
+    "full_v2_artifact_mode": "artifact-backed",
 }
 
 V2_ROW_KEY_SOURCE_COLUMNS = [

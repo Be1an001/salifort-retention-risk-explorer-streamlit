@@ -26,9 +26,9 @@ def render() -> None:
     st.title("Salifort Motors Retention Risk Explorer")
     st.caption("Operational HR Analytics Decision App")
     st.caption(
-        "Runtime status: using V2 metadata artifacts."
+        "Runtime status: using generated project metadata."
         if using_v2_metadata
-        else "Runtime status: using V1 fallback project metrics."
+        else "Runtime status: using built-in project metrics."
     )
 
     st.markdown(
@@ -55,23 +55,22 @@ def render() -> None:
     left_col, right_col = st.columns([1.05, 0.95], gap="large")
 
     with left_col:
-        st.subheader("Why this project is strong")
+        st.subheader("Project Summary")
         st.markdown(
-            "- It turns the broader portfolio workflow into a clear public operational app layer.\n"
-            "- It keeps the deployment footprint intentionally lightweight for local runs and Streamlit Community Cloud.\n"
-            "- It separates interactive workforce exploration from the heavier original modeling workflow.\n"
-            "- It keeps the focus on threshold choice, workforce exposure, and responsible use."
+            "- It brings the dataset, model outputs, and explanation layer into one clear decision-support app.\n"
+            "- It keeps the app simple to run locally and easy to deploy without external services.\n"
+            "- It separates offline model building from the app runtime, which keeps the web app stable and readable.\n"
+            "- It focuses on threshold choice, department exposure, and responsible review."
         )
 
-        st.subheader("Interview Explanation")
+        st.subheader("About This App")
         st.info(
-            "This app is the public operational layer of the Salifort Motors portfolio project. "
-            "It is lightweight by design: the weighted XGBoost model, threshold choice, and SHAP "
-            "story come from the documented original workflow and checked-in artifacts. "
+            "This app presents the operational side of the Salifort Motors attrition project. "
+            "The weighted XGBoost model, threshold choice, and SHAP results come from the documented offline workflow and generated project artifacts. "
             + (
-                "The current runtime is using precomputed V2 row-level artifacts for supported explorer views."
+                "The current runtime is using generated row-level artifacts for supported explorer views."
                 if using_v2_rows
-                else "When precomputed V2 row-level artifacts are absent, the explorer falls back to a separate V1 screening proxy for deployment simplicity."
+                else "When generated row-level artifacts are not available, the explorer falls back to a lighter screening view."
             )
         )
 

@@ -37,10 +37,10 @@ def render() -> None:
             )
             st.plotly_chart(fig, use_container_width=True)
         st.caption(
-            f"Using precomputed department exposure at threshold {float(department_exposure['selected_threshold'].iloc[0]):.2f} "
-            f"for `{department_exposure['model_mode'].iloc[0]}` mode."
+            f"Using generated department exposure at threshold {float(department_exposure['selected_threshold'].iloc[0]):.2f} "
+            f"for {department_exposure['model_mode'].iloc[0]} mode."
             if {"selected_threshold", "model_mode"}.issubset(department_exposure.columns)
-            else "Using precomputed department exposure artifact."
+            else "Using generated department exposure data."
         )
         exposure_view = department_exposure.rename(
             columns={
@@ -89,7 +89,7 @@ def render() -> None:
         "Together, they help answer two different questions: where the biggest operational burden sits, and where the highest intensity of concern appears."
     )
 
-    st.subheader("Practical HR Action Levers")
+    st.subheader("Practical Review Priorities")
     st.markdown(
         "- Prioritize manager review in departments that are high on both total and normalized exposure.\n"
         "- Use the threshold view to size review queues deliberately rather than treating every flagged employee the same way.\n"

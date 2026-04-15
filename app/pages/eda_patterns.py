@@ -14,7 +14,7 @@ def _show_figure(figure_key: str, caption: str, interpretation: str) -> None:
 def render() -> None:
     st.title("EDA & Patterns")
     st.caption(
-        "Selected notebook-exported and curated project visuals used here as stable reference artifacts for the V1 app."
+        "Selected project visuals from the analysis workflow, shown here as stable reference figures."
     )
 
     workload_tab, structure_tab, tenure_tab = st.tabs(

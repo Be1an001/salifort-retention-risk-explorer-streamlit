@@ -54,12 +54,12 @@ def render() -> None:
     )
 
     st.title("Model & Threshold Lab")
-    st.caption("Public operational model view using existing project artifacts rather than in-app retraining.")
+    st.caption("Model comparison and threshold review using generated project tables and reference figures.")
     st.caption(f"Runtime mode: {get_runtime_mode_label()}.")
     st.caption(
-        "This page is using precomputed V2 model tables where available."
+        "This page is using generated model tables where they are available."
         if has_core_v2_model_tables
-        else "This page is using V1 static visuals for any model sections that do not yet have V2 artifacts."
+        else "This page is using reference visuals for sections that do not yet have generated tables."
     )
 
     st.markdown(f"**Champion Model:** {_pretty_model_name(str(metadata['final_model']))}")
@@ -259,8 +259,8 @@ def render() -> None:
         "That trade-off belongs in the operating design, not just inside model training."
     )
 
-    st.subheader("Why the Operational Version Is the Main Public Version")
+    st.subheader("Why the Operational View Matters")
     st.info(
-        "The portfolio app emphasizes the operational version because it best communicates how a model supports decision-making in practice: "
-        "compare trade-offs, choose a threshold intentionally, and hand managers an early-warning view instead of an automated verdict."
+        "This app focuses on the operational view because it shows how the model supports review in practice: "
+        "compare trade-offs, choose a threshold intentionally, and give managers an early-warning view rather than an automated verdict."
     )

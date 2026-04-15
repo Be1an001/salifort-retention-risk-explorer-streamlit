@@ -1,18 +1,18 @@
-# V2 Precomputed Artifact Contract
+# Generated Artifact Guide
 
-This directory is reserved for future precomputed V2 artifacts used by the Streamlit app.
+This directory stores the generated files used by the Streamlit app.
 
-The current deployed app must continue to run when these files are absent. Streamlit runtime should only read these artifacts when they are present. It should not regenerate model outputs, infer values from images, or retrain models.
+The app should continue to run when these files are absent. Streamlit runtime should only read them when they are present. It should not regenerate model outputs, infer values from images, or retrain models.
 
 ## Runtime policy
 
-- Current behavior: V1 fallback remains active when `artifacts/v2/` is empty.
-- Future behavior: the app may selectively load precomputed V2 artifacts when they are available.
+- Fallback behavior remains active when `artifacts/v2/` is empty.
+- The app may selectively load generated files when they are available.
 - Artifact generation should happen outside Streamlit runtime in an offline modeling or packaging workflow.
 
 ## Stable row-key strategy
 
-Future row-level V2 artifacts should use `employee_id_v2` as the primary join key.
+Row-level generated files should use `employee_id_v2` as the primary join key.
 
 `employee_id_v2` is defined in the app loader as a deterministic hash of the cleaned row content using these canonical fields:
 
@@ -27,7 +27,7 @@ Future row-level V2 artifacts should use `employee_id_v2` as the primary join ke
 - `department`
 - `salary`
 
-This avoids relying on row order and is safer for joining future `employee_scores.parquet` outputs back into the app.
+This avoids relying on row order and is safer for joining `employee_scores.parquet` outputs back into the app.
 
 ## Required artifacts
 
@@ -48,7 +48,7 @@ This avoids relying on row order and is safer for joining future `employee_score
 ## Contract files in this directory
 
 - `metadata.template.json`: starter template for the required metadata artifact
-- `schemas/artifact_contract.json`: machine-friendly schema contract for required and optional V2 artifacts
+- `schemas/artifact_contract.json`: machine-friendly schema contract for required and optional generated files
 
 ## Offline builder
 
@@ -62,7 +62,7 @@ It is designed to run outside Streamlit runtime and uses the trusted sibling mod
 
 The builder uses this repo's checked-in CSV at `data/hr_capstone_dataset.csv`, mirrors the cleaned-column conventions already used by the app, and reuses the deterministic `employee_id_v2` row-key strategy from `app/utils/load_data.py`.
 
-For `--model-mode operational`, the builder preserves the public operational source-of-truth framing from the sibling portfolio repo: the published artifact-backed selection is weighted XGBoost at threshold `0.29`. The builder still writes the full rerun validation comparison table so any local metric drift remains visible.
+For `--model-mode operational`, the builder preserves the public operational source-of-truth framing from the sibling project repo: the published selection is weighted XGBoost at threshold `0.29`. The builder still writes the full rerun validation comparison table so any local metric drift remains visible.
 
 ## How to run
 

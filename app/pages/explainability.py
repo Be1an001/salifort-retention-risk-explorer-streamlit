@@ -38,6 +38,14 @@ def _humanize_feature_name(feature: str) -> str:
     return feature.replace("_", " ").title()
 
 
+def _humanize_model_name(model_name: str) -> str:
+    mapping = {
+        "xgb_weighted": "Weighted XGBoost",
+        "weighted XGBoost": "Weighted XGBoost",
+    }
+    return mapping.get(model_name, model_name.replace("_", " ").title())
+
+
 def render() -> None:
     figures = get_figure_paths()
     shap_importance = load_v2_shap_importance()
@@ -45,7 +53,7 @@ def render() -> None:
 
     st.title("Explainability")
     st.caption(
-        "Model interpretation view using SHAP artifacts from the trusted offline workflow and original project presentation layer."
+        "Model interpretation view using generated SHAP outputs and selected project visuals."
     )
     st.caption(f"Runtime mode: {get_runtime_mode_label()}.")
 
@@ -53,7 +61,7 @@ def render() -> None:
         model_name = shap_importance["model_name"].iloc[0] if "model_name" in shap_importance.columns else "selected model"
         model_mode = shap_importance["model_mode"].iloc[0] if "model_mode" in shap_importance.columns else "current mode"
         st.caption(
-            f"Using precomputed V2 SHAP importance data for `{model_name}` in `{model_mode}` mode."
+            f"Using generated SHAP importance data for {_humanize_model_name(str(model_name))} in {model_mode} mode."
         )
         shap_view = shap_importance.sort_values("rank").copy()
         display_view = shap_view.copy()
@@ -82,7 +90,7 @@ def render() -> None:
             },
         )
     else:
-        st.caption("Using the V1 SHAP presentation visuals because no V2 SHAP data artifact is present.")
+        st.caption("Using the reference SHAP visuals because no generated SHAP table is present.")
         st.image(
             str(figures["16_exec_summary_shap"]),
             caption="Executive SHAP summary view.",
@@ -104,7 +112,7 @@ def render() -> None:
     if employee_shap_sample is not None and not employee_shap_sample.empty:
         st.caption(
             f"Optional row-level SHAP sample detected ({len(employee_shap_sample):,} rows). "
-            "This is ready for a future deeper employee-level drilldown."
+            "This can support a future employee-level drilldown."
         )
 
     st.subheader("Top Drivers in Plain Language")
@@ -115,7 +123,7 @@ def render() -> None:
             for feature in top_features
         ]
         st.markdown("\n".join(bullet_lines))
-        st.caption("The list above is driven by the current artifact-backed SHAP ranking rather than a static canned summary.")
+        st.caption("The list above follows the current SHAP ranking from the generated artifact.")
     else:
         st.markdown(
             "- Satisfaction level: lower satisfaction is one of the clearest warning signals.\n"
@@ -127,8 +135,8 @@ def render() -> None:
 
     st.subheader("How to Interpret These Visuals")
     st.markdown(
-        "These SHAP visuals or tables are included to communicate model logic from the broader portfolio workflow. "
-        "In this public app, they support the explanation layer while the main framing remains the operational decision-support version focused on screening, threshold choice, and manager review."
+        "These SHAP visuals and tables help explain how the model is making distinctions in the project workflow. "
+        "In this app, they support the explanation layer while the main focus remains screening, threshold choice, and manager review."
     )
 
     st.warning(

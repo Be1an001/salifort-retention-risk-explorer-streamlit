@@ -203,25 +203,25 @@ def render() -> None:
 
     use_v2_rows = _is_valid_v2_employee_scores(v2_df)
     base_df = v2_df if use_v2_rows else v1_df
-    row_mode_label = "V2 precomputed model outputs" if use_v2_rows else "V1 screening proxy"
+    row_mode_label = "generated model outputs" if use_v2_rows else "screening score fallback"
     high_risk_column = "high_risk_flag" if use_v2_rows else "high_risk_flag_v1"
     risk_metric_label = "Avg Predicted Attrition" if use_v2_rows else "Avg Screening Score"
 
     _initialize_filters(base_df)
 
     st.title("Workforce Explorer")
-    st.caption("Interactive workforce screening view built on the cleaned Salifort Motors dataset.")
+    st.caption("Interactive workforce review built on the cleaned Salifort Motors dataset.")
     st.caption(f"Runtime mode: {get_runtime_mode_label()}. Row-level source: {row_mode_label}.")
 
     if use_v2_rows:
         st.info(
-            "This page is using precomputed V2 row-level model outputs when available. "
-            "If a required V2 artifact is missing or incomplete, it falls back to the V1 screening proxy."
+            "This page is using generated row-level model outputs when they are available. "
+            "If a required file is missing or incomplete, it falls back to a simpler screening score for exploration."
         )
     else:
         st.warning(
-            "The score shown on this page is a V1 app-facing screening proxy for exploration only. "
-            "It is not the deployed weighted XGBoost probability and should not be interpreted as the production model output."
+            "The score shown on this page is a lightweight screening score for exploration only. "
+            "It is not the final weighted XGBoost probability and should not be treated as the main model output."
         )
 
     with st.sidebar:
@@ -242,7 +242,7 @@ def render() -> None:
             key="tenure_band_filter",
         )
         st.checkbox(
-            "Show selected-threshold employees only" if use_v2_rows else "Show high-risk proxy only",
+            "Show selected-threshold employees only" if use_v2_rows else "Show high screening score only",
             key="high_risk_only",
         )
 
@@ -255,13 +255,13 @@ def render() -> None:
     if use_v2_department_artifact:
         summary = _prepare_v2_department_artifact_summary(v2_department_exposure)
         summary = summary[summary["Department"].isin(st.session_state.department_filter)].copy()
-        summary_source_label = "V2 department exposure artifact"
+        summary_source_label = "generated department exposure file"
     elif use_v2_rows:
         summary = _build_v2_department_summary_from_rows(filtered)
-        summary_source_label = "V2 row-level aggregation"
+        summary_source_label = "row-level aggregation"
     else:
         summary = _build_v1_department_summary(filtered)
-        summary_source_label = "V1 proxy aggregation"
+        summary_source_label = "screening-score aggregation"
 
     headcount = int(filtered.shape[0])
     observed_attrition_rate = float(filtered["left"].mean() * 100) if headcount else 0.0
@@ -320,16 +320,16 @@ def render() -> None:
         st.subheader("How to Read This View")
         if use_v2_rows:
             st.markdown(
-                "- This view is using precomputed row-level attrition probabilities when the V2 artifact is present.\n"
-                "- `selected_threshold_flag` drives the high-risk filter and high-risk count.\n"
-                "- The exposure index comes from the precomputed risk-cost exposure field in the artifact.\n"
-                "- Department summaries use the dedicated exposure artifact when the current filters stay at the department level; otherwise they are rebuilt from the filtered row-level data."
+                "- This view is using generated row-level attrition probabilities.\n"
+                "- The selected-threshold flag drives the flagged-employee filter and flagged count.\n"
+                "- The exposure index comes from the generated risk-cost exposure field.\n"
+                "- Department summaries use the generated exposure file when the current filters stay at the department level; otherwise they are rebuilt from the filtered row-level data."
             )
         else:
             st.markdown(
-                "- The proxy score emphasizes low satisfaction, heavy workload, long tenure without promotion, and lower salary bands.\n"
-                "- `high_risk_flag_v1` marks employees at or above the V1 screening cutoff for exploration.\n"
-                "- The exposure index scales the proxy score by a simple salary cost weight to help compare screening concentration across teams.\n"
+                "- The fallback score emphasizes low satisfaction, heavy workload, long tenure without promotion, and lower salary bands.\n"
+                "- The fallback flag marks employees at or above the fallback screening cutoff for exploration.\n"
+                "- The exposure index scales the fallback score by a simple salary cost weight to help compare screening concentration across teams.\n"
                 "- Use this page to triage where to investigate, not to make case-level employment decisions."
             )
 
@@ -383,7 +383,7 @@ def render() -> None:
                 "promotion_last_5years": "Promoted In Last 5 Years",
                 "attrition_label": "Observed Outcome",
                 "attrition_probability": "Predicted Attrition",
-                "high_risk_flag": "Selected Threshold Flag",
+                "high_risk_flag": "Flagged at Selected Threshold",
                 "risk_cost_exposure_index": "Risk-Cost Exposure Index",
             }
         )
@@ -423,14 +423,14 @@ def render() -> None:
                 "satisfaction_level": "Satisfaction",
                 "promotion_last_5years": "Promoted In Last 5 Years",
                 "attrition_label": "Observed Outcome",
-                "screening_score_v1": "V1 Screening Score",
-                "high_risk_flag_v1": "High-Risk Proxy",
+                "screening_score_v1": "Screening Score",
+                "high_risk_flag_v1": "Fallback Flag",
                 "risk_cost_exposure_index_v1": "Risk-Cost Exposure Index",
             }
         )
         table_config = {
             "Satisfaction": st.column_config.NumberColumn(format="%.2f"),
-            "V1 Screening Score": st.column_config.NumberColumn(format="%.1f"),
+            "Screening Score": st.column_config.NumberColumn(format="%.1f"),
             "Risk-Cost Exposure Index": st.column_config.NumberColumn(format="%.2f"),
         }
 
