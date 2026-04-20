@@ -35,10 +35,17 @@ from app.services.navigator_embedding_index import (
     load_retrieval_index,
 )
 from app.services.navigator_retriever import (
+    RetrievalExpectationGroup,
     RetrievalQuerySpec,
     get_retrieval_evaluation_queries,
     get_retrieval_pack_chunk_count,
     retrieve_governed_chunks,
+)
+from app.services.navigator_answer_assembly import (
+    GovernedAnswerCitation,
+    GovernedAnswerResult,
+    RecommendedPage,
+    assemble_governed_answer,
 )
 from app.services.navigator_types import (
     NavigatorRegistryBundle,
@@ -58,7 +65,12 @@ __all__ = [
     "NavigatorRetrievalIndexNotFoundError",
     "OpenAIEmbeddingConfig",
     "DEFAULT_EMBEDDING_MODEL",
+    "RetrievalExpectationGroup",
     "RetrievalQuerySpec",
+    "GovernedAnswerCitation",
+    "GovernedAnswerResult",
+    "RecommendedPage",
+    "assemble_governed_answer",
     "build_retrieval_pack",
     "build_retrieval_index",
     "clear_navigator_registry_caches",
