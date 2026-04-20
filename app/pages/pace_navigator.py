@@ -4,8 +4,10 @@ import pandas as pd
 import streamlit as st
 
 from app.viewmodels import (
+    build_governed_answer_view,
     build_navigator_page_context,
     build_navigator_topic_drilldown,
+    get_governed_answer_query_options,
     get_drift_records,
 )
 
@@ -97,6 +99,80 @@ def _render_drift_explorer(drift_records: list[dict[str, object]]) -> None:
                 st.markdown("\n".join(f"- {note}" for note in item["notes"]))
 
 
+def _render_recommended_pages(recommended_pages: list[dict[str, object]]) -> None:
+    if not recommended_pages:
+        st.info("No governed page recommendations are available for this query.")
+        return
+
+    for item in recommended_pages:
+        with st.container(border=True):
+            st.markdown(f"**{item['title']}**")
+            st.markdown(f"`/{item['route']}`")
+            st.caption(str(item["reason"]))
+
+
+def _render_citations(citation_rows: list[dict[str, object]]) -> None:
+    if not citation_rows:
+        st.info("No citations are available for this answer.")
+        return
+
+    for item in citation_rows:
+        with st.expander(f"{item['title']} ({item['chunk_id']})", expanded=False):
+            st.markdown(f"**Document ID:** `{item['document_id']}`")
+            st.markdown(f"**Retrieval role:** `{item['retrieval_role']}`")
+            if item["truth_tags"]:
+                st.markdown("**Truth tags:** " + ", ".join(f"`{tag}`" for tag in item["truth_tags"]))
+            if item["drift_tags"]:
+                st.markdown("**Drift tags:** " + ", ".join(f"`{tag}`" for tag in item["drift_tags"]))
+            if item["phase_tags"]:
+                st.markdown("**Phase tags:** " + ", ".join(f"`{tag}`" for tag in item["phase_tags"]))
+            st.markdown("**Source paths:**")
+            st.markdown("\n".join(f"- `{path}`" for path in item["source_paths"]))
+            if item["registry_refs"]:
+                st.markdown("**Registry refs:**")
+                st.markdown("\n".join(f"- `{ref}`" for ref in item["registry_refs"]))
+
+
+def _render_retrieval_inspector(retrieval_rows: list[dict[str, object]]) -> None:
+    if not retrieval_rows:
+        st.info("No retrieval results are available for this query.")
+        return
+
+    table_rows = []
+    for item in retrieval_rows:
+        table_rows.append(
+            {
+                "Rank": item["rank"],
+                "Chunk ID": item["chunk_id"],
+                "Score": item["similarity_score"],
+                "Role": item["retrieval_role"],
+                "Title": item["title"],
+                "Truth Tags": ", ".join(item["truth_tags"]) if item["truth_tags"] else "None",
+                "Drift Tags": ", ".join(item["drift_tags"]) if item["drift_tags"] else "None",
+                "Routes": ", ".join(item["page_routes"]) if item["page_routes"] else "None",
+            }
+        )
+    st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+
+    for item in retrieval_rows:
+        with st.expander(f"Rank {item['rank']} | {item['title']}", expanded=False):
+            st.markdown(f"**Chunk ID:** `{item['chunk_id']}`")
+            st.markdown(f"**Similarity score:** `{item['similarity_score']}`")
+            st.markdown(f"**Authority level:** `{item['authority_level']}`")
+            st.markdown(f"**Retrieval role:** `{item['retrieval_role']}`")
+            st.markdown(f"**Preview:** {item['text_preview']}")
+            if item["page_titles"]:
+                st.markdown("**Page routes:** " + ", ".join(f"`{route}` ({title})" for route, title in zip(item["page_routes"], item["page_titles"])))
+            st.markdown("**Source paths:**")
+            st.markdown("\n".join(f"- `{path}`" for path in item["source_paths"]))
+            if item["registry_refs"]:
+                st.markdown("**Registry refs:**")
+                st.markdown("\n".join(f"- `{ref}`" for ref in item["registry_refs"]))
+            if item["caveats"]:
+                st.markdown("**Caveats:**")
+                st.markdown("\n".join(f"- {note}" for note in item["caveats"]))
+
+
 def render() -> None:
     context = build_navigator_page_context()
     identity_card = context["project_identity_card"]
@@ -118,6 +194,19 @@ def render() -> None:
         help="Choose a governed topic to see deterministic routing, source-of-truth, and drift context.",
     )
     selected_topic = build_navigator_topic_drilldown(topic_label_to_key[selected_topic_label])
+    answer_query_options = get_governed_answer_query_options()
+    answer_query_labels = {
+        item["query"]: f"{item['query']} — {item['description']}"
+        for item in answer_query_options
+    }
+    selected_answer_query = st.selectbox(
+        "Governed answer query",
+        options=[item["query"] for item in answer_query_options],
+        format_func=lambda query: answer_query_labels[query],
+        index=0,
+        help="This is a controlled retrieval/answer viewer, not a free-form chatbot.",
+    )
+    answer_view = build_governed_answer_view(selected_answer_query)
 
     st.title(context["page_title"])
     st.caption(context["page_caption"])
@@ -178,6 +267,86 @@ def render() -> None:
             st.caption(
                 "Related source IDs: " + ", ".join(routing["related_source_ids"])
             )
+
+    st.subheader("Governed Answer Viewer")
+    st.caption(
+        "This section runs the existing governed retrieval and deterministic answer assembly stack for a fixed query set. "
+        "It exposes answer text, drift, citations, coverage, and raw retrieval context side by side."
+    )
+
+    if answer_view["status"] == "blocked":
+        if answer_view["error_kind"] == "missing_api_key":
+            st.warning(answer_view["message"])
+            st.caption(
+                "Set `RAG_STREAMLIT_OPENAI_API_KEY` or `OPENAI_API_KEY` locally. No key is stored in the repo."
+            )
+        elif answer_view["error_kind"] == "missing_index":
+            st.warning(answer_view["message"])
+            st.caption(
+                "Build the governed local retrieval index before using the answer viewer."
+            )
+        else:
+            st.warning(answer_view["message"])
+    elif answer_view["status"] == "error":
+        st.error(answer_view["message"])
+        st.caption(
+            "The viewer did not fabricate an answer. Review the retrieval runtime setup and try again."
+        )
+    else:
+        answer = answer_view["answer"]
+        answer_tabs = st.tabs(
+            [
+                "Answer Summary",
+                "Truth Support",
+                "Drift & Caveats",
+                "Recommended Pages",
+                "Citations",
+                "Retrieval Inspector",
+            ]
+        )
+
+        with answer_tabs[0]:
+            metric_cols = st.columns(3)
+            metric_cols[0].metric("Assembly Status", str(answer["assembly_status"]).replace("_", " ").title())
+            metric_cols[1].metric("Coverage Status", str(answer["coverage_summary"]["status"]).capitalize())
+            metric_cols[2].metric("Retrieved Chunks", str(answer["coverage_summary"]["retrieved_result_count"]))
+            st.markdown(f"### {answer['answer_title']}")
+            st.write(answer["direct_answer"])
+            st.markdown("**Governance flags**")
+            if answer["governance_flags"]:
+                st.markdown("\n".join(f"- `{flag}`" for flag in answer["governance_flags"]))
+            else:
+                st.caption("No additional governance flags were needed for this answer.")
+            with st.expander("Coverage details", expanded=False):
+                st.json(answer["coverage_summary"])
+
+        with answer_tabs[1]:
+            st.markdown("**Supporting points**")
+            if answer["supporting_points"]:
+                st.markdown("\n".join(f"- {item}" for item in answer["supporting_points"]))
+            else:
+                st.info("No supporting points were assembled.")
+            truth_citations = [
+                item for item in answer_view["citation_rows"] if item["truth_tags"]
+            ]
+            if truth_citations:
+                st.markdown("**Canonical truth citations**")
+                _render_citations(truth_citations)
+
+        with answer_tabs[2]:
+            if answer["drift_and_caveats"]:
+                st.markdown("\n".join(f"- {item}" for item in answer["drift_and_caveats"]))
+            else:
+                st.info("No drift or caveat notes were attached to this answer.")
+
+        with answer_tabs[3]:
+            _render_recommended_pages(answer["recommended_pages"])
+
+        with answer_tabs[4]:
+            _render_citations(answer_view["citation_rows"])
+
+        with answer_tabs[5]:
+            _render_retrieval_inspector(answer_view["retrieval_rows"])
 
     st.markdown("**Relevant truth summaries**")
     for truth in selected_topic["truth_summaries"]:

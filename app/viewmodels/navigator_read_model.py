@@ -3,12 +3,20 @@ from __future__ import annotations
 from typing import Any
 
 from app.services import (
+    NavigatorEmbeddingConfigurationError,
+    NavigatorEmbeddingIndexError,
+    NavigatorEmbeddingRequestError,
+    NavigatorRetrievalIndexNotFoundError,
+    OpenAIEmbeddingConfig,
+    assemble_governed_answer,
     get_drift_items,
     get_pace_phase,
+    get_retrieval_evaluation_queries,
     get_runtime_governance_summary,
     get_truth_entries,
     load_all_navigator_registries,
     recommend_page_for_topic,
+    retrieve_governed_chunks,
 )
 
 _PHASE_ORDER = ("plan", "analyze", "construct", "execute")
@@ -104,6 +112,16 @@ _TOPIC_CONFIG = {
         ],
         "phase_name": "construct",
     },
+}
+_ROUTE_TITLES = {
+    "overview": "Overview",
+    "pace-navigator": "PACE Navigator",
+    "workforce-explorer": "Workforce Explorer",
+    "eda-patterns": "EDA & Patterns",
+    "model-threshold-lab": "Model & Threshold Lab",
+    "explainability": "Explainability",
+    "manager-action-view": "Manager Action View",
+    "methods-limitations": "Methods & Limitations",
 }
 
 
@@ -431,4 +449,104 @@ def build_navigator_page_context() -> dict[str, Any]:
         "default_topic_key": "artifact_backed_runtime",
         "drift_filters": get_available_drift_filters(),
         "pace_spine_note": method_truth["description"],
+    }
+
+
+def get_governed_answer_query_options() -> list[dict[str, str]]:
+    return [
+        {
+            "query": spec.query,
+            "description": spec.description,
+        }
+        for spec in get_retrieval_evaluation_queries()
+    ]
+
+
+def build_governed_answer_view(query: str, *, top_k: int = 8) -> dict[str, Any]:
+    try:
+        config = OpenAIEmbeddingConfig.from_env()
+    except NavigatorEmbeddingConfigurationError as exc:
+        return {
+            "status": "blocked",
+            "error_kind": "missing_api_key",
+            "message": str(exc),
+            "query": query,
+        }
+
+    try:
+        retrieval_results = retrieve_governed_chunks(query, config=config, top_k=top_k)
+        answer = assemble_governed_answer(
+            query,
+            config=config,
+            top_k=top_k,
+            retrieved_results=retrieval_results,
+        ).as_dict()
+    except NavigatorRetrievalIndexNotFoundError as exc:
+        return {
+            "status": "blocked",
+            "error_kind": "missing_index",
+            "message": str(exc),
+            "query": query,
+        }
+    except NavigatorEmbeddingRequestError as exc:
+        return {
+            "status": "error",
+            "error_kind": "embedding_request_failed",
+            "message": str(exc),
+            "query": query,
+        }
+    except NavigatorEmbeddingIndexError as exc:
+        return {
+            "status": "error",
+            "error_kind": "retrieval_runtime_error",
+            "message": str(exc),
+            "query": query,
+        }
+
+    retrieval_rows = []
+    for index, item in enumerate(retrieval_results, start=1):
+        retrieval_rows.append(
+            {
+                "rank": index,
+                "chunk_id": item["chunk_id"],
+                "document_id": item["document_id"],
+                "title": item["title"],
+                "similarity_score": round(float(item["similarity_score"]), 4),
+                "retrieval_role": item["retrieval_role"],
+                "truth_tags": item["truth_tags"],
+                "drift_tags": item["drift_tags"],
+                "phase_tags": item["phase_tags"],
+                "page_routes": item["page_routes"],
+                "page_titles": [_ROUTE_TITLES.get(route, route) for route in item["page_routes"]],
+                "source_paths": item["source_paths"],
+                "registry_refs": item["registry_refs"],
+                "authority_level": item["authority_level"],
+                "text_preview": item["text_preview"],
+                "caveats": item["caveats"],
+            }
+        )
+
+    citation_rows = []
+    for citation in answer["citations"]:
+        citation_rows.append(
+            {
+                "chunk_id": citation["chunk_id"],
+                "document_id": citation["document_id"],
+                "title": citation["title"],
+                "source_paths": citation["source_paths"],
+                "registry_refs": citation["registry_refs"],
+                "truth_tags": citation["truth_tags"],
+                "drift_tags": citation["drift_tags"],
+                "phase_tags": citation["phase_tags"],
+                "retrieval_role": citation["retrieval_role"],
+            }
+        )
+
+    return {
+        "status": "ready",
+        "query": query,
+        "answer": answer,
+        "retrieval_rows": retrieval_rows,
+        "citation_rows": citation_rows,
+        "query_options": get_governed_answer_query_options(),
     }

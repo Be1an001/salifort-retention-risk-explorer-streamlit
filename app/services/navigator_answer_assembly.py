@@ -476,8 +476,13 @@ def assemble_governed_answer(
     *,
     config: OpenAIEmbeddingConfig,
     top_k: int = 8,
+    retrieved_results: list[dict[str, Any]] | None = None,
 ) -> GovernedAnswerResult:
-    results = retrieve_governed_chunks(query, config=config, top_k=top_k)
+    results = (
+        retrieved_results
+        if retrieved_results is not None
+        else retrieve_governed_chunks(query, config=config, top_k=top_k)
+    )
     enriched_results = _enrich_retrieved_results(results)
     query_spec = _find_query_spec(query)
 
