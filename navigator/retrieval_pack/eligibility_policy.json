@@ -1,0 +1,75 @@
+{
+  "excluded_content": [
+    {
+      "category": "raw_row_data",
+      "paths": [
+        "data/hr_capstone_dataset.csv",
+        "artifacts/v2/employee_scores.parquet",
+        "artifacts/v2/employee_shap_sample.parquet",
+        "artifacts/v2/pr_curve_points.parquet"
+      ],
+      "reason": "Row-level or large raw data should not be flattened into answer-ready retrieval text."
+    },
+    {
+      "category": "artifact_table_dumps",
+      "paths": [
+        "artifacts/v2/department_exposure.csv",
+        "artifacts/v2/threshold_curve.csv",
+        "artifacts/v2/validation_model_comparison.csv",
+        "artifacts/v2/confusion_matrix_at_selected_threshold.csv",
+        "artifacts/v2/shap_importance.csv",
+        "artifacts/v2/metadata.template.json"
+      ],
+      "reason": "Structured artifact tables and draft templates are represented by governed summaries or registry/source entries instead of raw row dumps."
+    },
+    {
+      "category": "binary_assets",
+      "paths": [
+        "outputs/figures/"
+      ],
+      "reason": "Binary figures are not turned into retrieval text in WP5."
+    },
+    {
+      "category": "raw_code_bodies",
+      "paths": [
+        "app/pages/*.py",
+        "app/utils/*.py",
+        "scripts/build_v2_artifacts.py"
+      ],
+      "reason": "WP5 uses source inventory summaries and documentation, not raw code-body dumps, for governed retrieval preparation."
+    }
+  ],
+  "included_content": [
+    {
+      "category": "registry_entities",
+      "description": "Truth entries, drift items, phase entries, glossary terms, and source inventory entries are eligible because they are already governed and structured."
+    },
+    {
+      "category": "curated_markdown_sections",
+      "description": "README, artifact guide, navigator docs, and navigator notes are eligible as section-level documentation chunks."
+    },
+    {
+      "category": "small_json_metadata",
+      "description": "Small metadata and contract JSON files are eligible as summarized retrieval documents with caveats where needed."
+    }
+  ],
+  "policy_version": "1.0",
+  "special_handling": [
+    {
+      "category": "external_legacy_reference",
+      "handling": "Represented as stub source entries only. Content is not ingested because it is not locally readable in this repo.",
+      "paths": [
+        "../salifort-motors-attrition-modeling-python/README.md",
+        "../salifort-motors-attrition-modeling-python/scripts/02_salifort_motors_capstone_portfolio_project.py"
+      ]
+    },
+    {
+      "category": "machine_specific_provenance",
+      "handling": "Included with caveats because the files contain machine-specific path provenance that should be preserved but not over-generalized.",
+      "paths": [
+        "artifacts/v2/metadata.json",
+        "artifacts/v2/model_modes_summary.json"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "chunk_count": 105,
+  "chunk_kind_counts": {
+    "artifact_metadata": 3,
+    "drift_handling": 7,
+    "drift_summary": 7,
+    "glossary_definition": 11,
+    "markdown_section": 31,
+    "phase_assets": 4,
+    "phase_overview": 4,
+    "source_overview": 26,
+    "truth_sources": 6,
+    "truth_summary": 6
+  },
+  "chunking_policy": {
+    "artifact_metadata": "Chunk boundaries follow small metadata file summaries rather than raw table dumps.",
+    "length_guard": "WP5 keeps chunks structure-aware and compact; no embedding-oriented token chunking is performed.",
+    "markdown_documents": "Chunk boundaries follow markdown heading sections instead of raw token windows.",
+    "registry_entries": "Chunk boundaries follow individual truth, drift, phase, glossary, and source entry boundaries."
+  },
+  "document_class_counts": {
+    "artifact_metadata": 3,
+    "drift_item": 7,
+    "glossary_term": 11,
+    "markdown_section": 31,
+    "phase_entry": 4,
+    "source_entry": 26,
+    "truth_entry": 6
+  },
+  "document_count": 88,
+  "eligibility_policy_file": "navigator/retrieval_pack/eligibility_policy.json",
+  "generator_module": "app.services.navigator_retrieval_pack",
+  "generator_script": "scripts/build_retrieval_pack.py",
+  "output_files": {
+    "chunks": "navigator/retrieval_pack/chunks.jsonl",
+    "documents": "navigator/retrieval_pack/documents.jsonl",
+    "eligibility_policy": "navigator/retrieval_pack/eligibility_policy.json",
+    "manifest": "navigator/retrieval_pack/manifest.json"
+  },
+  "output_root": "navigator/retrieval_pack",
+  "pack_version": "1.0",
+  "stable_id_strategy": "Deterministic ids derived from registry ids, source ids, normalized paths, and structural section names."
+}
