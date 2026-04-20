@@ -13,8 +13,7 @@ from app.services.navigator_embedding_index import (
 
 
 @dataclass(frozen=True)
-class RetrievalQuerySpec:
-    query: str
+class RetrievalExpectationGroup:
     description: str
     expected_truth_tags: tuple[str, ...] = ()
     expected_phase_tags: tuple[str, ...] = ()
@@ -23,33 +22,71 @@ class RetrievalQuerySpec:
     expected_drift_tags: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class RetrievalQuerySpec:
+    query: str
+    description: str
+    expected_groups: tuple[RetrievalExpectationGroup, ...] = ()
+
+
 def get_retrieval_evaluation_queries() -> list[RetrievalQuerySpec]:
     return [
         RetrievalQuerySpec(
             query="what is the public model truth",
             description="Should retrieve governed public-model truth chunks.",
-            expected_truth_tags=("public_model_truth",),
+            expected_groups=(
+                RetrievalExpectationGroup(
+                    description="Public model truth signal",
+                    expected_truth_tags=("public_model_truth",),
+                ),
+            ),
         ),
         RetrievalQuerySpec(
             query="why is threshold 0.29 used",
             description="Should retrieve chunks tied to the public threshold framing and metadata.",
-            expected_truth_tags=("public_model_truth",),
+            expected_groups=(
+                RetrievalExpectationGroup(
+                    description="Public threshold truth signal",
+                    expected_truth_tags=("public_model_truth",),
+                ),
+            ),
         ),
         RetrievalQuerySpec(
             query="how is fallback different from final model truth",
-            description="Should retrieve fallback/runtime separation chunks.",
-            expected_truth_tags=("fallback_truth",),
-            expected_drift_tags=("drift_runtime_rows_vs_fallback_rows",),
+            description=(
+                "Should retrieve fallback truth and the governed drift explaining why it must stay "
+                "separate from canonical artifact-backed/final model truth."
+            ),
+            expected_groups=(
+                RetrievalExpectationGroup(
+                    description="Fallback-truth chunk",
+                    expected_truth_tags=("fallback_truth",),
+                ),
+                RetrievalExpectationGroup(
+                    description="Fallback-vs-runtime drift chunk",
+                    expected_drift_tags=("drift_runtime_rows_vs_fallback_rows",),
+                ),
+            ),
         ),
         RetrievalQuerySpec(
             query="which page should be inspected for department exposure",
             description="Should retrieve manager-action-view-oriented chunks.",
-            expected_page_routes=("manager-action-view",),
+            expected_groups=(
+                RetrievalExpectationGroup(
+                    description="Manager Action View routing hint",
+                    expected_page_routes=("manager-action-view",),
+                ),
+            ),
         ),
         RetrievalQuerySpec(
             query="what drift exists between public selection and local rerun leader",
             description="Should retrieve the public-selection drift chunk.",
-            expected_drift_tags=("drift_public_selection_vs_rerun_leader",),
+            expected_groups=(
+                RetrievalExpectationGroup(
+                    description="Public-selection drift chunk",
+                    expected_drift_tags=("drift_public_selection_vs_rerun_leader",),
+                ),
+            ),
         ),
     ]
 

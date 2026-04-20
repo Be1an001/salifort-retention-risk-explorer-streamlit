@@ -18,6 +18,7 @@ from app.services.navigator_embedding_index import (
 )
 from app.services.navigator_retrieval_pack import load_retrieval_pack
 from app.services.navigator_retriever import (
+    RetrievalExpectationGroup,
     get_retrieval_evaluation_queries,
     retrieve_governed_chunks,
 )
@@ -47,24 +48,26 @@ def _require_fields(record: dict[str, object], fields: set[str], record_name: st
         raise RuntimeError(f"{record_name} missing required fields: {sorted(missing)}")
 
 
-def _result_matches_expectation(result: dict[str, object], query_spec) -> bool:
-    if query_spec.expected_truth_tags and not set(query_spec.expected_truth_tags).intersection(
+def _result_matches_group(
+    result: dict[str, object], group: RetrievalExpectationGroup
+) -> bool:
+    if group.expected_truth_tags and not set(group.expected_truth_tags).intersection(
         result["truth_tags"]
     ):
         return False
-    if query_spec.expected_phase_tags and not set(query_spec.expected_phase_tags).intersection(
+    if group.expected_phase_tags and not set(group.expected_phase_tags).intersection(
         result["phase_tags"]
     ):
         return False
-    if query_spec.expected_page_routes and not set(query_spec.expected_page_routes).intersection(
+    if group.expected_page_routes and not set(group.expected_page_routes).intersection(
         result["page_routes"]
     ):
         return False
-    if query_spec.expected_drift_tags and not set(query_spec.expected_drift_tags).intersection(
+    if group.expected_drift_tags and not set(group.expected_drift_tags).intersection(
         result["drift_tags"]
     ):
         return False
-    if query_spec.expected_retrieval_role and result["retrieval_role"] != query_spec.expected_retrieval_role:
+    if group.expected_retrieval_role and result["retrieval_role"] != group.expected_retrieval_role:
         return False
     return True
 
@@ -155,17 +158,30 @@ def main() -> int:
             print(f"FAILED: {exc}")
             return 1
 
-        matched = any(_result_matches_expectation(result, query_spec) for result in results)
+        matched_groups = [
+            group.description
+            for group in query_spec.expected_groups
+            if any(_result_matches_group(result, group) for result in results)
+        ]
+        missing_groups = [
+            group.description
+            for group in query_spec.expected_groups
+            if group.description not in matched_groups
+        ]
+        matched = len(matched_groups) == len(query_spec.expected_groups)
         evaluation_results.append(
             {
                 "query": query_spec.query,
                 "matched_expectation": matched,
+                "matched_groups": matched_groups,
+                "missing_groups": missing_groups,
                 "top_chunk_ids": [result["chunk_id"] for result in results],
             }
         )
         if not matched:
             raise RuntimeError(
-                f"Query {query_spec.query!r} did not return an obviously relevant governed chunk in top-{args.top_k}."
+                f"Query {query_spec.query!r} did not satisfy all required governed signals in top-{args.top_k}. "
+                f"Missing groups: {missing_groups}"
             )
 
     print("Retrieval runtime validation passed.")
@@ -176,7 +192,8 @@ def main() -> int:
     print("- Query evaluation summary:")
     for item in evaluation_results:
         print(
-            f"  - {item['query']}: matched={item['matched_expectation']} top_chunks={item['top_chunk_ids'][:3]}"
+            f"  - {item['query']}: matched={item['matched_expectation']} "
+            f"groups={item['matched_groups']} top_chunks={item['top_chunk_ids'][:3]}"
         )
     return 0
 
