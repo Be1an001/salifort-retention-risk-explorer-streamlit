@@ -16,6 +16,7 @@ from app.pages import (  # noqa: E402
     methods_limitations,
     model_threshold_lab,
     overview,
+    pace_navigator,
     workforce_explorer,
 )
 
@@ -67,6 +68,12 @@ navigation = st.navigation(
                 icon=":material/home:",
                 default=True,
                 url_path="overview",
+            ),
+            st.Page(
+                pace_navigator.render,
+                title="PACE Navigator",
+                icon=":material/map:",
+                url_path="pace-navigator",
             ),
         ],
         "Interactive Analysis": [
