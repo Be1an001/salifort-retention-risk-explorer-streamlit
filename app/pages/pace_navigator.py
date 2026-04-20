@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import pandas as pd
 import streamlit as st
 
-from app.viewmodels import build_navigator_page_context
+from app.viewmodels import (
+    build_navigator_page_context,
+    build_navigator_topic_drilldown,
+    get_drift_records,
+)
 
 
 def _render_card(title: str, body: str, tone: str = "neutral") -> None:
@@ -36,10 +41,83 @@ def _render_card(title: str, body: str, tone: str = "neutral") -> None:
     )
 
 
+def _render_source_table(source_records: list[dict[str, object]]) -> None:
+    if not source_records:
+        st.info("No source records are linked to the selected topic.")
+        return
+
+    table_rows = []
+    for item in source_records:
+        consumer_pages = item["consumer_pages"]
+        canonical_scope = item["canonical_scope"]
+        runtime_scope = item["runtime_scope"]
+        table_rows.append(
+            {
+                "Role": str(item["role"]).capitalize(),
+                "Source ID": item["source_id"],
+                "Title": item["title"],
+                "Layer": item["repo_layer"],
+                "Authority": item["authority_level"],
+                "Path": item["path"],
+                "Consumers": ", ".join(consumer_pages) if consumer_pages else "None",
+                "Canonical Scope": ", ".join(canonical_scope) if canonical_scope else "None",
+                "Runtime Scope": ", ".join(runtime_scope) if runtime_scope else "None",
+            }
+        )
+
+    st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+
+    for item in source_records:
+        with st.expander(f"{str(item['role']).capitalize()} source detail: {item['title']}"):
+            st.markdown(f"**Source ID:** `{item['source_id']}`")
+            st.markdown(f"**Kind:** `{item['source_kind']}`")
+            st.markdown(f"**Path:** `{item['path']}`")
+            st.markdown(f"**Notes:** {item['notes']}")
+
+
+def _render_drift_explorer(drift_records: list[dict[str, object]]) -> None:
+    if not drift_records:
+        st.info("No drifts match the current filter selection.")
+        return
+
+    for item in drift_records:
+        with st.expander(
+            f"{item['severity']} severity | {item['status']} | {item['title']}",
+            expanded=False,
+        ):
+            st.markdown(f"**Drift ID:** `{item['drift_id']}`")
+            st.markdown(f"**Canonical side:** {item['canonical_side']}")
+            st.markdown(f"**Current side:** {item['current_side']}")
+            st.markdown(f"**Visible risk:** {item['user_visible_risk']}")
+            st.markdown(f"**Handling rule:** {item['upgrade_handling_rule']}")
+            st.markdown("**Source evidence:**")
+            st.markdown("\n".join(f"- `{evidence}`" for evidence in item["source_evidence"]))
+            if item["notes"]:
+                st.markdown("**Notes:**")
+                st.markdown("\n".join(f"- {note}" for note in item["notes"]))
+
+
 def render() -> None:
     context = build_navigator_page_context()
     identity_card = context["project_identity_card"]
     public_truth = context["public_model_truth_card"]
+    topic_options = context["topic_options"]
+    topic_label_to_key = {item["label"]: item["topic_key"] for item in topic_options}
+    default_label = next(
+        (
+            item["label"]
+            for item in topic_options
+            if item["topic_key"] == context["default_topic_key"]
+        ),
+        topic_options[0]["label"],
+    )
+    selected_topic_label = st.selectbox(
+        "Navigator topic",
+        options=[item["label"] for item in topic_options],
+        index=[item["label"] for item in topic_options].index(default_label),
+        help="Choose a governed topic to see deterministic routing, source-of-truth, and drift context.",
+    )
+    selected_topic = build_navigator_topic_drilldown(topic_label_to_key[selected_topic_label])
 
     st.title(context["page_title"])
     st.caption(context["page_caption"])
@@ -72,12 +150,54 @@ def render() -> None:
     st.info(public_truth["summary"])
     st.caption(f"Authority rule: {public_truth['authority_rule']}")
 
+    st.subheader("Governed Topic Console")
+    console_cols = st.columns([1.1, 0.9], gap="large")
+    routing = selected_topic["routing_recommendation"]
+    with console_cols[0]:
+        _render_card(
+            selected_topic["topic_label"],
+            (
+                f"{selected_topic['topic_summary']}<br><br>"
+                f"<strong>Supporting phase:</strong> {selected_topic['supporting_phase']['phase_title']}<br>"
+                f"<strong>Phase goal:</strong> {selected_topic['supporting_phase']['phase_goal']}"
+            ),
+            tone="primary",
+        )
+    with console_cols[1]:
+        st.markdown("**Recommended destination**")
+        st.markdown(
+            f"`{routing['recommended_page_title']}` (`/{routing['recommended_page_route']}`)"
+        )
+        st.markdown(
+            f"**Why this page:** {routing['reason']}"
+        )
+        st.markdown(
+            f"**Supporting phase:** {str(routing['supporting_phase']).capitalize()}"
+        )
+        if routing["related_source_ids"]:
+            st.caption(
+                "Related source IDs: " + ", ".join(routing["related_source_ids"])
+            )
+
+    st.markdown("**Relevant truth summaries**")
+    for truth in selected_topic["truth_summaries"]:
+        with st.container(border=True):
+            st.markdown(f"**{truth['title']}**")
+            st.markdown(truth["description"])
+            st.caption(f"Authority rule: {truth['authority_rule']}")
+
     st.subheader("Runtime Governance")
     governance_cols = st.columns(2, gap="large")
     for column, card in zip(governance_cols, context["runtime_governance_cards"]):
         with column:
             _render_card(card["title"], card["summary"], tone=card["tone"])
             st.caption(card["authority_rule"])
+
+    st.subheader("Source-Of-Truth Drilldown")
+    st.caption(
+        "This section shows which files govern the selected topic, how authoritative they are, and which runtime surfaces consume them."
+    )
+    _render_source_table(selected_topic["source_records"])
 
     st.subheader("Known Drift To Preserve And Explain")
     st.caption(
@@ -93,6 +213,29 @@ def render() -> None:
             st.markdown(
                 f"**Upgrade handling rule:** {drift_card['upgrade_handling_rule']}"
             )
+
+    st.subheader("Drift Register Explorer")
+    filter_cols = st.columns(2)
+    severity_options = ["All"] + context["drift_filters"]["severities"]
+    status_options = ["All"] + context["drift_filters"]["statuses"]
+    selected_severity = filter_cols[0].selectbox(
+        "Severity filter",
+        options=severity_options,
+        index=0,
+    )
+    selected_status = filter_cols[1].selectbox(
+        "Status filter",
+        options=status_options,
+        index=0,
+    )
+    drift_records = get_drift_records(
+        severity=None if selected_severity == "All" else selected_severity,
+        status=None if selected_status == "All" else selected_status,
+    )
+    _render_drift_explorer(drift_records)
+
+    st.markdown("**Topic-linked drift highlights**")
+    _render_drift_explorer(selected_topic["drift_records"])
 
     st.subheader("PACE Workflow Map")
     st.caption(context["pace_spine_note"])
