@@ -1,0 +1,158 @@
+{
+  "glossary_version": "1.0",
+  "terms": [
+    {
+      "term": "operational",
+      "definition": "The main public deployment-oriented model and app framing that emphasizes practical, artifact-backed retention screening rather than a survey-heavy or retraining-heavy workflow.",
+      "preferred_usage": "Use when describing the public model mode, the main app framing, or the preserved public reference selection.",
+      "avoid_confusion_with": [
+        "survey_rich",
+        "fallback mode"
+      ],
+      "related_sources": [
+        "artifacts/v2/metadata.json",
+        "artifacts/v2/model_modes_summary.json",
+        "scripts/build_v2_artifacts.py",
+        "README.md"
+      ]
+    },
+    {
+      "term": "survey_rich",
+      "definition": "An alternate builder mode that keeps stronger explanatory survey-style features such as burnout_index and effort_reward_gap, but is not the main public deployment framing in this repo.",
+      "preferred_usage": "Use when discussing alternate offline build modes or future comparison studies.",
+      "avoid_confusion_with": [
+        "operational"
+      ],
+      "related_sources": [
+        "scripts/build_v2_artifacts.py",
+        "artifacts/v2/model_modes_summary.json"
+      ]
+    },
+    {
+      "term": "artifact-backed mode",
+      "definition": "Runtime condition where the app reads checked-in generated V2 artifacts as the main source for metadata, row-level scores, model tables, or explainability outputs.",
+      "preferred_usage": "Use when describing the normal preferred runtime path in the current repo.",
+      "avoid_confusion_with": [
+        "fallback mode",
+        "static figure fallback"
+      ],
+      "related_sources": [
+        "app/utils/load_data.py",
+        "artifacts/v2/README.md",
+        "app/pages/workforce_explorer.py"
+      ]
+    },
+    {
+      "term": "fallback mode",
+      "definition": "Runtime condition where missing V2 artifacts cause parts of the app, especially the Workforce Explorer, to use built-in deterministic heuristics and reference visuals instead of generated row-level outputs.",
+      "preferred_usage": "Use when describing resilience behavior or explaining why a page is not showing final model outputs.",
+      "avoid_confusion_with": [
+        "artifact-backed mode",
+        "public model truth"
+      ],
+      "related_sources": [
+        "app/utils/load_data.py",
+        "app/pages/workforce_explorer.py",
+        "app/pages/methods_limitations.py"
+      ]
+    },
+    {
+      "term": "public reference selection",
+      "definition": "The explicit builder rule that preserves the public operational source-of-truth selection of weighted XGBoost at threshold 0.29 even when a local rerun metric leaderboard differs.",
+      "preferred_usage": "Use when explaining why public canonical truth may differ from a fresh local rerun table.",
+      "avoid_confusion_with": [
+        "metric leader",
+        "automatic best model selection"
+      ],
+      "related_sources": [
+        "scripts/build_v2_artifacts.py",
+        "artifacts/v2/metadata.json",
+        "artifacts/v2/validation_model_comparison.csv"
+      ]
+    },
+    {
+      "term": "threshold tuning",
+      "definition": "The process of sweeping decision thresholds and reviewing precision, recall, F-scores, cost, and flagged counts to choose an operating point for retention screening.",
+      "preferred_usage": "Use when discussing the threshold curve, confusion matrix, and manager review queue sizing.",
+      "avoid_confusion_with": [
+        "model retraining"
+      ],
+      "related_sources": [
+        "artifacts/v2/threshold_curve.csv",
+        "artifacts/v2/confusion_matrix_at_selected_threshold.csv",
+        "app/pages/model_threshold_lab.py"
+      ]
+    },
+    {
+      "term": "retention screening",
+      "definition": "An early-warning review workflow for identifying possible attrition exposure that should support human investigation rather than automate employment decisions.",
+      "preferred_usage": "Use for the app’s business purpose and responsible-use framing.",
+      "avoid_confusion_with": [
+        "automated HR decision engine",
+        "causal intervention proof"
+      ],
+      "related_sources": [
+        "README.md",
+        "app/pages/overview.py",
+        "app/pages/manager_action_view.py",
+        "app/pages/methods_limitations.py"
+      ]
+    },
+    {
+      "term": "risk_cost_exposure_index",
+      "definition": "A weighted exposure measure used to compare concentration of attrition concern, derived from attrition probability and salary cost weight in artifact-backed mode, or from heuristic screening score and cost weight in fallback mode.",
+      "preferred_usage": "Use when comparing department exposure or filtered employee burden.",
+      "avoid_confusion_with": [
+        "attrition_probability",
+        "salary alone"
+      ],
+      "related_sources": [
+        "app/utils/load_data.py",
+        "artifacts/v2/employee_scores.parquet",
+        "artifacts/v2/department_exposure.csv",
+        "app/pages/workforce_explorer.py"
+      ]
+    },
+    {
+      "term": "employee_id_v2",
+      "definition": "A deterministic hashed row identity derived from cleaned row content, intended as the stable join key for row-level generated artifacts.",
+      "preferred_usage": "Use when joining artifact-backed row-level outputs to cleaned data.",
+      "avoid_confusion_with": [
+        "visible fallback employee_id",
+        "row order"
+      ],
+      "related_sources": [
+        "app/utils/load_data.py",
+        "artifacts/v2/README.md",
+        "artifacts/v2/schemas/artifact_contract.json"
+      ]
+    },
+    {
+      "term": "SHAP",
+      "definition": "Model interpretation output used here to explain which features contribute most strongly to the chosen model’s distinctions; it is interpretation support, not causal HR truth.",
+      "preferred_usage": "Use when discussing explainability tables, summary plots, or future drilldowns.",
+      "avoid_confusion_with": [
+        "causal proof",
+        "policy recommendation"
+      ],
+      "related_sources": [
+        "app/pages/explainability.py",
+        "artifacts/v2/shap_importance.csv",
+        "artifacts/v2/employee_shap_sample.parquet"
+      ]
+    },
+    {
+      "term": "PACE",
+      "definition": "The future organizing method spine for this project: Plan, Analyze, Construct, Execute.",
+      "preferred_usage": "Use as the structural navigation and governance frame for future navigator, RAG, and orchestration layers.",
+      "avoid_confusion_with": [
+        "current page tabs",
+        "full agent mode"
+      ],
+      "related_sources": [
+        "navigator/pace_phase_map.json",
+        "navigator/truth_registry.json"
+      ]
+    }
+  ]
+}

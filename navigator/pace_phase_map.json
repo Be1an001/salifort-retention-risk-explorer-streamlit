@@ -1,0 +1,196 @@
+{
+  "map_version": "1.0",
+  "project_name": "Salifort Motors Retention Risk Explorer",
+  "phase_order": [
+    "Plan",
+    "Analyze",
+    "Construct",
+    "Execute"
+  ],
+  "phases": [
+    {
+      "phase_id": "Plan",
+      "phase_title": "Plan",
+      "phase_goal": "Frame the business question, decision boundary, governance limits, and public operational identity of the project.",
+      "portfolio_meaning": "This phase answers why the project exists, what responsible retention screening means, and why the repo is positioned as a decision-support app rather than an automated HR engine.",
+      "old_repo_method_links": [
+        "../salifort-motors-attrition-modeling-python/README.md (external legacy reference)"
+      ],
+      "new_repo_runtime_links": [
+        "README.md",
+        "app/pages/overview.py",
+        "app/pages/methods_limitations.py",
+        "artifacts/v2/metadata.json"
+      ],
+      "app_pages": [
+        "Overview",
+        "Methods & Limitations"
+      ],
+      "artifacts": [
+        "artifacts/v2/metadata.json",
+        "artifacts/v2/model_modes_summary.json"
+      ],
+      "figures": [
+        "outputs/figures/14_exec-summary-overview.png",
+        "outputs/figures/15_exec-summary-decision-threshold.png",
+        "outputs/figures/16_exec-summary-shap.png"
+      ],
+      "key_takeaways": [
+        "The public repo identity is app-layer and deployment-friendly.",
+        "The project question is preserved as early attrition exposure review, not automated employment action.",
+        "Public operational truth must remain distinct from local rerun evidence."
+      ],
+      "known_drifts": [
+        "drift_public_selection_vs_rerun_leader",
+        "drift_public_narrative_vs_snapshot_evidence"
+      ],
+      "future_navigator_use": "Support top-level navigator orientation, repo identity explanation, and governance-safe entry routing."
+    },
+    {
+      "phase_id": "Analyze",
+      "phase_title": "Analyze",
+      "phase_goal": "Explain workforce patterns, EDA structure, and row-level or department-level exploratory signals that motivate intervention review.",
+      "portfolio_meaning": "This phase captures the evidence and pattern-reading layer behind retention screening, including workload, tenure, department, and salary context.",
+      "old_repo_method_links": [
+        "../salifort-motors-attrition-modeling-python/README.md (external legacy reference)",
+        "../salifort-motors-attrition-modeling-python/scripts/02_salifort_motors_capstone_portfolio_project.py (external legacy reference)"
+      ],
+      "new_repo_runtime_links": [
+        "app/pages/eda_patterns.py",
+        "app/pages/workforce_explorer.py",
+        "app/utils/load_data.py",
+        "data/hr_capstone_dataset.csv"
+      ],
+      "app_pages": [
+        "EDA & Patterns",
+        "Workforce Explorer"
+      ],
+      "artifacts": [
+        "artifacts/v2/employee_scores.parquet",
+        "artifacts/v2/department_exposure.csv"
+      ],
+      "figures": [
+        "outputs/figures/01_hours-vs-satisfaction-density.png",
+        "outputs/figures/02_department-salary-attrition-promotion-heatmaps.png",
+        "outputs/figures/03_department-salary-count-heatmap.png",
+        "outputs/figures/04_salary-retention-survival-like-curve.png",
+        "outputs/figures/05_project-tenure-count-heatmap.png",
+        "outputs/figures/06_project-tenure-attrition-heatmap.png"
+      ],
+      "key_takeaways": [
+        "The app can analyze either artifact-backed row truth or fallback screening heuristics.",
+        "EDA visuals are stable references, not recomputed runtime truth.",
+        "Department exposure can come from a generated summary artifact or filtered row aggregation depending on page state."
+      ],
+      "known_drifts": [
+        "drift_runtime_rows_vs_fallback_rows",
+        "drift_static_figures_vs_generated_tables"
+      ],
+      "future_navigator_use": "Support source-aware drilldowns that explain which analytical layer a user is viewing and whether it is artifact-backed or fallback-derived."
+    },
+    {
+      "phase_id": "Construct",
+      "phase_title": "Construct",
+      "phase_goal": "Represent model building, artifact generation, threshold selection logic, and explainability generation as governed build outputs.",
+      "portfolio_meaning": "This phase captures the modeling and artifact-construction spine behind the public story, while acknowledging that current repo behavior mixes declared provenance with local builder implementation.",
+      "old_repo_method_links": [
+        "../salifort-motors-attrition-modeling-python/scripts/02_salifort_motors_capstone_portfolio_project.py (external legacy reference)"
+      ],
+      "new_repo_runtime_links": [
+        "scripts/build_v2_artifacts.py",
+        "artifacts/v2/README.md",
+        "artifacts/v2/schemas/artifact_contract.json",
+        "app/pages/model_threshold_lab.py",
+        "app/pages/explainability.py"
+      ],
+      "app_pages": [
+        "Model & Threshold Lab",
+        "Explainability"
+      ],
+      "artifacts": [
+        "artifacts/v2/threshold_curve.csv",
+        "artifacts/v2/validation_model_comparison.csv",
+        "artifacts/v2/confusion_matrix_at_selected_threshold.csv",
+        "artifacts/v2/shap_importance.csv",
+        "artifacts/v2/pr_curve_points.parquet",
+        "artifacts/v2/employee_shap_sample.parquet",
+        "artifacts/v2/model_modes_summary.json"
+      ],
+      "figures": [
+        "outputs/figures/07_validation-metric-comparison.png",
+        "outputs/figures/08_validation-pr-curves.png",
+        "outputs/figures/09_threshold-tuning-xgb-weighted.png",
+        "outputs/figures/10_champion-confusion-matrix.png",
+        "outputs/figures/12_shap-summary-plot.png",
+        "outputs/figures/13_shap-dependence-number-project.png",
+        "outputs/figures/16_exec-summary-shap.png"
+      ],
+      "key_takeaways": [
+        "The repo’s builder is offline and artifact-generating, not a runtime training system.",
+        "Public reference selection is preserved even when local rerun comparison differs.",
+        "Explainability is present as generated SHAP outputs plus static presentation fallbacks."
+      ],
+      "known_drifts": [
+        "drift_public_selection_vs_rerun_leader",
+        "drift_builder_reference_vs_local_reimplementation",
+        "drift_contract_optional_model_modes_schema",
+        "drift_contract_employee_scores_extra_columns",
+        "drift_static_figures_vs_generated_tables"
+      ],
+      "future_navigator_use": "Support future source-of-truth resolution, artifact lineage display, and build-governance explanation before any agentic automation is layered on."
+    },
+    {
+      "phase_id": "Execute",
+      "phase_title": "Execute",
+      "phase_goal": "Present the operational decision-support workflow that managers or reviewers would use to inspect exposure, threshold tradeoffs, and explainability outputs.",
+      "portfolio_meaning": "This phase is the current app’s strongest realized layer: it turns cleaned data and generated artifacts into a deployable review interface while preserving responsible-use messaging.",
+      "old_repo_method_links": [
+        "../salifort-motors-attrition-modeling-python/README.md (external legacy reference)"
+      ],
+      "new_repo_runtime_links": [
+        "app/app.py",
+        "app/pages/overview.py",
+        "app/pages/workforce_explorer.py",
+        "app/pages/model_threshold_lab.py",
+        "app/pages/explainability.py",
+        "app/pages/manager_action_view.py",
+        "app/pages/methods_limitations.py",
+        "app/utils/load_data.py"
+      ],
+      "app_pages": [
+        "Overview",
+        "Workforce Explorer",
+        "Model & Threshold Lab",
+        "Explainability",
+        "Manager Action View",
+        "Methods & Limitations"
+      ],
+      "artifacts": [
+        "artifacts/v2/metadata.json",
+        "artifacts/v2/employee_scores.parquet",
+        "artifacts/v2/department_exposure.csv",
+        "artifacts/v2/threshold_curve.csv",
+        "artifacts/v2/validation_model_comparison.csv",
+        "artifacts/v2/confusion_matrix_at_selected_threshold.csv",
+        "artifacts/v2/shap_importance.csv"
+      ],
+      "figures": [
+        "outputs/figures/11_department-exposure-total-normalized.png",
+        "outputs/figures/14_exec-summary-overview.png",
+        "outputs/figures/15_exec-summary-decision-threshold.png",
+        "outputs/figures/16_exec-summary-shap.png"
+      ],
+      "key_takeaways": [
+        "Current runtime is designed to stay lightweight and artifact-backed.",
+        "Fallback mode exists for resilience but must remain clearly labeled.",
+        "The public app is a review and communication surface, not a training or decision automation surface."
+      ],
+      "known_drifts": [
+        "drift_runtime_rows_vs_fallback_rows",
+        "drift_static_figures_vs_generated_tables",
+        "drift_public_narrative_vs_snapshot_evidence"
+      ],
+      "future_navigator_use": "Support page-to-source explanation, source-aware user guidance, and future routing between review tasks, governance tasks, and offline build tasks."
+    }
+  ]
+}

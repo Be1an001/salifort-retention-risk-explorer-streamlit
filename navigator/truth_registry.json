@@ -1,0 +1,144 @@
+{
+  "registry_version": "1.0",
+  "repo_name": "salifort-retention-risk-explorer-streamlit",
+  "truth_domains": {
+    "project_identity_truth": {
+      "truth_id": "project_identity_truth",
+      "title": "Project identity remains the public app-layer operational presentation",
+      "description": "The current repository is the newer Streamlit app layer for the Salifort project, intended to present a practical, deployment-friendly, artifact-backed operational decision-support workflow rather than the original notebook-first modeling workspace.",
+      "primary_sources": [
+        "README.md",
+        "app/app.py",
+        "app/pages/overview.py",
+        "app/pages/methods_limitations.py"
+      ],
+      "secondary_sources": [
+        "artifacts/v2/README.md",
+        "scripts/build_v2_artifacts.py"
+      ],
+      "authority_rule": "If repo identity language drifts, preserve the README plus current page framing that this repo is the public app layer and not the legacy modeling workspace.",
+      "conflicts_with": [
+        "method_truth"
+      ],
+      "preserve_in_upgrade": true,
+      "notes": [
+        "This truth protects against accidentally recasting the repo as a full modeling or orchestration mono-repo before those systems exist.",
+        "The repo name may be reassessed later, but the current role should remain explicit."
+      ]
+    },
+    "public_model_truth": {
+      "truth_id": "public_model_truth",
+      "title": "Weighted XGBoost at threshold 0.29 remains the public operational model truth",
+      "description": "For the public operational story presented by this repo, the final model truth remains weighted XGBoost with selected threshold 0.29, even though local rerun comparison artifacts also record a different metric leader.",
+      "primary_sources": [
+        "artifacts/v2/metadata.json",
+        "README.md",
+        "app/pages/overview.py",
+        "app/pages/model_threshold_lab.py"
+      ],
+      "secondary_sources": [
+        "scripts/build_v2_artifacts.py",
+        "artifacts/v2/validation_model_comparison.csv",
+        "artifacts/v2/confusion_matrix_at_selected_threshold.csv"
+      ],
+      "authority_rule": "When local rerun leaderboards differ from the published public selection, preserve the explicitly declared public reference selection unless a later governed change intentionally replaces it.",
+      "conflicts_with": [
+        "runtime_truth"
+      ],
+      "preserve_in_upgrade": true,
+      "notes": [
+        "The builder explicitly hard-preserves the public operational selection.",
+        "This truth should remain distinguishable from local rerun comparison results."
+      ]
+    },
+    "method_truth": {
+      "truth_id": "method_truth",
+      "title": "PACE is the method spine for interpreting the project lifecycle",
+      "description": "The Salifort project should be organized and later navigated through the PACE structure: Plan, Analyze, Construct, Execute. Legacy modeling workflow context may sit behind parts of Analyze and Construct, while the current app emphasizes Execute.",
+      "primary_sources": [
+        "navigator/pace_phase_map.json",
+        "scripts/build_v2_artifacts.py",
+        "app/pages/eda_patterns.py",
+        "app/pages/model_threshold_lab.py",
+        "app/pages/explainability.py"
+      ],
+      "secondary_sources": [
+        "README.md",
+        "artifacts/v2/README.md"
+      ],
+      "authority_rule": "Use PACE as the organizing frame for future navigator routing, source grouping, and drift explanation even when the current app pages are not yet explicitly labeled by phase.",
+      "conflicts_with": [],
+      "preserve_in_upgrade": true,
+      "notes": [
+        "PACE is a structural truth for future navigation and orchestration, not a claim that current UI already uses phase-based routing."
+      ]
+    },
+    "runtime_truth": {
+      "truth_id": "runtime_truth",
+      "title": "App runtime is artifact-backed and offline-build oriented",
+      "description": "The app runtime should read generated artifacts when available, fall back when necessary, and avoid retraining models or regenerating final analytics inside Streamlit runtime.",
+      "primary_sources": [
+        "app/utils/load_data.py",
+        "artifacts/v2/README.md",
+        "app/pages/model_threshold_lab.py",
+        "app/pages/explainability.py",
+        "app/pages/workforce_explorer.py"
+      ],
+      "secondary_sources": [
+        "artifacts/v2/schemas/artifact_contract.json",
+        "scripts/build_v2_artifacts.py"
+      ],
+      "authority_rule": "Preserve the separation between runtime consumption and offline generation. New features may inspect artifacts but should not silently move model fitting into Streamlit runtime.",
+      "conflicts_with": [
+        "fallback_truth"
+      ],
+      "preserve_in_upgrade": true,
+      "notes": [
+        "Current repo state has all required V2 artifacts present, so the observable local runtime would be full artifact-backed mode."
+      ]
+    },
+    "fallback_truth": {
+      "truth_id": "fallback_truth",
+      "title": "Fallback heuristic is exploratory support, not final model probability",
+      "description": "The built-in fallback explorer logic derives a screening score and related flags for interactive review when row-level artifacts are absent. It must remain clearly separated from the final weighted XGBoost probability layer.",
+      "primary_sources": [
+        "app/utils/load_data.py",
+        "app/pages/workforce_explorer.py",
+        "app/pages/methods_limitations.py"
+      ],
+      "secondary_sources": [
+        "README.md"
+      ],
+      "authority_rule": "If fallback mode remains in future upgrades, preserve explicit labeling that the fallback score is not the final model output.",
+      "conflicts_with": [
+        "runtime_truth",
+        "public_model_truth"
+      ],
+      "preserve_in_upgrade": true,
+      "notes": [
+        "This truth is a critical safeguard against misleading users when required row-level artifacts are missing."
+      ]
+    },
+    "orchestration_truth": {
+      "truth_id": "orchestration_truth",
+      "title": "Future orchestration should remain offline-first and source-governed",
+      "description": "Future navigator, agent, RAG, or Airflow layers should treat the current app and artifact bundle as governed inputs. They should explain source-of-truth and drift rather than replacing existing runtime contracts by default.",
+      "primary_sources": [
+        "scripts/build_v2_artifacts.py",
+        "artifacts/v2/README.md",
+        "navigator/source_registry.yaml",
+        "navigator/drift_register.json"
+      ],
+      "secondary_sources": [
+        "README.md",
+        "app/utils/load_data.py"
+      ],
+      "authority_rule": "Any future orchestration layer should preserve offline build separation, source registries, and explicit drift tracking before adding agentic automation.",
+      "conflicts_with": [],
+      "preserve_in_upgrade": true,
+      "notes": [
+        "This is a forward governance truth for PACE Navigator work, not a claim that orchestration is implemented today."
+      ]
+    }
+  }
+}
