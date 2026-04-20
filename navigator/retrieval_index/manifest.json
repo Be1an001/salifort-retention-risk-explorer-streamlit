@@ -1,0 +1,28 @@
+{
+  "api_key_env_name": "RAG_STREAMLIT_OPENAI_API_KEY",
+  "build_prompt_tokens": 9176,
+  "build_request_count": 7,
+  "build_total_tokens": 9176,
+  "embedding_dimensions_requested": null,
+  "embedding_dimensions_resolved": 1536,
+  "embedding_input_policy": "Chunk title plus chunk text, normalized into unit-length float32 vectors.",
+  "embedding_model": "text-embedding-3-small",
+  "embedding_provider": "OpenAI",
+  "index_chunk_count": 105,
+  "index_storage": "navigator/retrieval_index/chunk_index.jsonl",
+  "index_vector_count": 105,
+  "index_version": "1.0",
+  "normalized_vectors": true,
+  "retrieval_pack_chunk_count": 105,
+  "retrieval_pack_document_count": 88,
+  "retrieval_pack_manifest": "navigator\\retrieval_pack\\manifest.json",
+  "retrieval_pack_version": "1.0",
+  "supported_filters": [
+    "truth_tag",
+    "phase_tag",
+    "retrieval_role",
+    "source_path_contains"
+  ],
+  "vector_dtype": "float32",
+  "vector_storage": "navigator/retrieval_index/chunk_vectors.npy"
+}
