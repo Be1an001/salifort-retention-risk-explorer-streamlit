@@ -669,12 +669,12 @@ def get_project_identity_card() -> dict[str, Any]:
     identity_truth = _first_truth_entry("project_identity_truth")
     method_truth = _first_truth_entry("method_truth")
     return {
-        "title": "What This Navigator Is",
+        "title": "Project Navigator",
         "summary": identity_truth["description"],
         "highlights": [
             "This repo is the newer public Streamlit app layer, not the legacy notebook-first modeling repo.",
-            "The navigator is a governed explainer for truth, drift, and phase mapping.",
-            "PACE is the future navigation spine for understanding how the project is organized.",
+            "The navigator helps visitors understand the project story first, then inspect advanced review evidence if needed.",
+            "PACE is the project map for Plan, Analyze, Construct, and Execute.",
         ],
         "supporting_truth_ids": [
             identity_truth["truth_id"],
@@ -955,8 +955,7 @@ def build_navigator_page_context() -> dict[str, Any]:
     return {
         "page_title": "PACE Navigator",
         "page_caption": (
-            "Read-only project navigator for governed truth, drift, runtime framing, and "
-            "phase-aware orientation."
+            "Guided project map with optional advanced review tools for truth, drift, retrieval, and workflow readiness."
         ),
         "project_identity_card": get_project_identity_card(),
         "public_model_truth_card": get_public_model_truth_card(),

@@ -1,20 +1,24 @@
-# Navigator Foundation
+# Navigator Metadata
 
-This folder stores deterministic registry files for the future Salifort PACE Analytics System Navigator.
+This folder stores the structured metadata behind the PACE Navigator and advanced review tools.
 
-Work Package 1 keeps these files read-only and out of the current Streamlit runtime path. They are intended to help later phases with source-of-truth resolution, drift explanation, phase mapping, repo governance, and future indexing or orchestration work.
+Most visitors do not need to read these files directly. They are here so the app can keep project truth, drift notes, retrieval evidence, workflow contracts, and readiness rules explicit instead of burying them in page copy.
 
-Files in this folder:
+## Main Registry Files
 
-- `source_registry.yaml`: inventory of the main sources, artifacts, and presentation layers.
+- `source_registry.yaml`: inventory of important sources, artifacts, app pages, and presentation layers.
 - `truth_registry.json`: canonical truth rules by project layer.
-- `drift_register.json`: known or confirmed drift items between layers.
-- `pace_phase_map.json`: mapping of the Salifort project into the PACE structure.
-- `glossary.json`: normalized definitions for key project terms.
-- `repo_rename_assessment.md`: recommendation-only assessment of whether the repo should be renamed later.
+- `drift_register.json`: known differences between project layers that should stay visible.
+- `pace_phase_map.json`: Plan, Analyze, Construct, Execute map for the project.
+- `glossary.json`: shared definitions for important project terms.
+- `repo_rename_assessment.md`: recommendation-only note; the repo has not been renamed.
 
-Usage guidance for later phases:
+## Advanced Review Areas
 
-- Treat these files as explicit planning inputs, not as runtime configuration.
-- Preserve the distinction between public narrative truth, runtime artifact truth, legacy method truth, and fallback heuristic behavior.
-- Extend entries by adding new records rather than overwriting prior reasoning without evidence.
+- `retrieval_pack/`: prepared documents and chunks for retrieval.
+- `retrieval_index/`: local embedding index artifacts generated from the retrieval pack.
+- `orchestration/`: workflow and task contracts for future scheduling or orchestration review.
+- `agent/`: controlled request catalog and plan-preview policy.
+- `system/`: readiness and approval-gate metadata.
+
+These files support review and demo transparency. They do not change the public model truth, retrain models, or make Streamlit execute workflows.

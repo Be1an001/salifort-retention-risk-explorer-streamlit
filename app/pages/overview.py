@@ -24,7 +24,7 @@ def render() -> None:
         return f"{percent_value:.1f}%"
 
     st.title("Salifort Motors Retention Risk Explorer")
-    st.caption("Operational HR Analytics Decision App")
+    st.caption("Portfolio Streamlit demo for responsible employee retention risk review.")
     st.caption(
         "Runtime status: using generated project metadata."
         if using_v2_metadata
@@ -33,8 +33,8 @@ def render() -> None:
 
     st.markdown(
         "### Project Question\n"
-        "How can Salifort Motors identify attrition exposure early enough to support targeted, "
-        "responsible retention action without turning the workflow into an automated HR decision engine?"
+        "How can Salifort Motors spot early retention risk, focus manager attention, "
+        "and avoid treating a model score as an automated HR decision?"
     )
 
     top_row = st.columns(3)
@@ -55,28 +55,29 @@ def render() -> None:
     left_col, right_col = st.columns([1.05, 0.95], gap="large")
 
     with left_col:
-        st.subheader("Project Summary")
+        st.subheader("What This App Shows")
         st.markdown(
-            "- It brings the dataset, model outputs, and explanation layer into one clear decision-support app.\n"
-            "- It keeps the app simple to run locally and easy to deploy without external services.\n"
-            "- It separates offline model building from the app runtime, which keeps the web app stable and readable.\n"
-            "- It focuses on threshold choice, department exposure, and responsible review."
+            "- A cleaned HR dataset, generated model outputs, and project visuals in one Streamlit app.\n"
+            "- Interactive views for workforce patterns, threshold trade-offs, explainability, and manager review.\n"
+            "- A clear split between offline model building and the public app runtime.\n"
+            "- Responsible-use framing: the app supports review and discussion, not automated employment action."
         )
 
-        st.subheader("About This App")
+        st.subheader("How to Use This First")
         st.info(
-            "This app presents the operational side of the Salifort Motors attrition project. "
-            "The weighted XGBoost model, threshold choice, and SHAP results come from the documented offline workflow and generated project artifacts. "
+            "Start with the summary metrics, then open Workforce Explorer, Model & Threshold Lab, "
+            "Explainability, and Manager Action View to see how the project moves from pattern finding "
+            "to responsible review. "
             + (
-                "The current runtime is using generated row-level artifacts for supported explorer views."
+                "The current app is using generated row-level artifacts for supported explorer views."
                 if using_v2_rows
-                else "When generated row-level artifacts are not available, the explorer falls back to a lighter screening view."
+                else "When generated row-level artifacts are unavailable, the explorer falls back to a lighter screening view."
             )
         )
 
     with right_col:
         st.image(
             str(figures["14_exec_summary_overview"]),
-            caption="Executive summary overview from the original project artifacts.",
+            caption="Portfolio summary figure from the generated project visuals.",
             use_container_width=True,
         )

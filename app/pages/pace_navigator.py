@@ -841,10 +841,10 @@ def render() -> None:
         topic_options[0]["label"],
     )
     selected_topic_label = st.selectbox(
-        "Navigator topic",
+        "Project topic",
         options=[item["label"] for item in topic_options],
         index=[item["label"] for item in topic_options].index(default_label),
-        help="Choose a governed topic to see deterministic routing, source-of-truth, and drift context.",
+        help="Choose a topic to see where it fits in the project and which page to visit next.",
     )
     selected_topic = build_navigator_topic_drilldown(topic_label_to_key[selected_topic_label])
     answer_query_options = get_governed_answer_query_options()
@@ -853,18 +853,18 @@ def render() -> None:
         for item in answer_query_options
     }
     selected_answer_query = st.selectbox(
-        "Governed answer query",
+        "Advanced review question",
         options=[item["query"] for item in answer_query_options],
         format_func=lambda query: answer_query_labels[query],
         index=0,
-        help="This is a controlled retrieval/answer viewer, not a free-form chatbot.",
+        help="Choose from fixed review questions. This is not a free-form chatbot.",
     )
     selected_top_k = st.slider(
-        "Reviewer top-k retrieval depth",
+        "Advanced retrieval depth",
         min_value=5,
         max_value=12,
         value=8,
-        help="Controls how many governed chunks are retrieved for the answer viewer and inspector.",
+        help="Controls how many prepared evidence chunks are retrieved for the answer viewer and inspector.",
     )
     answer_view = build_governed_answer_view(selected_answer_query, top_k=selected_top_k)
     eligible_source_index = build_eligible_source_index()
@@ -876,18 +876,12 @@ def render() -> None:
     st.caption(context["page_caption"])
 
     st.markdown(
-        "This page is a governed navigator shell. It explains the current project contract, "
-        "preserved public truth, and known drift without changing any model, artifact, or runtime behavior."
+        "Use this page as the project map. Start with the public model truth and page recommendations, "
+        "then open the advanced review sections if you want to inspect citations, retrieval evidence, workflow contracts, "
+        "or demo readiness. Nothing on this page retrains a model or runs background jobs."
     )
 
-    st.subheader("Final System Readiness")
-    st.caption(
-        "Integrated demo/readiness status across registries, retrieval, reviewer surfaces, orchestration contracts, "
-        "Airflow scaffold, and the governed agent shell. This section is read-only and does not execute workflows."
-    )
-    _render_final_system_readiness(final_readiness)
-
-    st.subheader("What This Navigator Is")
+    st.subheader("What This Page Is For")
     top_cols = st.columns([1.15, 0.85], gap="large")
     with top_cols[0]:
         _render_card(identity_card["title"], identity_card["summary"], tone="primary")
@@ -899,7 +893,7 @@ def render() -> None:
             + ", ".join(identity_card["supporting_truth_ids"])
         )
 
-    st.subheader("Current Public Truth")
+    st.subheader("Current Public Model Truth")
     metric_cols = st.columns(3)
     metric_cols[0].metric("Public Model", public_truth["model_name"])
     metric_cols[1].metric("Selected Threshold", public_truth["selected_threshold"])
@@ -910,7 +904,14 @@ def render() -> None:
     st.info(public_truth["summary"])
     st.caption(f"Authority rule: {public_truth['authority_rule']}")
 
-    st.subheader("Governed Topic Console")
+    st.subheader("Advanced Demo Readiness")
+    st.caption(
+        "Technical readiness status across registries, retrieval, reviewer surfaces, workflow contracts, "
+        "Airflow scaffold, and the plan-preview shell. This section is read-only and does not execute workflows."
+    )
+    _render_final_system_readiness(final_readiness)
+
+    st.subheader("Guided Topic Explorer")
     console_cols = st.columns([1.1, 0.9], gap="large")
     routing = selected_topic["routing_recommendation"]
     with console_cols[0]:
@@ -939,17 +940,17 @@ def render() -> None:
                 "Related source IDs: " + ", ".join(routing["related_source_ids"])
             )
 
-    st.subheader("Governed Answer Viewer")
+    st.subheader("Advanced Answer Viewer")
     st.caption(
-        "This section runs the existing governed retrieval and deterministic answer assembly stack for a fixed query set. "
-        "It exposes answer text, drift, citations, coverage, and raw retrieval context side by side."
+        "This reviewer tool runs fixed questions through the prepared retrieval and answer-assembly stack. "
+        "It shows answer text, caveats, citations, coverage, and retrieved evidence side by side."
     )
 
     if answer_view["status"] == "blocked":
         if answer_view["error_kind"] == "missing_api_key":
             st.warning(answer_view["message"])
             st.caption(
-                "Set `RAG_STREAMLIT_OPENAI_API_KEY` or `OPENAI_API_KEY` locally. No key is stored in the repo."
+                "Set `RAG_STREAMLIT_OPENAI_API_KEY` or `OPENAI_API_KEY` locally. No key is stored in this repo."
             )
         elif answer_view["error_kind"] == "missing_index":
             st.warning(answer_view["message"])
@@ -1170,16 +1171,16 @@ def render() -> None:
             )
             _render_retrieval_inspector(filtered_rows)
 
-    st.subheader("Governed Eligible Source Index")
+    st.subheader("Advanced Source Preview Index")
     st.caption(
-        "This index shows preview eligibility for governed source-registry and retrieval-pack paths only. "
+        "This index shows which prepared project sources can be previewed safely. "
         "It is a curated review surface, not a general repository browser."
     )
     _render_eligible_source_index(eligible_source_index)
 
-    st.subheader("Audit Workflow Mode")
+    st.subheader("Advanced Multi-Query Audit")
     st.caption(
-        "Compare multiple fixed governed queries in one reviewer workspace. This is still a controlled workflow, not free-form chat."
+        "Compare multiple fixed review questions in one workspace. This is controlled review, not free-form chat."
     )
     default_workflow_queries = [
         "what is the public model truth",
@@ -1198,9 +1199,9 @@ def render() -> None:
         help="Select from the existing fixed governed query set only.",
     )
     run_audit_workflow = st.checkbox(
-        "Run multi-query audit workflow",
+        "Run multi-query audit",
         value=False,
-        help="Runs one governed retrieval/answer assembly pass per selected query.",
+        help="Runs one retrieval and answer-assembly pass per selected fixed question.",
     )
     if run_audit_workflow:
         workflow = build_audit_workflow(
@@ -1216,17 +1217,17 @@ def render() -> None:
             "Select the fixed queries to compare, then enable the workflow when you are ready to run the controlled multi-query review."
         )
 
-    st.subheader("Governed Orchestration Contracts")
+    st.subheader("Advanced Workflow Contracts")
     st.caption(
-        "Inspect official workflow/task boundaries and local Airflow readiness. "
+        "Inspect workflow and task boundaries, including local Airflow-readiness notes. "
         "This area is informational only; it does not execute jobs."
     )
     _render_orchestration_summary(orchestration_summary)
 
-    st.subheader("Governed PACE Agent Shell")
+    st.subheader("Advanced Plan Preview")
     st.caption(
-        "Preview how a controlled request maps to governed intents, workflows, tasks, blockers, and review checkpoints. "
-        "This shell does not execute workflows, trigger Airflow, or accept free-form agent prompts."
+        "Preview how a controlled request maps to intents, workflows, tasks, blockers, and review checkpoints. "
+        "This shell does not execute workflows, trigger Airflow, or accept free-form prompts."
     )
     _render_agent_shell(agent_shell_context)
 
@@ -1244,15 +1245,15 @@ def render() -> None:
             _render_card(card["title"], card["summary"], tone=card["tone"])
             st.caption(card["authority_rule"])
 
-    st.subheader("Source-Of-Truth Drilldown")
+    st.subheader("Source-of-Truth Drilldown")
     st.caption(
         "This section shows which files govern the selected topic, how authoritative they are, and which runtime surfaces consume them."
     )
     _render_source_table(selected_topic["source_records"])
 
-    st.subheader("Known Drift To Preserve And Explain")
+    st.subheader("Known Differences to Preserve and Explain")
     st.caption(
-        "The navigator treats drift as governed context that should be surfaced and preserved, not flattened away."
+        "Some project layers intentionally differ. This section keeps those differences visible instead of smoothing them over."
     )
     for drift_card in context["drift_highlight_cards"]:
         with st.expander(

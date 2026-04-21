@@ -1,78 +1,52 @@
-# Generated Artifact Guide
+# V2 Generated Artifacts
 
-This directory stores the generated files used by the Streamlit app.
+This folder stores generated files that the Streamlit app can read at runtime.
 
-The app should continue to run when these files are absent. Streamlit runtime should only read them when they are present. It should not regenerate model outputs, infer values from images, or retrain models.
+The app should only load these files. It should not retrain models, regenerate SHAP values, infer values from images, or silently invent missing outputs while a visitor is using the app.
 
-## Runtime policy
+## Runtime Rule
 
-- Fallback behavior remains active when `artifacts/v2/` is empty.
-- The app may selectively load generated files when they are available.
-- Artifact generation should happen outside Streamlit runtime in an offline modeling or packaging workflow.
+- If the required generated files are present, the app uses them for supported pages.
+- If row-level generated files are missing or incomplete, the app keeps running with a simpler fallback screening view.
+- The fallback view is for exploration only. It is not the final weighted XGBoost probability.
+- Artifact generation belongs in an offline script, not in the Streamlit runtime.
 
-## Stable row-key strategy
+## Required Files
 
-Row-level generated files should use `employee_id_v2` as the primary join key.
-
-`employee_id_v2` is defined in the app loader as a deterministic hash of the cleaned row content using these canonical fields:
-
-- `satisfaction_level`
-- `last_evaluation`
-- `number_project`
-- `average_monthly_hours`
-- `tenure`
-- `work_accident`
-- `left`
-- `promotion_last_5years`
-- `department`
-- `salary`
-
-This avoids relying on row order and is safer for joining `employee_scores.parquet` outputs back into the app.
-
-## Required artifacts
-
+- `metadata.json`
 - `employee_scores.parquet`
 - `department_exposure.csv`
 - `threshold_curve.csv`
 - `validation_model_comparison.csv`
 - `confusion_matrix_at_selected_threshold.csv`
 - `shap_importance.csv`
-- `metadata.json`
 
-## Optional artifacts
+## Optional Files
 
 - `employee_shap_sample.parquet`
 - `pr_curve_points.parquet`
 - `model_modes_summary.json`
 
-## Contract files in this directory
+## Contract and Template Files
 
-- `metadata.template.json`: starter template for the required metadata artifact
-- `schemas/artifact_contract.json`: machine-friendly schema contract for required and optional generated files
+- `metadata.template.json`: starter shape for the metadata artifact.
+- `schemas/artifact_contract.json`: machine-readable contract for required and optional artifacts.
 
-## Offline builder
+## Stable Employee Key
 
-The first offline builder for this repo lives at:
+Row-level generated files should use `employee_id_v2` as the join key.
 
-- `scripts/build_v2_artifacts.py`
+`employee_id_v2` is a deterministic hash built from cleaned row values such as satisfaction, evaluation, projects, monthly hours, tenure, accident history, outcome, promotion history, department, and salary. This is safer than relying on row order.
 
-It is designed to run outside Streamlit runtime and uses the trusted sibling modeling workflow as the source-of-truth reference:
+## Offline Builder
 
-- `../salifort-motors-attrition-modeling-python/scripts/02_salifort_motors_capstone_portfolio_project.py`
-
-The builder uses this repo's checked-in CSV at `data/hr_capstone_dataset.csv`, mirrors the cleaned-column conventions already used by the app, and reuses the deterministic `employee_id_v2` row-key strategy from `app/utils/load_data.py`.
-
-For `--model-mode operational`, the builder preserves the public operational source-of-truth framing from the sibling project repo: the published selection is weighted XGBoost at threshold `0.29`. The builder still writes the full rerun validation comparison table so any local metric drift remains visible.
-
-## How to run
-
-From the repo root:
+The offline builder is:
 
 ```powershell
 python scripts/build_v2_artifacts.py
 ```
 
-Optional flags:
+Useful options:
 
 ```powershell
 python scripts/build_v2_artifacts.py --dry-run
@@ -81,31 +55,15 @@ python scripts/build_v2_artifacts.py --model-mode operational
 python scripts/build_v2_artifacts.py --model-mode survey_rich
 ```
 
-## What it generates
+The public portfolio app preserves the operational reference story: weighted XGBoost at threshold `0.29`. The builder can still write comparison tables so local metric differences remain visible.
 
-When the trusted source workflow and required local ML dependencies are available, the builder can generate:
+## Extra Local Dependencies
 
-- `metadata.json`
-- `employee_scores.parquet`
-- `department_exposure.csv`
-- `threshold_curve.csv`
-- `validation_model_comparison.csv`
-- `confusion_matrix_at_selected_threshold.csv`
-- `shap_importance.csv`
-- `pr_curve_points.parquet`
-- `model_modes_summary.json`
-
-It also attempts `employee_shap_sample.parquet` when SHAP is available.
-
-## Dependency note
-
-The Streamlit runtime requirements were intentionally left unchanged in this repo.
-
-The offline builder depends on the modeling stack used by the trusted source workflow, including:
+The Streamlit runtime requirements stay lightweight. The offline builder may also need modeling packages used by the original workflow, such as:
 
 - `scikit-learn`
 - `xgboost`
 - `imbalanced-learn`
 - `shap`
 
-If those packages are not available locally, the builder exits with a short dependency message instead of generating partial fake outputs.
+If those packages are missing, the builder should stop with a clear dependency message instead of writing partial fake outputs.

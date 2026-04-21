@@ -15,7 +15,7 @@ def render() -> None:
     department_exposure = load_v2_department_exposure()
 
     st.title("Manager Action View")
-    st.caption("Decision-support framing for prioritization, review, and responsible intervention.")
+    st.caption("Turn risk patterns into practical, responsible review priorities.")
     st.caption(f"Runtime mode: {get_runtime_mode_label()}.")
 
     st.subheader("Department Exposure")
@@ -82,19 +82,19 @@ def render() -> None:
         use_container_width=True,
     )
 
-    st.subheader("Total vs Normalized Exposure")
+    st.subheader("How to Compare Departments")
     st.markdown(
-        "Total exposure highlights where the absolute volume of possible attrition burden is concentrated. "
+        "Total exposure shows where the largest possible retention burden sits. "
         "Normalized exposure helps compare departments more fairly when headcount differs. "
-        "Together, they help answer two different questions: where the biggest operational burden sits, and where the highest intensity of concern appears."
+        "Together, they show both scale and intensity."
     )
 
     st.subheader("Practical Review Priorities")
     st.markdown(
-        "- Prioritize manager review in departments that are high on both total and normalized exposure.\n"
-        "- Use the threshold view to size review queues deliberately rather than treating every flagged employee the same way.\n"
+        "- Start with departments that are high on both total and normalized exposure.\n"
+        "- Use the threshold view to size review queues instead of treating every flagged employee the same way.\n"
         "- Pair screening with workload, promotion, and team context before deciding whether a retention conversation is appropriate.\n"
-        "- Track whether intervention attention is landing on teams with repeated workload or career-stall patterns."
+        "- Look for repeated workload or career-stall patterns before choosing any action."
     )
 
     st.subheader("How to Use This Responsibly")

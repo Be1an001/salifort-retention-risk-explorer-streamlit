@@ -7,7 +7,7 @@ from app.utils.load_data import get_runtime_mode_summary, load_v2_employee_score
 
 def render() -> None:
     st.title("Methods & Limitations")
-    st.caption("Scope, workflow, and limitations for this public project app.")
+    st.caption("A plain-English guide to what this portfolio app does, how it runs, and where its limits are.")
 
     runtime_summary = get_runtime_mode_summary()
     using_v2_rows = load_v2_employee_scores() is not None
@@ -28,18 +28,18 @@ def render() -> None:
             "so the app is using built-in defaults and reference visuals where needed."
         )
 
-    st.subheader("Main Workflow Summary")
+    st.subheader("How the Project Works")
     st.markdown(
         "- Clean the checked-in HR dataset and remove duplicate records.\n"
         "- Use generated project outputs to summarize EDA, validation, threshold tuning, and explainability.\n"
-        "- Present the operational model story through a lightweight Streamlit app.\n"
-        "- Use generated row-level files when they are available, with a simpler screening fallback for interactive exploration when those files are absent."
+        "- Present the model story through a lightweight Streamlit portfolio app.\n"
+        "- Load generated row-level files when available, with a simpler screening fallback when those files are absent."
     )
 
-    st.subheader("Operational vs Survey-Rich Note")
+    st.subheader("What This Public App Focuses On")
     st.markdown(
-        "This public app is centered on the operational view of the project. "
-        "That means it focuses on the fields available in the checked-in HR dataset and on a workflow that is practical to package and share, rather than on a survey-rich or retraining-heavy variant."
+        "This public app focuses on the fields available in the checked-in HR dataset and on a workflow that is practical to package and share. "
+        "It is not a production HR platform, and it does not retrain models while a visitor is using the site."
     )
 
     st.subheader("Dataset Note")
@@ -54,7 +54,7 @@ def render() -> None:
         "That improves reproducibility and keeps deployment simple because the app can load everything it needs from version-controlled files."
     )
 
-    st.subheader("Current App Limitations")
+    st.subheader("Important Limits")
     explorer_limit_note = (
         "- The Workforce Explorer uses generated row-level outputs when they are available, but still falls back to a simpler screening score when those files are missing.\n"
         if using_v2_rows
@@ -62,8 +62,8 @@ def render() -> None:
     )
     st.markdown(
         (
-            "- Advanced model visuals are displayed from existing project artifacts rather than regenerated inside the app.\n"
-            "- The app does not retrain models or recalculate SHAP values during runtime.\n"
+            "- Model visuals are loaded from existing project artifacts rather than regenerated inside the app.\n"
+            "- The app does not retrain models or recalculate SHAP values while it runs.\n"
             + explorer_limit_note
             + "- This is an educational project, not a real company HR system, audit, or production employment workflow."
         )

@@ -54,7 +54,7 @@ def render() -> None:
     )
 
     st.title("Model & Threshold Lab")
-    st.caption("Model comparison and threshold review using generated project tables and reference figures.")
+    st.caption("Compare candidate models and see how the selected threshold changes the review trade-off.")
     st.caption(f"Runtime mode: {get_runtime_mode_label()}.")
     st.caption(
         "This page is using generated model tables where they are available."
@@ -70,7 +70,7 @@ def render() -> None:
     metric_cols[2].metric("Precision", _format_percent(float(metadata["selected_test_precision"])))
     metric_cols[3].metric("Accuracy", _format_percent(float(metadata["selected_test_accuracy"])))
 
-    st.subheader("Validation Comparison")
+    st.subheader("Model Comparison")
     if validation_comparison is not None and not validation_comparison.empty:
         comparison_view = validation_comparison.rename(
             columns={
@@ -115,7 +115,7 @@ def render() -> None:
             use_container_width=True,
         )
 
-    st.subheader("Precision-Recall Context")
+    st.subheader("Precision and Recall")
     if pr_curve_points is not None and not pr_curve_points.empty and {"model", "recall", "precision"}.issubset(pr_curve_points.columns):
         chart_points = pr_curve_points.copy()
         chart_points["model"] = chart_points["model"].map(_pretty_model_name)
@@ -145,7 +145,7 @@ def render() -> None:
             use_container_width=True,
         )
 
-    st.subheader("Threshold Curve")
+    st.subheader("Threshold Trade-Off Curve")
     if threshold_curve is not None and not threshold_curve.empty and "threshold" in threshold_curve.columns:
         threshold_view = threshold_curve.copy()
         selected_threshold = float(metadata["selected_threshold"])
@@ -246,21 +246,21 @@ def render() -> None:
             use_container_width=True,
         )
 
-    st.subheader("Why PR-Based Evaluation Matters")
+    st.subheader("Why Precision and Recall Matter")
     st.markdown(
-        "Attrition is the minority outcome in this dataset, so precision-recall analysis is more informative than accuracy alone. "
-        "A model can look strong on overall accuracy while still missing many of the employees the business most wants to identify early."
+        "Attrition is the smaller outcome in this dataset, so accuracy alone can be misleading. "
+        "Precision and recall make the trade-off clearer: how many likely leavers are found, and how many flagged employees need review."
     )
 
-    st.subheader("Why Threshold Choice Is a Business Decision")
+    st.subheader("Why the Threshold Matters")
     st.markdown(
-        "The threshold determines how aggressively the organization wants to screen for possible attrition. "
-        "Lower thresholds catch more of the at-risk population but increase false positives, which means more manager review effort. "
-        "That trade-off belongs in the operating design, not just inside model training."
+        "The threshold controls how many employees are flagged for review. "
+        "A lower threshold catches more possible risk but also creates more false positives and more manager follow-up work. "
+        "That choice is a business-review decision, not just a model-training detail."
     )
 
-    st.subheader("Why the Operational View Matters")
+    st.subheader("How This Supports Review")
     st.info(
-        "This app focuses on the operational view because it shows how the model supports review in practice: "
-        "compare trade-offs, choose a threshold intentionally, and give managers an early-warning view rather than an automated verdict."
+        "This page shows how the model could support responsible review in practice: compare trade-offs, "
+        "choose a threshold intentionally, and treat the output as an early-warning signal rather than an automated verdict."
     )
