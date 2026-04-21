@@ -212,6 +212,11 @@ def render() -> None:
     st.title("Workforce Explorer")
     st.caption("Filter the cleaned HR dataset to compare departments, workload patterns, and retention-risk signals.")
     st.caption(f"Runtime mode: {get_runtime_mode_label()}. Row-level source: {row_mode_label}.")
+    st.markdown(
+        "**How to use this page:** adjust the sidebar filters, then compare the metrics, department chart, "
+        "summary table, and employee-level review table. Look for departments where exposure, observed attrition, "
+        "and flagged counts all deserve closer review."
+    )
 
     if use_v2_rows:
         st.info(
@@ -334,6 +339,10 @@ def render() -> None:
             )
 
     st.subheader("Department Summary")
+    st.caption(
+        "This table summarizes the currently selected workforce slice by department. "
+        "Use it to compare rates and counts; avoid reading one metric in isolation."
+    )
     summary_config: dict[str, object] = {
         "Observed Attrition Rate": st.column_config.NumberColumn(format="%.1f%%"),
         "Avg Exposure Index": st.column_config.NumberColumn(format="%.2f"),
@@ -351,6 +360,10 @@ def render() -> None:
     )
 
     st.subheader("Employee-Level Review Table")
+    st.caption(
+        "This table shows the filtered employee rows behind the summary. It is meant for project exploration and review, "
+        "not for automated employee decisions."
+    )
     if use_v2_rows:
         selected_columns = [
             "employee_id",

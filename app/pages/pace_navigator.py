@@ -840,33 +840,11 @@ def render() -> None:
         ),
         topic_options[0]["label"],
     )
-    selected_topic_label = st.selectbox(
-        "Project topic",
-        options=[item["label"] for item in topic_options],
-        index=[item["label"] for item in topic_options].index(default_label),
-        help="Choose a topic to see where it fits in the project and which page to visit next.",
-    )
-    selected_topic = build_navigator_topic_drilldown(topic_label_to_key[selected_topic_label])
     answer_query_options = get_governed_answer_query_options()
     answer_query_labels = {
         item["query"]: f"{item['query']} — {item['description']}"
         for item in answer_query_options
     }
-    selected_answer_query = st.selectbox(
-        "Advanced review question",
-        options=[item["query"] for item in answer_query_options],
-        format_func=lambda query: answer_query_labels[query],
-        index=0,
-        help="Choose from fixed review questions. This is not a free-form chatbot.",
-    )
-    selected_top_k = st.slider(
-        "Advanced retrieval depth",
-        min_value=5,
-        max_value=12,
-        value=8,
-        help="Controls how many prepared evidence chunks are retrieved for the answer viewer and inspector.",
-    )
-    answer_view = build_governed_answer_view(selected_answer_query, top_k=selected_top_k)
     eligible_source_index = build_eligible_source_index()
     orchestration_summary = build_orchestration_summary()
     agent_shell_context = build_agent_shell_context()
@@ -904,14 +882,14 @@ def render() -> None:
     st.info(public_truth["summary"])
     st.caption(f"Authority rule: {public_truth['authority_rule']}")
 
-    st.subheader("Advanced Demo Readiness")
-    st.caption(
-        "Technical readiness status across registries, retrieval, reviewer surfaces, workflow contracts, "
-        "Airflow scaffold, and the plan-preview shell. This section is read-only and does not execute workflows."
-    )
-    _render_final_system_readiness(final_readiness)
-
     st.subheader("Guided Topic Explorer")
+    selected_topic_label = st.selectbox(
+        "Project topic",
+        options=[item["label"] for item in topic_options],
+        index=[item["label"] for item in topic_options].index(default_label),
+        help="Choose a topic to see where it fits in the project and which page to visit next.",
+    )
+    selected_topic = build_navigator_topic_drilldown(topic_label_to_key[selected_topic_label])
     console_cols = st.columns([1.1, 0.9], gap="large")
     routing = selected_topic["routing_recommendation"]
     with console_cols[0]:
@@ -940,11 +918,80 @@ def render() -> None:
                 "Related source IDs: " + ", ".join(routing["related_source_ids"])
             )
 
+    st.subheader("Where to Go Next")
+    st.caption(
+        "Use these page recommendations as a reviewer-friendly route through the app. "
+        "They do not run automation or change any data."
+    )
+    for item in context["topic_recommendations"]:
+        with st.container(border=True):
+            st.markdown(f"**Topic:** {item['topic']}")
+            st.markdown(
+                f"**Recommended page:** `{item['recommended_page_title']}` "
+                f"(`/{item['recommended_page_route']}`)"
+            )
+            st.markdown(
+                f"**Supporting PACE phase:** {str(item['supporting_phase']).capitalize()}"
+            )
+            st.caption(item["reason"])
+
+    st.subheader("PACE Workflow Map")
+    st.caption(
+        "PACE means Plan, Analyze, Construct, and Execute. In this app it is a simple project map, "
+        "not a separate framework a visitor needs to know ahead of time."
+    )
+    phase_cols = st.columns(2, gap="large")
+    for index, phase_card in enumerate(context["pace_phase_cards"]):
+        with phase_cols[index % 2]:
+            _render_card(
+                f"{phase_card['phase_title']}",
+                (
+                    f"{phase_card['phase_goal']}<br><br>"
+                    f"<strong>In this repo:</strong> {phase_card['portfolio_meaning']}"
+                ),
+                tone="neutral",
+            )
+            st.markdown(
+                f"**App pages:** {', '.join(phase_card['app_pages']) if phase_card['app_pages'] else 'None'}"
+            )
+            st.caption(phase_card["future_navigator_use"])
+
+    st.divider()
+    st.markdown("## Advanced Review Tools")
+    st.caption(
+        "The sections below are optional reviewer tools. They use fixed questions, prepared retrieval evidence, "
+        "source traces, workflow-readiness summaries, and plan previews. They are not a chatbot and they do not execute jobs."
+    )
+
     st.subheader("Advanced Answer Viewer")
     st.caption(
         "This reviewer tool runs fixed questions through the prepared retrieval and answer-assembly stack. "
         "It shows answer text, caveats, citations, coverage, and retrieved evidence side by side."
     )
+    control_cols = st.columns([1.3, 0.7], gap="large")
+    with control_cols[0]:
+        selected_answer_query = st.selectbox(
+            "Advanced review question",
+            options=[item["query"] for item in answer_query_options],
+            format_func=lambda query: answer_query_labels[query],
+            index=0,
+            help="Choose from fixed review questions. This is not a free-form chatbot.",
+        )
+    with control_cols[1]:
+        selected_top_k = st.slider(
+            "Evidence chunks to retrieve",
+            min_value=5,
+            max_value=12,
+            value=8,
+            help=(
+                "This is the retrieval depth, often called top-k. Higher values show more prepared evidence "
+                "in the answer viewer and inspector, but they may include more reference-only context."
+            ),
+        )
+    st.caption(
+        f"This answer area will use the selected fixed question and retrieve up to {selected_top_k} prepared evidence chunks."
+    )
+    answer_view = build_governed_answer_view(selected_answer_query, top_k=selected_top_k)
 
     if answer_view["status"] == "blocked":
         if answer_view["error_kind"] == "missing_api_key":
@@ -968,6 +1015,10 @@ def render() -> None:
         answer = answer_view["answer"]
         support_review = build_support_quality_review(answer_view)
         source_detail_options = build_source_detail_options(answer_view)
+        st.success(
+            f"Answer assembled for: {selected_answer_query}. "
+            f"Retrieved chunks available for review: {len(answer_view['retrieval_rows'])}."
+        )
         answer_tabs = st.tabs(
             [
                 "Answer Summary",
@@ -1231,6 +1282,13 @@ def render() -> None:
     )
     _render_agent_shell(agent_shell_context)
 
+    st.subheader("Advanced Demo Readiness")
+    st.caption(
+        "Technical readiness status across registries, retrieval, reviewer surfaces, workflow contracts, "
+        "Airflow scaffold, and the plan-preview shell. This section is read-only and does not execute workflows."
+    )
+    _render_final_system_readiness(final_readiness)
+
     st.markdown("**Relevant truth summaries**")
     for truth in selected_topic["truth_summaries"]:
         with st.container(border=True):
@@ -1288,40 +1346,3 @@ def render() -> None:
 
     st.markdown("**Topic-linked drift highlights**")
     _render_drift_explorer(selected_topic["drift_records"])
-
-    st.subheader("PACE Workflow Map")
-    st.caption(context["pace_spine_note"])
-    phase_cols = st.columns(2, gap="large")
-    for index, phase_card in enumerate(context["pace_phase_cards"]):
-        with phase_cols[index % 2]:
-            _render_card(
-                f"{phase_card['phase_title']}",
-                (
-                    f"{phase_card['phase_goal']}<br><br>"
-                    f"<strong>In this repo:</strong> {phase_card['portfolio_meaning']}"
-                ),
-                tone="neutral",
-            )
-            st.markdown(
-                f"**App pages:** {', '.join(phase_card['app_pages']) if phase_card['app_pages'] else 'None'}"
-            )
-            st.markdown(
-                f"**Known drifts:** {', '.join(phase_card['known_drifts']) if phase_card['known_drifts'] else 'None'}"
-            )
-            st.caption(phase_card["future_navigator_use"])
-
-    st.subheader("Where To Go In The App")
-    st.caption(
-        "These deterministic examples preview how later navigator actions can route users through the existing app."
-    )
-    for item in context["topic_recommendations"]:
-        with st.container(border=True):
-            st.markdown(f"**Topic:** {item['topic']}")
-            st.markdown(
-                f"**Recommended page:** `{item['recommended_page_title']}` "
-                f"(`/{item['recommended_page_route']}`)"
-            )
-            st.markdown(
-                f"**Supporting phase:** {str(item['supporting_phase']).capitalize()}"
-            )
-            st.caption(item["reason"])

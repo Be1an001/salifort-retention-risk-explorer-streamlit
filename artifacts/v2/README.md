@@ -10,6 +10,7 @@ The app should only load these files. It should not retrain models, regenerate S
 - If row-level generated files are missing or incomplete, the app keeps running with a simpler fallback screening view.
 - The fallback view is for exploration only. It is not the final weighted XGBoost probability.
 - Artifact generation belongs in an offline script, not in the Streamlit runtime.
+- The public portfolio story remains weighted XGBoost at threshold `0.29`.
 
 ## Required Files
 
@@ -56,6 +57,8 @@ python scripts/build_v2_artifacts.py --model-mode survey_rich
 ```
 
 The public portfolio app preserves the operational reference story: weighted XGBoost at threshold `0.29`. The builder can still write comparison tables so local metric differences remain visible.
+
+This builder is useful for local project maintenance. A Streamlit visitor does not need to run it to understand the public demo.
 
 ## Extra Local Dependencies
 

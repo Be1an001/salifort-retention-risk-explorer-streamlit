@@ -36,6 +36,10 @@ def render() -> None:
         "How can Salifort Motors spot early retention risk, focus manager attention, "
         "and avoid treating a model score as an automated HR decision?"
     )
+    st.info(
+        "This app is a guided portfolio demo. It shows how HR data, generated model outputs, "
+        "and clear review boundaries can be packaged into an understandable analytics product."
+    )
 
     top_row = st.columns(3)
     top_row[0].metric("Rows After Cleaning", f"{int(metadata['dataset_rows_clean']):,}")
@@ -55,24 +59,26 @@ def render() -> None:
     left_col, right_col = st.columns([1.05, 0.95], gap="large")
 
     with left_col:
-        st.subheader("What This App Shows")
+        st.subheader("What This App Is")
         st.markdown(
-            "- A cleaned HR dataset, generated model outputs, and project visuals in one Streamlit app.\n"
-            "- Interactive views for workforce patterns, threshold trade-offs, explainability, and manager review.\n"
-            "- A clear split between offline model building and the public app runtime.\n"
-            "- Responsible-use framing: the app supports review and discussion, not automated employment action."
+            "- A Streamlit portfolio app for exploring employee retention risk.\n"
+            "- A guided review of workforce patterns, model threshold trade-offs, explainability, and manager-facing priorities.\n"
+            "- A demo product that supports human review and discussion, not automated employment decisions."
         )
 
-        st.subheader("How to Use This First")
-        st.info(
-            "Start with the summary metrics, then open Workforce Explorer, Model & Threshold Lab, "
-            "Explainability, and Manager Action View to see how the project moves from pattern finding "
-            "to responsible review. "
-            + (
-                "The current app is using generated row-level artifacts for supported explorer views."
-                if using_v2_rows
-                else "When generated row-level artifacts are unavailable, the explorer falls back to a lighter screening view."
-            )
+        st.subheader("What Data and Model Are Used")
+        st.markdown(
+            f"- **Data:** checked-in Salifort HR dataset after cleaning and duplicate removal.\n"
+            f"- **Public reference model:** {final_model_display}.\n"
+            f"- **Selected threshold:** {float(metadata['selected_threshold']):.2f}, used to size review queues.\n"
+            "- **Artifacts:** generated tables and figures are loaded by the app; model training happens offline."
+        )
+
+        st.subheader("What This App Does Not Do")
+        st.markdown(
+            "- It does not retrain models while a visitor uses the site.\n"
+            "- It does not make HR decisions or rank people for employment action.\n"
+            "- It does not treat fallback screening scores as final model probabilities."
         )
 
     with right_col:
@@ -81,3 +87,31 @@ def render() -> None:
             caption="Portfolio summary figure from the generated project visuals.",
             use_container_width=True,
         )
+        st.caption(
+            "If you see a chart or table in this app, read it as review support: useful for questions and prioritization, "
+            "not as a standalone decision."
+        )
+
+    st.subheader("Suggested Review Path")
+    st.markdown(
+        "1. **Overview:** understand the question, data, model, and threshold.\n"
+        "2. **Workforce Explorer:** filter departments and employee-level patterns.\n"
+        "3. **EDA & Patterns:** review the visual evidence behind the project story.\n"
+        "4. **Model & Threshold Lab:** inspect model and threshold trade-offs.\n"
+        "5. **Explainability:** see why the model flags risk.\n"
+        "6. **Manager Action View:** translate exposure patterns into responsible review priorities.\n"
+        "7. **Methods & Limitations:** check architecture, assumptions, and boundaries.\n"
+        "8. **PACE Navigator:** optional advanced reviewer tools for citations, retrieval, and workflow readiness."
+    )
+
+    st.subheader("What Makes This Portfolio-Ready")
+    st.markdown(
+        "- It shows end-to-end product thinking, not just a notebook result.\n"
+        "- It separates data loading, generated artifacts, app presentation, and advanced review tooling.\n"
+        "- It keeps responsible-use language visible throughout the workflow.\n"
+        + (
+            "- Current status: generated row-level artifacts are available for supported explorer views."
+            if using_v2_rows
+            else "- Current status: generated row-level artifacts are unavailable, so supported views use the documented fallback."
+        )
+    )

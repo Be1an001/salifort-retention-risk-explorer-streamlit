@@ -17,8 +17,16 @@ def render() -> None:
     st.title("Manager Action View")
     st.caption("Turn risk patterns into practical, responsible review priorities.")
     st.caption(f"Runtime mode: {get_runtime_mode_label()}.")
+    st.markdown(
+        "**How to use this page:** review department exposure first, then read the practical priorities and responsible-use note. "
+        "The purpose is to focus human attention, not to automate HR action."
+    )
 
     st.subheader("Department Exposure")
+    st.caption(
+        "This chart and table show where potential retention exposure is concentrated by department. "
+        "Compare total exposure with department size and observed attrition."
+    )
     if department_exposure is not None and not department_exposure.empty:
         chart_df = department_exposure.sort_values("exposure_index", ascending=True)
         if px is not None and {"department", "exposure_index"}.issubset(chart_df.columns):
