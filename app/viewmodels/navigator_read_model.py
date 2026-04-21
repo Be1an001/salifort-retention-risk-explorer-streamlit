@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any
 
 from app.services import (
@@ -15,6 +16,7 @@ from app.services import (
     get_runtime_governance_summary,
     get_truth_entries,
     load_all_navigator_registries,
+    load_retrieval_pack,
     recommend_page_for_topic,
     retrieve_governed_chunks,
 )
@@ -123,6 +125,28 @@ _ROUTE_TITLES = {
     "manager-action-view": "Manager Action View",
     "methods-limitations": "Methods & Limitations",
 }
+_REVIEWER_SORT_OPTIONS = [
+    {
+        "key": "similarity_desc",
+        "label": "Similarity score descending",
+    },
+    {
+        "key": "authority_priority",
+        "label": "Authority priority",
+    },
+    {
+        "key": "truth_first",
+        "label": "Truth-first grouping",
+    },
+    {
+        "key": "drift_first",
+        "label": "Drift-first grouping",
+    },
+    {
+        "key": "retrieval_role",
+        "label": "Retrieval role grouping",
+    },
+]
 
 
 def _first_truth_entry(domain: str) -> dict[str, Any]:
@@ -144,6 +168,35 @@ def _source_registry_lookup() -> tuple[list[dict[str, Any]], dict[str, dict[str,
 
 def _drift_lookup() -> dict[str, dict[str, Any]]:
     return {item["drift_id"]: item for item in get_drift_items()}
+
+
+@lru_cache(maxsize=1)
+def _chunk_text_lookup() -> dict[str, str]:
+    return {
+        chunk["chunk_id"]: chunk["text"]
+        for chunk in load_retrieval_pack()["chunks"]
+    }
+
+
+def _authority_priority(authority_level: str) -> int:
+    normalized = authority_level.lower()
+    if "canonical" in normalized or "public" in normalized:
+        return 0
+    if "primary" in normalized or "runtime" in normalized:
+        return 1
+    if "generated" in normalized or "artifact" in normalized:
+        return 2
+    if "reference" in normalized:
+        return 4
+    return 3
+
+
+def _role_priority(retrieval_role: str) -> int:
+    return 0 if retrieval_role == "answer_ready" else 1
+
+
+def _has_any(values: list[str], selected: str | None) -> bool:
+    return selected in (None, "All") or selected in values
 
 
 def get_project_identity_card() -> dict[str, Any]:
@@ -504,6 +557,7 @@ def build_governed_answer_view(query: str, *, top_k: int = 8) -> dict[str, Any]:
         }
 
     retrieval_rows = []
+    chunk_texts = _chunk_text_lookup()
     for index, item in enumerate(retrieval_results, start=1):
         retrieval_rows.append(
             {
@@ -522,23 +576,33 @@ def build_governed_answer_view(query: str, *, top_k: int = 8) -> dict[str, Any]:
                 "registry_refs": item["registry_refs"],
                 "authority_level": item["authority_level"],
                 "text_preview": item["text_preview"],
+                "full_text": chunk_texts.get(item["chunk_id"], item["text_preview"]),
                 "caveats": item["caveats"],
             }
         )
 
     citation_rows = []
+    retrieval_by_chunk = {item["chunk_id"]: item for item in retrieval_rows}
     for citation in answer["citations"]:
+        retrieval_match = retrieval_by_chunk.get(citation["chunk_id"], {})
         citation_rows.append(
             {
                 "chunk_id": citation["chunk_id"],
                 "document_id": citation["document_id"],
                 "title": citation["title"],
+                "similarity_score": retrieval_match.get("similarity_score"),
                 "source_paths": citation["source_paths"],
                 "registry_refs": citation["registry_refs"],
                 "truth_tags": citation["truth_tags"],
                 "drift_tags": citation["drift_tags"],
                 "phase_tags": citation["phase_tags"],
+                "page_routes": retrieval_match.get("page_routes", []),
+                "page_titles": retrieval_match.get("page_titles", []),
                 "retrieval_role": citation["retrieval_role"],
+                "authority_level": retrieval_match.get("authority_level", "unknown"),
+                "text_preview": retrieval_match.get("text_preview", ""),
+                "full_text": retrieval_match.get("full_text", ""),
+                "caveats": retrieval_match.get("caveats", []),
             }
         )
 
@@ -549,4 +613,177 @@ def build_governed_answer_view(query: str, *, top_k: int = 8) -> dict[str, Any]:
         "retrieval_rows": retrieval_rows,
         "citation_rows": citation_rows,
         "query_options": get_governed_answer_query_options(),
+    }
+
+
+def get_reviewer_sort_options() -> list[dict[str, str]]:
+    return list(_REVIEWER_SORT_OPTIONS)
+
+
+def build_reviewer_filter_options(
+    retrieval_rows: list[dict[str, Any]]
+) -> dict[str, list[str]]:
+    def collect(key: str) -> list[str]:
+        values: set[str] = set()
+        for item in retrieval_rows:
+            raw_value = item[key]
+            if isinstance(raw_value, list):
+                values.update(str(value) for value in raw_value)
+            elif raw_value:
+                values.add(str(raw_value))
+        return ["All"] + sorted(values)
+
+    return {
+        "truth_tags": collect("truth_tags"),
+        "drift_tags": collect("drift_tags"),
+        "phase_tags": collect("phase_tags"),
+        "retrieval_roles": collect("retrieval_role"),
+        "page_routes": collect("page_routes"),
+        "authority_levels": collect("authority_level"),
+    }
+
+
+def filter_and_sort_retrieval_rows(
+    retrieval_rows: list[dict[str, Any]],
+    *,
+    truth_tag: str | None = None,
+    drift_tag: str | None = None,
+    phase_tag: str | None = None,
+    retrieval_role: str | None = None,
+    page_route: str | None = None,
+    authority_level: str | None = None,
+    sort_key: str = "similarity_desc",
+) -> list[dict[str, Any]]:
+    filtered = [
+        item
+        for item in retrieval_rows
+        if _has_any(item["truth_tags"], truth_tag)
+        and _has_any(item["drift_tags"], drift_tag)
+        and _has_any(item["phase_tags"], phase_tag)
+        and _has_any(item["page_routes"], page_route)
+        and retrieval_role in (None, "All", item["retrieval_role"])
+        and authority_level in (None, "All", item["authority_level"])
+    ]
+
+    sorters = {
+        "similarity_desc": lambda item: (-float(item["similarity_score"]), item["rank"]),
+        "authority_priority": lambda item: (
+            _authority_priority(str(item["authority_level"])),
+            -float(item["similarity_score"]),
+            item["rank"],
+        ),
+        "truth_first": lambda item: (
+            0 if item["truth_tags"] else 1,
+            -float(item["similarity_score"]),
+            item["rank"],
+        ),
+        "drift_first": lambda item: (
+            0 if item["drift_tags"] else 1,
+            -float(item["similarity_score"]),
+            item["rank"],
+        ),
+        "retrieval_role": lambda item: (
+            _role_priority(str(item["retrieval_role"])),
+            -float(item["similarity_score"]),
+            item["rank"],
+        ),
+    }
+    sorter = sorters.get(sort_key, sorters["similarity_desc"])
+    return sorted(filtered, key=sorter)
+
+
+def build_citation_comparison(
+    citation_rows: list[dict[str, Any]],
+    left_chunk_id: str,
+    right_chunk_id: str,
+) -> dict[str, Any]:
+    citation_lookup = {item["chunk_id"]: item for item in citation_rows}
+    left = citation_lookup.get(left_chunk_id)
+    right = citation_lookup.get(right_chunk_id)
+    return {
+        "status": "ready" if left and right else "incomplete",
+        "left": left,
+        "right": right,
+    }
+
+
+def build_support_quality_review(answer_view: dict[str, Any]) -> dict[str, Any]:
+    if answer_view["status"] != "ready":
+        return {
+            "status_label": "Blocked",
+            "tone": "warning",
+            "indicators": [],
+            "review_notes": [answer_view.get("message", "Answer view is not ready.")],
+        }
+
+    answer = answer_view["answer"]
+    retrieval_rows = answer_view["retrieval_rows"]
+    coverage = answer["coverage_summary"]
+    query = str(answer_view["query"]).lower()
+    canonical_truth_present = any(item["truth_tags"] for item in retrieval_rows)
+    drift_context_present = any(item["drift_tags"] for item in retrieval_rows)
+    page_route_present = any(item["page_routes"] for item in retrieval_rows)
+    reference_only_count = sum(
+        1 for item in retrieval_rows if item["retrieval_role"] == "reference_only"
+    )
+
+    if coverage["status"] == "sufficient" and canonical_truth_present:
+        status_label = "Strong governed support"
+        tone = "primary"
+    elif coverage["status"] == "sufficient":
+        status_label = "Sufficient routed support"
+        tone = "neutral"
+    elif canonical_truth_present or drift_context_present:
+        status_label = "Partial governed support"
+        tone = "warning"
+    else:
+        status_label = "Needs reviewer attention"
+        tone = "warning"
+
+    indicators = [
+        {
+            "label": "Canonical truth present",
+            "value": "Yes" if canonical_truth_present else "No",
+        },
+        {
+            "label": "Drift context present",
+            "value": "Yes" if drift_context_present else "No",
+        },
+        {
+            "label": "Page-route support present",
+            "value": "Yes" if page_route_present else "No",
+        },
+        {
+            "label": "Reference-only chunks",
+            "value": str(reference_only_count),
+        },
+    ]
+
+    review_notes: list[str] = []
+    if "threshold 0.29" in query:
+        review_notes.append(
+            "Threshold rationale is stitched from governed public-truth and threshold-artifact support; review citations before treating it as a single-source rationale."
+        )
+    if "fallback" in query and not drift_context_present:
+        review_notes.append(
+            "Fallback comparison should include drift context; inspect retrieval filters if it is absent."
+        )
+    if coverage["status"] != "sufficient":
+        review_notes.append(
+            "Coverage is not marked sufficient; use the citations and retrieval inspector before relying on this answer."
+        )
+    if reference_only_count:
+        review_notes.append(
+            "Reference-only chunks are present; they can support review but should not override canonical truth."
+        )
+    if not review_notes:
+        review_notes.append(
+            "Support signals are complete for the fixed governed scenario; still inspect citations for provenance."
+        )
+
+    return {
+        "status_label": status_label,
+        "tone": tone,
+        "indicators": indicators,
+        "review_notes": review_notes,
     }

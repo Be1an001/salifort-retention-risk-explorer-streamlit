@@ -1,7 +1,11 @@
 from app.viewmodels.navigator_read_model import (
+    build_citation_comparison,
     build_navigator_page_context,
     build_navigator_topic_drilldown,
     build_governed_answer_view,
+    build_reviewer_filter_options,
+    build_support_quality_review,
+    filter_and_sort_retrieval_rows,
     get_available_drift_filters,
     get_drift_highlight_cards,
     get_drift_records,
@@ -10,14 +14,19 @@ from app.viewmodels.navigator_read_model import (
     get_pace_phase_cards,
     get_project_identity_card,
     get_public_model_truth_card,
+    get_reviewer_sort_options,
     get_runtime_governance_cards,
     get_topic_options,
 )
 
 __all__ = [
+    "build_citation_comparison",
     "build_navigator_page_context",
     "build_navigator_topic_drilldown",
     "build_governed_answer_view",
+    "build_reviewer_filter_options",
+    "build_support_quality_review",
+    "filter_and_sort_retrieval_rows",
     "get_available_drift_filters",
     "get_drift_highlight_cards",
     "get_drift_records",
@@ -26,6 +35,7 @@ __all__ = [
     "get_pace_phase_cards",
     "get_project_identity_card",
     "get_public_model_truth_card",
+    "get_reviewer_sort_options",
     "get_runtime_governance_cards",
     "get_topic_options",
 ]

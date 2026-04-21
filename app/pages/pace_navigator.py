@@ -4,11 +4,16 @@ import pandas as pd
 import streamlit as st
 
 from app.viewmodels import (
+    build_citation_comparison,
     build_governed_answer_view,
     build_navigator_page_context,
     build_navigator_topic_drilldown,
+    build_reviewer_filter_options,
+    build_support_quality_review,
+    filter_and_sort_retrieval_rows,
     get_governed_answer_query_options,
     get_drift_records,
+    get_reviewer_sort_options,
 )
 
 
@@ -111,6 +116,50 @@ def _render_recommended_pages(recommended_pages: list[dict[str, object]]) -> Non
             st.caption(str(item["reason"]))
 
 
+def _render_support_quality_review(review: dict[str, object]) -> None:
+    _render_card(
+        str(review["status_label"]),
+        "Reviewer-facing support status based on coverage, truth, drift, page-route, and reference-only signals.",
+        tone=str(review["tone"]),
+    )
+    st.markdown("**Review indicators**")
+    indicator_cols = st.columns(4)
+    for column, indicator in zip(indicator_cols, review["indicators"]):
+        column.metric(str(indicator["label"]), str(indicator["value"]))
+    st.markdown("**Review notes**")
+    st.markdown("\n".join(f"- {note}" for note in review["review_notes"]))
+
+
+def _render_citation_detail_card(item: dict[str, object], label: str) -> None:
+    st.markdown(f"**{label}: {item['title']}**")
+    st.markdown(f"**Chunk ID:** `{item['chunk_id']}`")
+    st.markdown(f"**Document ID:** `{item['document_id']}`")
+    if item.get("similarity_score") is not None:
+        st.markdown(f"**Similarity score:** `{item['similarity_score']}`")
+    st.markdown(f"**Retrieval role:** `{item['retrieval_role']}`")
+    st.markdown(f"**Authority level:** `{item['authority_level']}`")
+    if item["truth_tags"]:
+        st.markdown("**Truth tags:** " + ", ".join(f"`{tag}`" for tag in item["truth_tags"]))
+    if item["drift_tags"]:
+        st.markdown("**Drift tags:** " + ", ".join(f"`{tag}`" for tag in item["drift_tags"]))
+    if item["phase_tags"]:
+        st.markdown("**Phase tags:** " + ", ".join(f"`{tag}`" for tag in item["phase_tags"]))
+    if item.get("page_routes"):
+        st.markdown("**Page routes:** " + ", ".join(f"`{route}`" for route in item["page_routes"]))
+    st.markdown("**Source paths:**")
+    st.markdown("\n".join(f"- `{path}`" for path in item["source_paths"]))
+    if item["registry_refs"]:
+        st.markdown("**Registry refs:**")
+        st.markdown("\n".join(f"- `{ref}`" for ref in item["registry_refs"]))
+    if item.get("caveats"):
+        st.markdown("**Caveats:**")
+        st.markdown("\n".join(f"- {note}" for note in item["caveats"]))
+    st.markdown("**Preview:**")
+    st.write(item.get("text_preview") or "No preview text available.")
+    with st.expander("Full chunk text", expanded=False):
+        st.write(item.get("full_text") or "No full chunk text is available.")
+
+
 def _render_citations(citation_rows: list[dict[str, object]]) -> None:
     if not citation_rows:
         st.info("No citations are available for this answer.")
@@ -120,6 +169,9 @@ def _render_citations(citation_rows: list[dict[str, object]]) -> None:
         with st.expander(f"{item['title']} ({item['chunk_id']})", expanded=False):
             st.markdown(f"**Document ID:** `{item['document_id']}`")
             st.markdown(f"**Retrieval role:** `{item['retrieval_role']}`")
+            st.markdown(f"**Authority level:** `{item['authority_level']}`")
+            if item.get("similarity_score") is not None:
+                st.markdown(f"**Similarity score:** `{item['similarity_score']}`")
             if item["truth_tags"]:
                 st.markdown("**Truth tags:** " + ", ".join(f"`{tag}`" for tag in item["truth_tags"]))
             if item["drift_tags"]:
@@ -131,6 +183,11 @@ def _render_citations(citation_rows: list[dict[str, object]]) -> None:
             if item["registry_refs"]:
                 st.markdown("**Registry refs:**")
                 st.markdown("\n".join(f"- `{ref}`" for ref in item["registry_refs"]))
+            if item.get("caveats"):
+                st.markdown("**Caveats:**")
+                st.markdown("\n".join(f"- {note}" for note in item["caveats"]))
+            with st.expander("Chunk text", expanded=False):
+                st.write(item.get("full_text") or item.get("text_preview") or "No chunk text is available.")
 
 
 def _render_retrieval_inspector(retrieval_rows: list[dict[str, object]]) -> None:
@@ -146,9 +203,11 @@ def _render_retrieval_inspector(retrieval_rows: list[dict[str, object]]) -> None
                 "Chunk ID": item["chunk_id"],
                 "Score": item["similarity_score"],
                 "Role": item["retrieval_role"],
+                "Authority": item["authority_level"],
                 "Title": item["title"],
                 "Truth Tags": ", ".join(item["truth_tags"]) if item["truth_tags"] else "None",
                 "Drift Tags": ", ".join(item["drift_tags"]) if item["drift_tags"] else "None",
+                "Phase Tags": ", ".join(item["phase_tags"]) if item["phase_tags"] else "None",
                 "Routes": ", ".join(item["page_routes"]) if item["page_routes"] else "None",
             }
         )
@@ -206,7 +265,14 @@ def render() -> None:
         index=0,
         help="This is a controlled retrieval/answer viewer, not a free-form chatbot.",
     )
-    answer_view = build_governed_answer_view(selected_answer_query)
+    selected_top_k = st.slider(
+        "Reviewer top-k retrieval depth",
+        min_value=5,
+        max_value=12,
+        value=8,
+        help="Controls how many governed chunks are retrieved for the answer viewer and inspector.",
+    )
+    answer_view = build_governed_answer_view(selected_answer_query, top_k=selected_top_k)
 
     st.title(context["page_title"])
     st.caption(context["page_caption"])
@@ -294,9 +360,11 @@ def render() -> None:
         )
     else:
         answer = answer_view["answer"]
+        support_review = build_support_quality_review(answer_view)
         answer_tabs = st.tabs(
             [
                 "Answer Summary",
+                "Support Review",
                 "Truth Support",
                 "Drift & Caveats",
                 "Recommended Pages",
@@ -321,6 +389,9 @@ def render() -> None:
                 st.json(answer["coverage_summary"])
 
         with answer_tabs[1]:
+            _render_support_quality_review(support_review)
+
+        with answer_tabs[2]:
             st.markdown("**Supporting points**")
             if answer["supporting_points"]:
                 st.markdown("\n".join(f"- {item}" for item in answer["supporting_points"]))
@@ -333,20 +404,110 @@ def render() -> None:
                 st.markdown("**Canonical truth citations**")
                 _render_citations(truth_citations)
 
-        with answer_tabs[2]:
+        with answer_tabs[3]:
             if answer["drift_and_caveats"]:
                 st.markdown("\n".join(f"- {item}" for item in answer["drift_and_caveats"]))
             else:
                 st.info("No drift or caveat notes were attached to this answer.")
 
-        with answer_tabs[3]:
+        with answer_tabs[4]:
             _render_recommended_pages(answer["recommended_pages"])
 
-        with answer_tabs[4]:
+        with answer_tabs[5]:
             _render_citations(answer_view["citation_rows"])
 
-        with answer_tabs[5]:
-            _render_retrieval_inspector(answer_view["retrieval_rows"])
+            if len(answer_view["citation_rows"]) >= 2:
+                st.markdown("**Side-by-side citation comparison**")
+                citation_options = {
+                    f"{item['title']} ({item['chunk_id']})": item["chunk_id"]
+                    for item in answer_view["citation_rows"]
+                }
+                citation_labels = list(citation_options.keys())
+                compare_cols = st.columns(2)
+                left_label = compare_cols[0].selectbox(
+                    "Left citation",
+                    options=citation_labels,
+                    index=0,
+                )
+                right_label = compare_cols[1].selectbox(
+                    "Right citation",
+                    options=citation_labels,
+                    index=1,
+                )
+                comparison = build_citation_comparison(
+                    answer_view["citation_rows"],
+                    citation_options[left_label],
+                    citation_options[right_label],
+                )
+                if comparison["status"] == "ready":
+                    left_col, right_col = st.columns(2, gap="large")
+                    with left_col:
+                        _render_citation_detail_card(comparison["left"], "Left")
+                    with right_col:
+                        _render_citation_detail_card(comparison["right"], "Right")
+                else:
+                    st.warning("Select two valid citations to compare.")
+            else:
+                st.info("At least two citations are needed for side-by-side comparison.")
+
+        with answer_tabs[6]:
+            filter_options = build_reviewer_filter_options(answer_view["retrieval_rows"])
+            sort_options = {
+                item["label"]: item["key"]
+                for item in get_reviewer_sort_options()
+            }
+            st.markdown("**Reviewer filters**")
+            filter_cols = st.columns(3)
+            selected_truth_tag = filter_cols[0].selectbox(
+                "Truth tag",
+                options=filter_options["truth_tags"],
+                index=0,
+            )
+            selected_drift_tag = filter_cols[1].selectbox(
+                "Drift tag",
+                options=filter_options["drift_tags"],
+                index=0,
+            )
+            selected_phase_tag = filter_cols[2].selectbox(
+                "Phase tag",
+                options=filter_options["phase_tags"],
+                index=0,
+            )
+            filter_cols = st.columns(3)
+            selected_role = filter_cols[0].selectbox(
+                "Retrieval role",
+                options=filter_options["retrieval_roles"],
+                index=0,
+            )
+            selected_route = filter_cols[1].selectbox(
+                "Page route",
+                options=filter_options["page_routes"],
+                index=0,
+            )
+            selected_authority = filter_cols[2].selectbox(
+                "Authority level",
+                options=filter_options["authority_levels"],
+                index=0,
+            )
+            selected_sort_label = st.selectbox(
+                "Sort retrieval results",
+                options=list(sort_options.keys()),
+                index=0,
+            )
+            filtered_rows = filter_and_sort_retrieval_rows(
+                answer_view["retrieval_rows"],
+                truth_tag=selected_truth_tag,
+                drift_tag=selected_drift_tag,
+                phase_tag=selected_phase_tag,
+                retrieval_role=selected_role,
+                page_route=selected_route,
+                authority_level=selected_authority,
+                sort_key=sort_options[selected_sort_label],
+            )
+            st.caption(
+                f"Showing {len(filtered_rows)} of {len(answer_view['retrieval_rows'])} retrieved chunks."
+            )
+            _render_retrieval_inspector(filtered_rows)
 
     st.markdown("**Relevant truth summaries**")
     for truth in selected_topic["truth_summaries"]:
