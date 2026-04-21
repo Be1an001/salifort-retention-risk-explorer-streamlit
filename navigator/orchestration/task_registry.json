@@ -1,0 +1,370 @@
+{
+  "registry_version": "1.0.0",
+  "repo_name": "salifort-retention-risk-explorer-streamlit",
+  "scope": "governed_pace_navigator_orchestration_tasks",
+  "tasks": [
+    {
+      "task_id": "validate_navigator_registries",
+      "task_title": "Validate Navigator Registries",
+      "task_kind": "validation",
+      "stage": "foundation",
+      "phase": "plan",
+      "inputs": [
+        "navigator/source_registry.yaml",
+        "navigator/truth_registry.json",
+        "navigator/drift_register.json",
+        "navigator/pace_phase_map.json",
+        "navigator/glossary.json"
+      ],
+      "outputs": [
+        "human-readable validation summary"
+      ],
+      "dependencies": [],
+      "required_artifacts": [],
+      "required_env_vars": [],
+      "blocked_states": [
+        "missing registry file",
+        "malformed JSON/YAML registry",
+        "broken registry reference"
+      ],
+      "mutates_repo_files": false,
+      "runtime_mode": "local_read_only",
+      "human_review_required": false,
+      "scheduler_eligibility": "safe_for_local_airflow_validation",
+      "command_hint": "python scripts/validate_navigator_layer.py",
+      "notes": "Confirms the deterministic registry layer is readable before downstream workflows rely on it."
+    },
+    {
+      "task_id": "build_retrieval_pack",
+      "task_title": "Build Governed Retrieval Pack",
+      "task_kind": "offline_build",
+      "stage": "retrieval_preparation",
+      "phase": "construct",
+      "inputs": [
+        "navigator/source_registry.yaml",
+        "navigator/truth_registry.json",
+        "navigator/drift_register.json",
+        "navigator/pace_phase_map.json",
+        "navigator/glossary.json"
+      ],
+      "outputs": [
+        "navigator/retrieval_pack/manifest.json",
+        "navigator/retrieval_pack/documents.jsonl",
+        "navigator/retrieval_pack/chunks.jsonl",
+        "navigator/retrieval_pack/eligibility_policy.json"
+      ],
+      "dependencies": [
+        "validate_navigator_registries"
+      ],
+      "required_artifacts": [],
+      "required_env_vars": [],
+      "blocked_states": [
+        "registry validation failure",
+        "duplicate chunk id",
+        "untraceable source path"
+      ],
+      "mutates_repo_files": true,
+      "runtime_mode": "offline_build",
+      "human_review_required": true,
+      "scheduler_eligibility": "local_airflow_manual_or_dev_only",
+      "command_hint": "python scripts/build_retrieval_pack.py",
+      "notes": "Regenerates governed retrieval-preparation artifacts; should remain review-gated because it writes repo files."
+    },
+    {
+      "task_id": "validate_retrieval_pack",
+      "task_title": "Validate Governed Retrieval Pack",
+      "task_kind": "validation",
+      "stage": "retrieval_preparation",
+      "phase": "construct",
+      "inputs": [
+        "navigator/retrieval_pack/manifest.json",
+        "navigator/retrieval_pack/documents.jsonl",
+        "navigator/retrieval_pack/chunks.jsonl",
+        "navigator/retrieval_pack/eligibility_policy.json"
+      ],
+      "outputs": [
+        "human-readable retrieval pack validation summary"
+      ],
+      "dependencies": [
+        "build_retrieval_pack"
+      ],
+      "required_artifacts": [
+        "navigator/retrieval_pack/chunks.jsonl"
+      ],
+      "required_env_vars": [],
+      "blocked_states": [
+        "missing retrieval pack",
+        "duplicate chunk id",
+        "missing traceability metadata"
+      ],
+      "mutates_repo_files": false,
+      "runtime_mode": "local_read_only",
+      "human_review_required": false,
+      "scheduler_eligibility": "safe_for_local_airflow_validation",
+      "command_hint": "python scripts/validate_retrieval_pack.py",
+      "notes": "Validates chunk uniqueness, metadata, and traceability without API calls."
+    },
+    {
+      "task_id": "build_embedding_index",
+      "task_title": "Build OpenAI Embedding Index",
+      "task_kind": "api_backed_offline_build",
+      "stage": "retrieval_runtime",
+      "phase": "construct",
+      "inputs": [
+        "navigator/retrieval_pack/chunks.jsonl",
+        "navigator/retrieval_pack/manifest.json"
+      ],
+      "outputs": [
+        "navigator/retrieval_index/manifest.json",
+        "navigator/retrieval_index/chunk_index.jsonl",
+        "navigator/retrieval_index/chunk_vectors.npy"
+      ],
+      "dependencies": [
+        "validate_retrieval_pack"
+      ],
+      "required_artifacts": [
+        "navigator/retrieval_pack/chunks.jsonl"
+      ],
+      "required_env_vars": [
+        "RAG_STREAMLIT_OPENAI_API_KEY",
+        "OPENAI_API_KEY"
+      ],
+      "blocked_states": [
+        "missing API key",
+        "OpenAI embedding request failure",
+        "retrieval pack/index chunk count mismatch"
+      ],
+      "mutates_repo_files": true,
+      "runtime_mode": "api_backed_offline_build",
+      "human_review_required": true,
+      "scheduler_eligibility": "local_airflow_manual_or_dev_only",
+      "command_hint": "python scripts/build_retrieval_index.py",
+      "notes": "Uses a user-provided API key from environment only; no secret may be committed."
+    },
+    {
+      "task_id": "validate_retrieval_runtime",
+      "task_title": "Validate Governed Retrieval Runtime",
+      "task_kind": "api_backed_validation",
+      "stage": "retrieval_runtime",
+      "phase": "construct",
+      "inputs": [
+        "navigator/retrieval_pack/chunks.jsonl",
+        "navigator/retrieval_index/chunk_index.jsonl",
+        "navigator/retrieval_index/chunk_vectors.npy"
+      ],
+      "outputs": [
+        "fixed-query retrieval validation summary"
+      ],
+      "dependencies": [
+        "build_embedding_index"
+      ],
+      "required_artifacts": [
+        "navigator/retrieval_index/manifest.json",
+        "navigator/retrieval_index/chunk_index.jsonl",
+        "navigator/retrieval_index/chunk_vectors.npy"
+      ],
+      "required_env_vars": [
+        "RAG_STREAMLIT_OPENAI_API_KEY",
+        "OPENAI_API_KEY"
+      ],
+      "blocked_states": [
+        "missing API key",
+        "missing retrieval index",
+        "OpenAI embedding request failure",
+        "fixed-query relevance expectation failure"
+      ],
+      "mutates_repo_files": false,
+      "runtime_mode": "api_backed_validation",
+      "human_review_required": false,
+      "scheduler_eligibility": "local_airflow_manual_or_dev_only",
+      "command_hint": "python scripts/validate_retrieval_runtime.py",
+      "notes": "Exercises live query embedding and governed local similarity search."
+    },
+    {
+      "task_id": "validate_answer_assembly",
+      "task_title": "Validate Governed Answer Assembly",
+      "task_kind": "api_backed_validation",
+      "stage": "answer_assembly",
+      "phase": "execute",
+      "inputs": [
+        "fixed governed evaluation query set",
+        "navigator/retrieval_index/chunk_index.jsonl",
+        "navigator/retrieval_index/chunk_vectors.npy"
+      ],
+      "outputs": [
+        "fixed-query governed answer validation summary"
+      ],
+      "dependencies": [
+        "validate_retrieval_runtime"
+      ],
+      "required_artifacts": [
+        "navigator/retrieval_index/manifest.json"
+      ],
+      "required_env_vars": [
+        "RAG_STREAMLIT_OPENAI_API_KEY",
+        "OPENAI_API_KEY"
+      ],
+      "blocked_states": [
+        "missing API key",
+        "missing retrieval index",
+        "missing citations",
+        "missing expected truth/drift/page-route signal"
+      ],
+      "mutates_repo_files": false,
+      "runtime_mode": "api_backed_validation",
+      "human_review_required": false,
+      "scheduler_eligibility": "local_airflow_manual_or_dev_only",
+      "command_hint": "python scripts/validate_answer_assembly.py",
+      "notes": "Ensures deterministic answer assembly preserves truth, drift, citation, and coverage boundaries."
+    },
+    {
+      "task_id": "build_single_query_review",
+      "task_title": "Build Single-Query Governed Review",
+      "task_kind": "reviewer_viewmodel",
+      "stage": "reviewer_surface",
+      "phase": "execute",
+      "inputs": [
+        "one fixed governed query",
+        "retrieval index",
+        "answer assembly service"
+      ],
+      "outputs": [
+        "answer view",
+        "support quality review",
+        "source detail",
+        "audit checklist"
+      ],
+      "dependencies": [
+        "validate_answer_assembly"
+      ],
+      "required_artifacts": [
+        "navigator/retrieval_index/manifest.json"
+      ],
+      "required_env_vars": [
+        "RAG_STREAMLIT_OPENAI_API_KEY",
+        "OPENAI_API_KEY"
+      ],
+      "blocked_states": [
+        "missing API key",
+        "missing retrieval index",
+        "query outside fixed governed set"
+      ],
+      "mutates_repo_files": false,
+      "runtime_mode": "api_backed_read_only",
+      "human_review_required": true,
+      "scheduler_eligibility": "not_scheduled_reviewer_interactive",
+      "command_hint": "viewmodel: build_governed_answer_view + build_audit_checklist",
+      "notes": "Reviewer-facing path; should not be exposed as an arbitrary execution button."
+    },
+    {
+      "task_id": "build_multi_query_audit_workflow",
+      "task_title": "Build Multi-Query Audit Workflow",
+      "task_kind": "reviewer_viewmodel",
+      "stage": "reviewer_surface",
+      "phase": "execute",
+      "inputs": [
+        "selected fixed governed queries",
+        "retrieval index",
+        "answer assembly service"
+      ],
+      "outputs": [
+        "cross-query comparison",
+        "per-query checklist summaries",
+        "combined audit packet"
+      ],
+      "dependencies": [
+        "build_single_query_review"
+      ],
+      "required_artifacts": [
+        "navigator/retrieval_index/manifest.json"
+      ],
+      "required_env_vars": [
+        "RAG_STREAMLIT_OPENAI_API_KEY",
+        "OPENAI_API_KEY"
+      ],
+      "blocked_states": [
+        "no selected fixed queries",
+        "missing API key",
+        "missing retrieval index"
+      ],
+      "mutates_repo_files": false,
+      "runtime_mode": "api_backed_read_only",
+      "human_review_required": true,
+      "scheduler_eligibility": "not_scheduled_reviewer_interactive",
+      "command_hint": "viewmodel: build_audit_workflow",
+      "notes": "Builds governed cross-query review state; no persistence and no free-form query support."
+    },
+    {
+      "task_id": "generate_review_exports",
+      "task_title": "Generate Governed Review Export Packets",
+      "task_kind": "export_viewmodel",
+      "stage": "reviewer_surface",
+      "phase": "execute",
+      "inputs": [
+        "answer view",
+        "support review",
+        "source detail",
+        "audit checklist",
+        "eligible source index"
+      ],
+      "outputs": [
+        "markdown packet",
+        "text packet",
+        "JSON packet"
+      ],
+      "dependencies": [
+        "build_single_query_review",
+        "build_multi_query_audit_workflow"
+      ],
+      "required_artifacts": [
+        "navigator/retrieval_pack/manifest.json"
+      ],
+      "required_env_vars": [],
+      "blocked_states": [
+        "answer view unavailable",
+        "export payload blocked"
+      ],
+      "mutates_repo_files": false,
+      "runtime_mode": "local_read_only",
+      "human_review_required": true,
+      "scheduler_eligibility": "not_scheduled_reviewer_interactive",
+      "command_hint": "viewmodel: build_audit_summary_export or build_cross_query_audit_export",
+      "notes": "Creates downloadable/copyable reviewer packets; does not write export files automatically."
+    },
+    {
+      "task_id": "evaluate_source_preview_eligibility",
+      "task_title": "Evaluate Governed Source Preview Eligibility",
+      "task_kind": "reviewer_viewmodel",
+      "stage": "reviewer_surface",
+      "phase": "execute",
+      "inputs": [
+        "governed source-registry path",
+        "retrieval-pack source path"
+      ],
+      "outputs": [
+        "preview eligibility result",
+        "blocked reason",
+        "optional capped preview text"
+      ],
+      "dependencies": [
+        "validate_navigator_registries"
+      ],
+      "required_artifacts": [
+        "navigator/retrieval_pack/chunks.jsonl"
+      ],
+      "required_env_vars": [],
+      "blocked_states": [
+        "path outside governed source universe",
+        "secret-like path",
+        "binary or large file",
+        "missing local file"
+      ],
+      "mutates_repo_files": false,
+      "runtime_mode": "local_read_only",
+      "human_review_required": true,
+      "scheduler_eligibility": "not_scheduled_reviewer_interactive",
+      "command_hint": "viewmodel: evaluate_source_preview",
+      "notes": "Controlled source preview remains chunk/source-governed and must not become arbitrary repo browsing."
+    }
+  ]
+}

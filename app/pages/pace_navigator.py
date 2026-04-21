@@ -13,6 +13,8 @@ from app.viewmodels import (
     build_governed_answer_view,
     build_navigator_page_context,
     build_navigator_topic_drilldown,
+    build_orchestration_summary,
+    build_orchestration_workflow_detail,
     build_reviewer_filter_options,
     build_source_detail_options,
     build_source_detail_view,
@@ -202,6 +204,86 @@ def _render_eligible_source_index(source_index: dict[str, object]) -> None:
             "- Secret-like paths, environment files, binaries, generated arrays, images, and large files remain blocked.\n"
             "- This is not arbitrary repo enumeration or unrestricted file browsing."
         )
+
+
+def _render_orchestration_summary(orchestration: dict[str, object]) -> None:
+    summary = orchestration["summary"]
+    st.caption(str(summary["governance_note"]))
+    metric_cols = st.columns(4)
+    metric_cols[0].metric("Governed Workflows", str(summary["workflow_count"]))
+    metric_cols[1].metric("Task Memberships", str(summary["workflow_task_memberships"]))
+    metric_cols[2].metric("Human Review", str(summary["human_review_workflows"]))
+    metric_cols[3].metric("Mutating Workflows", str(summary["mutating_workflows"]))
+
+    workflow_rows = [
+        {
+            "Workflow": item["workflow_title"],
+            "ID": item["workflow_id"],
+            "Kind": item["workflow_kind"],
+            "Runtime": item["runtime_mode"],
+            "Scheduler": item["scheduler_eligibility"],
+            "Human Review": "Yes" if item["human_review_required"] else "No",
+            "Mutates Files": "Yes" if item["mutates_repo_files"] else "No",
+            "Tasks": item["task_count"],
+            "Blocker Status": item["blocker_status"],
+        }
+        for item in orchestration["workflow_cards"]
+    ]
+    st.dataframe(pd.DataFrame(workflow_rows), use_container_width=True, hide_index=True)
+
+    workflow_labels = {
+        f"{item['workflow_title']} ({item['workflow_id']})": item["workflow_id"]
+        for item in orchestration["workflow_cards"]
+    }
+    selected_label = st.selectbox(
+        "Workflow contract detail",
+        options=list(workflow_labels.keys()),
+        index=0,
+        help="Inspect task boundaries and blockers. This does not execute the workflow.",
+    )
+    detail = build_orchestration_workflow_detail(workflow_labels[selected_label])
+    detail_summary = detail["summary"]
+    blockers = detail["blockers"]
+    detail_cols = st.columns(4)
+    detail_cols[0].metric("Runtime", str(detail_summary["runtime_mode"]))
+    detail_cols[1].metric("Scheduler Class", str(detail_summary["scheduler_eligibility"]))
+    detail_cols[2].metric("Human Review", "Yes" if detail_summary["human_review_required"] else "No")
+    detail_cols[3].metric("Writes Files", "Yes" if detail_summary["mutates_repo_files"] else "No")
+
+    st.markdown("**Execution order and task boundaries**")
+    task_rows = [
+        {
+            "Order": row["order"],
+            "Task ID": row["task_id"],
+            "Kind": row["task_kind"],
+            "Runtime": row["runtime_mode"],
+            "Scheduler": row["scheduler_eligibility"],
+            "Writes Files": "Yes" if row["mutates_repo_files"] else "No",
+            "Human Review": "Yes" if row["human_review_required"] else "No",
+            "Dependencies": ", ".join(row["dependencies"]) if row["dependencies"] else "None",
+            "Command Hint": row["command_hint"] or "Contract only",
+        }
+        for row in detail["task_rows"]
+    ]
+    st.dataframe(pd.DataFrame(task_rows), use_container_width=True, hide_index=True)
+
+    blocker_cols = st.columns(2)
+    blocker_cols[0].markdown("**Missing artifacts**")
+    blocker_cols[0].markdown(
+        "\n".join(f"- `{item}`" for item in blockers["artifact_status"]["missing"])
+        or "- None detected"
+    )
+    blocker_cols[1].markdown("**Missing environment requirements**")
+    blocker_cols[1].markdown(
+        "\n".join(f"- `{item}`" for item in blockers["env_status"]["missing"])
+        or "- None detected"
+    )
+
+    with st.expander("Blocked states and workflow notes", expanded=False):
+        st.markdown("**Blocked states:**")
+        st.markdown("\n".join(f"- {item}" for item in blockers["blocked_states"]))
+        st.markdown("**Workflow notes:**")
+        st.write(detail["workflow"]["notes"])
 
 
 def _render_citation_detail_card(item: dict[str, object], label: str) -> None:
@@ -618,6 +700,7 @@ def render() -> None:
     )
     answer_view = build_governed_answer_view(selected_answer_query, top_k=selected_top_k)
     eligible_source_index = build_eligible_source_index()
+    orchestration_summary = build_orchestration_summary()
 
     st.title(context["page_title"])
     st.caption(context["page_caption"])
@@ -955,6 +1038,13 @@ def render() -> None:
         st.info(
             "Select the fixed queries to compare, then enable the workflow when you are ready to run the controlled multi-query review."
         )
+
+    st.subheader("Governed Orchestration Contracts")
+    st.caption(
+        "Inspect official workflow/task boundaries and local Airflow readiness. "
+        "This area is informational only; it does not execute jobs."
+    )
+    _render_orchestration_summary(orchestration_summary)
 
     st.markdown("**Relevant truth summaries**")
     for truth in selected_topic["truth_summaries"]:

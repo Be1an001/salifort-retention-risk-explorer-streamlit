@@ -12,12 +12,16 @@ from app.services import (
     NavigatorRetrievalIndexNotFoundError,
     OpenAIEmbeddingConfig,
     assemble_governed_answer,
+    build_runbook_view,
     get_drift_items,
+    get_execution_order,
     get_pace_phase,
     get_retrieval_evaluation_queries,
     get_runtime_governance_summary,
     get_repo_root,
     get_truth_entries,
+    list_tasks_for_workflow,
+    list_workflows,
     load_all_navigator_registries,
     load_retrieval_pack,
     recommend_page_for_topic,
@@ -463,6 +467,96 @@ def build_eligible_source_index() -> dict[str, Any]:
                 "It is not arbitrary repository enumeration or unrestricted file browsing."
             ),
         },
+    }
+
+
+def build_orchestration_summary() -> dict[str, Any]:
+    workflows = list_workflows()
+    workflow_cards: list[dict[str, Any]] = []
+    runtime_modes: set[str] = set()
+    scheduler_classes: set[str] = set()
+    task_count = 0
+    mutating_workflows = 0
+    human_review_workflows = 0
+
+    for workflow in workflows:
+        tasks = list_tasks_for_workflow(workflow["workflow_id"])
+        runbook = build_runbook_view(workflow["workflow_id"])
+        blocker_status = runbook["blockers"]["status"]
+        runtime_modes.add(workflow["runtime_mode"])
+        scheduler_classes.add(workflow["scheduler_eligibility"])
+        task_count += len(tasks)
+        if workflow["mutates_repo_files"]:
+            mutating_workflows += 1
+        if workflow["human_review_required"]:
+            human_review_workflows += 1
+        workflow_cards.append(
+            {
+                "workflow_id": workflow["workflow_id"],
+                "workflow_title": workflow["workflow_title"],
+                "workflow_kind": workflow["workflow_kind"],
+                "stage": workflow["stage"],
+                "phase": workflow["phase"],
+                "runtime_mode": workflow["runtime_mode"],
+                "scheduler_eligibility": workflow["scheduler_eligibility"],
+                "human_review_required": workflow["human_review_required"],
+                "mutates_repo_files": workflow["mutates_repo_files"],
+                "task_count": len(tasks),
+                "execution_order": get_execution_order(workflow["workflow_id"]),
+                "blocker_status": blocker_status,
+                "missing_artifacts": runbook["blockers"]["artifact_status"]["missing"],
+                "missing_env_vars": runbook["blockers"]["env_status"]["missing"],
+                "notes": workflow["notes"],
+            }
+        )
+
+    return {
+        "status": "ready",
+        "summary": {
+            "workflow_count": len(workflows),
+            "workflow_task_memberships": task_count,
+            "mutating_workflows": mutating_workflows,
+            "human_review_workflows": human_review_workflows,
+            "runtime_modes": sorted(runtime_modes),
+            "scheduler_classes": sorted(scheduler_classes),
+            "governance_note": (
+                "The orchestration layer defines task/workflow contracts only. "
+                "It does not execute jobs from Streamlit and does not add agent behavior."
+            ),
+        },
+        "workflow_cards": workflow_cards,
+    }
+
+
+def build_orchestration_workflow_detail(workflow_id: str) -> dict[str, Any]:
+    runbook = build_runbook_view(workflow_id)
+    task_rows = []
+    for index, task in enumerate(runbook["tasks"], start=1):
+        task_rows.append(
+            {
+                "order": index,
+                "task_id": task["task_id"],
+                "task_title": task["task_title"],
+                "task_kind": task["task_kind"],
+                "phase": task["phase"],
+                "runtime_mode": task["runtime_mode"],
+                "scheduler_eligibility": task["scheduler_eligibility"],
+                "mutates_repo_files": task["mutates_repo_files"],
+                "human_review_required": task["human_review_required"],
+                "dependencies": task["dependencies"],
+                "required_artifacts": task["required_artifacts"],
+                "required_env_vars": task["required_env_vars"],
+                "blocked_states": task["blocked_states"],
+                "command_hint": task.get("command_hint", ""),
+                "notes": task["notes"],
+            }
+        )
+    return {
+        "status": "ready",
+        "workflow": runbook["workflow"],
+        "summary": runbook["summary"],
+        "blockers": runbook["blockers"],
+        "task_rows": task_rows,
     }
 
 
