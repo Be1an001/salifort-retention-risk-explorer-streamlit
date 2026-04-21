@@ -1,0 +1,525 @@
+registry_version: "1.0"
+repo_name: "salifort-retention-risk-explorer-streamlit"
+scope: "WP1 deterministic navigator foundation"
+sources:
+  - source_id: legacy_repo_readme_reference
+    title: "Legacy modeling repo README reference"
+    source_kind: external_legacy_reference
+    path: "../salifort-motors-attrition-modeling-python/README.md"
+    repo_layer: legacy_method_context
+    authority_level: external_contextual_reference
+    canonical_scope:
+      - project evolution context
+      - public modeling narrative reference
+    runtime_scope: none
+    phase_links:
+      - Plan
+      - Analyze
+      - Construct
+    consumer_pages: []
+    freshness_mode: external_manual
+    notes: "Not present in this repo. Included because current repo docs, builder notes, and metadata explicitly frame the project as upgraded from the older modeling repo."
+
+  - source_id: legacy_exported_workflow_reference
+    title: "Trusted exported modeling workflow reference"
+    source_kind: external_legacy_reference
+    path: "../salifort-motors-attrition-modeling-python/scripts/02_salifort_motors_capstone_portfolio_project.py"
+    repo_layer: legacy_method_context
+    authority_level: external_contextual_reference
+    canonical_scope:
+      - offline modeling provenance
+      - threshold selection narrative
+      - SHAP workflow provenance
+    runtime_scope: none
+    phase_links:
+      - Analyze
+      - Construct
+      - Execute
+    consumer_pages: []
+    freshness_mode: external_manual
+    notes: "Not directly readable in this repo. Referenced by scripts/build_v2_artifacts.py and checked-in metadata notes as the trusted sibling workflow."
+
+  - source_id: public_repo_readme
+    title: "Public app repo README"
+    source_kind: documentation
+    path: "README.md"
+    repo_layer: public_app_context
+    authority_level: primary_public_identity
+    canonical_scope:
+      - repo identity
+      - live app framing
+      - deployment-facing description
+    runtime_scope: none
+    phase_links:
+      - Plan
+      - Execute
+    consumer_pages: []
+    freshness_mode: manual_versioned
+    notes: "Primary public explanation of what this repo contains and how it should be run."
+
+  - source_id: streamlit_entrypoint
+    title: "Streamlit app entrypoint and navigation registry"
+    source_kind: application_entrypoint
+    path: "app/app.py"
+    repo_layer: runtime_app
+    authority_level: primary_runtime
+    canonical_scope:
+      - page registration
+      - app structure
+      - public navigation order
+    runtime_scope:
+      - all_pages
+    phase_links:
+      - Execute
+    consumer_pages:
+      - Overview
+      - Workforce Explorer
+      - EDA & Patterns
+      - Model & Threshold Lab
+      - Explainability
+      - Manager Action View
+      - Methods & Limitations
+    freshness_mode: runtime_versioned
+    notes: "Defines current app navigation explicitly via st.navigation."
+
+  - source_id: shared_loader_contract
+    title: "Shared runtime loader and artifact contract layer"
+    source_kind: loader_module
+    path: "app/utils/load_data.py"
+    repo_layer: runtime_contract
+    authority_level: primary_runtime
+    canonical_scope:
+      - path contracts
+      - runtime mode logic
+      - fallback behavior
+      - artifact loading
+      - row identity strategy
+    runtime_scope:
+      - all_dynamic_pages
+    phase_links:
+      - Analyze
+      - Construct
+      - Execute
+    consumer_pages:
+      - Overview
+      - Workforce Explorer
+      - Model & Threshold Lab
+      - Explainability
+      - Manager Action View
+      - Methods & Limitations
+    freshness_mode: runtime_versioned
+    notes: "Most important in-repo truth source for current runtime behavior."
+
+  - source_id: page_overview
+    title: "Overview page"
+    source_kind: page_module
+    path: "app/pages/overview.py"
+    repo_layer: runtime_app
+    authority_level: primary_runtime
+    canonical_scope:
+      - landing-page narrative
+      - headline metrics presentation
+    runtime_scope:
+      - overview
+    phase_links:
+      - Plan
+      - Execute
+    consumer_pages:
+      - Overview
+    freshness_mode: runtime_versioned
+    notes: "Reads preferred metadata and signals whether generated metadata and row-level artifacts are present."
+
+  - source_id: page_workforce_explorer
+    title: "Workforce Explorer page"
+    source_kind: page_module
+    path: "app/pages/workforce_explorer.py"
+    repo_layer: runtime_app
+    authority_level: primary_runtime
+    canonical_scope:
+      - row-level interactive review
+      - fallback-versus-artifact logic
+      - department summary derivation rules
+    runtime_scope:
+      - workforce_explorer
+    phase_links:
+      - Analyze
+      - Execute
+    consumer_pages:
+      - Workforce Explorer
+    freshness_mode: runtime_versioned
+    notes: "Most important page for understanding row-level truth versus fallback heuristic behavior."
+
+  - source_id: page_eda_patterns
+    title: "EDA & Patterns page"
+    source_kind: page_module
+    path: "app/pages/eda_patterns.py"
+    repo_layer: presentation_layer
+    authority_level: reference_presentation
+    canonical_scope:
+      - static EDA reference visuals
+    runtime_scope:
+      - eda_patterns
+    phase_links:
+      - Analyze
+      - Execute
+    consumer_pages:
+      - EDA & Patterns
+    freshness_mode: static_versioned
+    notes: "Figure-only page; does not compute or load row-level artifacts."
+
+  - source_id: page_model_threshold_lab
+    title: "Model & Threshold Lab page"
+    source_kind: page_module
+    path: "app/pages/model_threshold_lab.py"
+    repo_layer: runtime_app
+    authority_level: primary_runtime
+    canonical_scope:
+      - validation comparison rendering
+      - threshold curve rendering
+      - confusion matrix rendering
+      - figure fallback behavior
+    runtime_scope:
+      - model_threshold_lab
+    phase_links:
+      - Construct
+      - Execute
+    consumer_pages:
+      - Model & Threshold Lab
+    freshness_mode: runtime_versioned
+    notes: "Uses generated model tables when available and static figures otherwise."
+
+  - source_id: page_explainability
+    title: "Explainability page"
+    source_kind: page_module
+    path: "app/pages/explainability.py"
+    repo_layer: runtime_app
+    authority_level: primary_runtime
+    canonical_scope:
+      - SHAP importance presentation
+      - explainability narrative
+      - figure fallback behavior
+    runtime_scope:
+      - explainability
+    phase_links:
+      - Construct
+      - Execute
+    consumer_pages:
+      - Explainability
+    freshness_mode: runtime_versioned
+    notes: "Reads SHAP table when present and otherwise falls back to static SHAP visuals."
+
+  - source_id: page_manager_action_view
+    title: "Manager Action View page"
+    source_kind: page_module
+    path: "app/pages/manager_action_view.py"
+    repo_layer: runtime_app
+    authority_level: primary_runtime
+    canonical_scope:
+      - department exposure presentation
+      - review governance messaging
+    runtime_scope:
+      - manager_action_view
+    phase_links:
+      - Execute
+    consumer_pages:
+      - Manager Action View
+    freshness_mode: runtime_versioned
+    notes: "Mixes generated department exposure data with static executive summary imagery."
+
+  - source_id: page_methods_limitations
+    title: "Methods & Limitations page"
+    source_kind: page_module
+    path: "app/pages/methods_limitations.py"
+    repo_layer: runtime_app
+    authority_level: primary_runtime
+    canonical_scope:
+      - runtime mode explanation
+      - scope boundaries
+      - project limitations
+    runtime_scope:
+      - methods_limitations
+    phase_links:
+      - Plan
+      - Execute
+    consumer_pages:
+      - Methods & Limitations
+    freshness_mode: runtime_versioned
+    notes: "Important narrative guardrail page for preserving what the app is and is not."
+
+  - source_id: offline_builder
+    title: "Offline artifact builder"
+    source_kind: build_script
+    path: "scripts/build_v2_artifacts.py"
+    repo_layer: offline_build
+    authority_level: primary_offline_generation
+    canonical_scope:
+      - artifact generation behavior
+      - local model rerun behavior
+      - public reference selection override
+    runtime_scope: none
+    phase_links:
+      - Construct
+      - Execute
+    consumer_pages: []
+    freshness_mode: offline_manual
+    notes: "Critical for future orchestration, but not executed by Streamlit runtime."
+
+  - source_id: artifact_runtime_readme
+    title: "Artifact runtime guide"
+    source_kind: documentation
+    path: "artifacts/v2/README.md"
+    repo_layer: artifact_contract
+    authority_level: primary_artifact_policy
+    canonical_scope:
+      - artifact runtime policy
+      - required versus optional artifact definitions
+      - row-key policy
+    runtime_scope:
+      - all_artifact_backed_pages
+    phase_links:
+      - Construct
+      - Execute
+    consumer_pages: []
+    freshness_mode: manual_versioned
+    notes: "States that Streamlit runtime should not retrain models or infer metrics from images."
+
+  - source_id: artifact_contract_schema
+    title: "Artifact contract schema"
+    source_kind: schema_contract
+    path: "artifacts/v2/schemas/artifact_contract.json"
+    repo_layer: artifact_contract
+    authority_level: declared_contract
+    canonical_scope:
+      - expected artifact shapes
+      - join strategy
+      - runtime policy statements
+    runtime_scope:
+      - all_artifact_backed_pages
+    phase_links:
+      - Construct
+      - Execute
+    consumer_pages: []
+    freshness_mode: manual_versioned
+    notes: "Machine-readable contract, with some directly observable drift from current emitted optional artifacts."
+
+  - source_id: metadata_artifact
+    title: "Current metadata artifact"
+    source_kind: generated_metadata
+    path: "artifacts/v2/metadata.json"
+    repo_layer: artifact_snapshot
+    authority_level: current_runtime_metadata
+    canonical_scope:
+      - public model metadata snapshot
+      - selected threshold snapshot
+      - build provenance note
+    runtime_scope:
+      - overview
+      - model_threshold_lab
+    phase_links:
+      - Construct
+      - Execute
+    consumer_pages:
+      - Overview
+      - Model & Threshold Lab
+    freshness_mode: snapshot_versioned
+    notes: "Current checked-in metadata snapshot consumed by runtime."
+
+  - source_id: employee_scores_artifact
+    title: "Employee scores artifact"
+    source_kind: generated_table
+    path: "artifacts/v2/employee_scores.parquet"
+    repo_layer: artifact_snapshot
+    authority_level: current_runtime_row_truth
+    canonical_scope:
+      - row-level attrition probabilities
+      - threshold flags
+      - risk exposure features
+    runtime_scope:
+      - workforce_explorer
+      - methods_limitations
+      - overview_runtime_status
+    phase_links:
+      - Analyze
+      - Construct
+      - Execute
+    consumer_pages:
+      - Overview
+      - Workforce Explorer
+      - Methods & Limitations
+    freshness_mode: snapshot_versioned
+    notes: "Primary row-level artifact-backed truth for the app when present."
+
+  - source_id: department_exposure_artifact
+    title: "Department exposure artifact"
+    source_kind: generated_table
+    path: "artifacts/v2/department_exposure.csv"
+    repo_layer: artifact_snapshot
+    authority_level: current_runtime_summary_truth
+    canonical_scope:
+      - department-level exposure summary
+      - normalized exposure comparison
+    runtime_scope:
+      - workforce_explorer
+      - manager_action_view
+    phase_links:
+      - Execute
+    consumer_pages:
+      - Workforce Explorer
+      - Manager Action View
+    freshness_mode: snapshot_versioned
+    notes: "Can be used directly or bypassed when page filters require row-level recomputation."
+
+  - source_id: threshold_curve_artifact
+    title: "Threshold curve artifact"
+    source_kind: generated_table
+    path: "artifacts/v2/threshold_curve.csv"
+    repo_layer: artifact_snapshot
+    authority_level: current_runtime_summary_truth
+    canonical_scope:
+      - threshold sweep metrics
+      - flagged count tradeoffs
+    runtime_scope:
+      - model_threshold_lab
+    phase_links:
+      - Construct
+      - Execute
+    consumer_pages:
+      - Model & Threshold Lab
+    freshness_mode: snapshot_versioned
+    notes: "Used for the threshold lab page when available."
+
+  - source_id: validation_model_comparison_artifact
+    title: "Validation model comparison artifact"
+    source_kind: generated_table
+    path: "artifacts/v2/validation_model_comparison.csv"
+    repo_layer: artifact_snapshot
+    authority_level: current_runtime_summary_truth
+    canonical_scope:
+      - rerun comparison across candidate models
+    runtime_scope:
+      - model_threshold_lab
+    phase_links:
+      - Construct
+      - Execute
+    consumer_pages:
+      - Model & Threshold Lab
+    freshness_mode: snapshot_versioned
+    notes: "Shows local rerun ranking that differs from the preserved public model selection."
+
+  - source_id: confusion_matrix_artifact
+    title: "Selected-threshold confusion matrix artifact"
+    source_kind: generated_table
+    path: "artifacts/v2/confusion_matrix_at_selected_threshold.csv"
+    repo_layer: artifact_snapshot
+    authority_level: current_runtime_summary_truth
+    canonical_scope:
+      - chosen threshold performance snapshot
+    runtime_scope:
+      - model_threshold_lab
+    phase_links:
+      - Execute
+    consumer_pages:
+      - Model & Threshold Lab
+    freshness_mode: snapshot_versioned
+    notes: "Checked-in single-row summary for the chosen public threshold."
+
+  - source_id: shap_importance_artifact
+    title: "SHAP importance artifact"
+    source_kind: generated_table
+    path: "artifacts/v2/shap_importance.csv"
+    repo_layer: artifact_snapshot
+    authority_level: current_runtime_summary_truth
+    canonical_scope:
+      - feature importance ranking
+      - model interpretation snapshot
+    runtime_scope:
+      - explainability
+    phase_links:
+      - Construct
+      - Execute
+    consumer_pages:
+      - Explainability
+    freshness_mode: snapshot_versioned
+    notes: "Primary explainability table when present."
+
+  - source_id: optional_pr_curve_artifact
+    title: "Precision-recall curve points artifact"
+    source_kind: generated_table_optional
+    path: "artifacts/v2/pr_curve_points.parquet"
+    repo_layer: artifact_snapshot
+    authority_level: optional_runtime_summary
+    canonical_scope:
+      - PR curve chart points
+    runtime_scope:
+      - model_threshold_lab
+    phase_links:
+      - Construct
+      - Execute
+    consumer_pages:
+      - Model & Threshold Lab
+    freshness_mode: snapshot_versioned
+    notes: "Optional runtime enhancement for interactive PR curves."
+
+  - source_id: optional_employee_shap_sample_artifact
+    title: "Employee SHAP sample artifact"
+    source_kind: generated_table_optional
+    path: "artifacts/v2/employee_shap_sample.parquet"
+    repo_layer: artifact_snapshot
+    authority_level: optional_runtime_summary
+    canonical_scope:
+      - sampled row-level SHAP explanations
+    runtime_scope:
+      - explainability_future
+    phase_links:
+      - Construct
+      - Execute
+    consumer_pages:
+      - Explainability
+    freshness_mode: snapshot_versioned
+    notes: "Detected by the page today but not yet surfaced as a drilldown UI."
+
+  - source_id: optional_model_modes_summary_artifact
+    title: "Model modes summary artifact"
+    source_kind: generated_metadata_optional
+    path: "artifacts/v2/model_modes_summary.json"
+    repo_layer: artifact_snapshot
+    authority_level: optional_reference_metadata
+    canonical_scope:
+      - mode comparison notes
+      - builder provenance notes
+    runtime_scope: none
+    phase_links:
+      - Plan
+      - Construct
+    consumer_pages: []
+    freshness_mode: snapshot_versioned
+    notes: "Currently checked in but unused by the app runtime."
+
+  - source_id: static_figure_bundle
+    title: "Static figure bundle"
+    source_kind: presentation_asset_group
+    path: "outputs/figures/"
+    repo_layer: presentation_layer
+    authority_level: reference_presentation
+    canonical_scope:
+      - static EDA visuals
+      - static executive summary panels
+      - fallback visuals for model and SHAP pages
+    runtime_scope:
+      - overview
+      - eda_patterns
+      - model_threshold_lab
+      - explainability
+      - manager_action_view
+    phase_links:
+      - Analyze
+      - Construct
+      - Execute
+    consumer_pages:
+      - Overview
+      - EDA & Patterns
+      - Model & Threshold Lab
+      - Explainability
+      - Manager Action View
+    freshness_mode: static_versioned
+    notes: "Presentation/reference layer only. Not authoritative for recomputation."

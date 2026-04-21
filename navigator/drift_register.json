@@ -1,0 +1,135 @@
+{
+  "registry_version": "1.0",
+  "repo_name": "salifort-retention-risk-explorer-streamlit",
+  "drifts": [
+    {
+      "drift_id": "drift_public_selection_vs_rerun_leader",
+      "title": "Public model selection differs from local rerun metric leader",
+      "severity": "high",
+      "status": "confirmed",
+      "canonical_side": "Public operational truth preserves weighted XGBoost at threshold 0.29.",
+      "current_side": "Current checked-in comparison artifact records rf_balanced as the local rerun best-cost leader at threshold 0.27, while metadata notes still preserve weighted XGBoost at 0.29 as the selected public model.",
+      "source_evidence": [
+        "artifacts/v2/metadata.json",
+        "artifacts/v2/validation_model_comparison.csv",
+        "scripts/build_v2_artifacts.py"
+      ],
+      "user_visible_risk": "Users or future assistants may incorrectly treat the rerun leader table as replacing the published public model story.",
+      "upgrade_handling_rule": "Preserve the public reference selection as canonical until an explicit governed upgrade intentionally changes it and updates both metadata and narrative sources together.",
+      "notes": [
+        "This drift is explicit rather than hidden, but it still needs tracking."
+      ]
+    },
+    {
+      "drift_id": "drift_runtime_rows_vs_fallback_rows",
+      "title": "Fallback runtime row logic differs from artifact-backed row truth",
+      "severity": "high",
+      "status": "confirmed",
+      "canonical_side": "Artifact-backed row-level truth uses employee_scores.parquet with attrition_probability and selected_threshold_flag.",
+      "current_side": "Fallback mode derives screening_score_v1, high_risk_flag_v1, and risk_cost_exposure_index_v1 from heuristic feature weighting inside load_data.py.",
+      "source_evidence": [
+        "app/utils/load_data.py",
+        "app/pages/workforce_explorer.py",
+        "artifacts/v2/employee_scores.parquet",
+        "artifacts/v2/README.md"
+      ],
+      "user_visible_risk": "If labels blur, a fallback exploratory score could be mistaken for the final model probability.",
+      "upgrade_handling_rule": "Keep fallback mode explicitly labeled and do not merge its fields into canonical public model truth.",
+      "notes": [
+        "This is a designed separation, but it is still a meaningful truth-layer drift."
+      ]
+    },
+    {
+      "drift_id": "drift_static_figures_vs_generated_tables",
+      "title": "Static figure layer can diverge from generated artifact layer",
+      "severity": "medium",
+      "status": "confirmed",
+      "canonical_side": "Generated tables and metadata are the current structured runtime-consumed artifact truth when available.",
+      "current_side": "Several pages still rely on static PNG figures as stable reference or fallback presentation assets without explicit version linkage to the current checked-in artifact snapshot.",
+      "source_evidence": [
+        "app/pages/eda_patterns.py",
+        "app/pages/model_threshold_lab.py",
+        "app/pages/explainability.py",
+        "app/pages/manager_action_view.py",
+        "outputs/figures/"
+      ],
+      "user_visible_risk": "Presentation visuals may lag or differ from the latest structured artifact snapshot without an obvious provenance cue.",
+      "upgrade_handling_rule": "Treat static figures as presentation/reference assets unless provenance is explicitly tied to the current artifact snapshot.",
+      "notes": [
+        "This is directly observable from code paths even though the visual content itself was only metadata-inspected."
+      ]
+    },
+    {
+      "drift_id": "drift_builder_reference_vs_local_reimplementation",
+      "title": "Builder references a trusted sibling workflow but locally reimplements model logic",
+      "severity": "high",
+      "status": "confirmed",
+      "canonical_side": "Builder and metadata language say the offline build is sourced from the trusted sibling modeling workflow.",
+      "current_side": "The builder performs local feature engineering, model fitting, threshold search, and SHAP generation in this repo rather than importing or executing the sibling script directly.",
+      "source_evidence": [
+        "scripts/build_v2_artifacts.py",
+        "artifacts/v2/README.md",
+        "artifacts/v2/metadata.json"
+      ],
+      "user_visible_risk": "Future maintainers may overestimate direct reproducibility against the original workflow and miss local behavioral drift.",
+      "upgrade_handling_rule": "Document this as governed divergence or refactor later to a more explicit provenance boundary; do not assume the sibling script is being executed today.",
+      "notes": [
+        "This is one of the most important governance drifts in the repo."
+      ]
+    },
+    {
+      "drift_id": "drift_contract_optional_model_modes_schema",
+      "title": "Optional model_modes_summary contract does not match the current file shape",
+      "severity": "medium",
+      "status": "confirmed",
+      "canonical_side": "artifact_contract.json declares flattened required fields for model_modes_summary.json.",
+      "current_side": "The checked-in model_modes_summary.json and builder output use nested keys like operational, survey_rich, comparison_notes, and source_workflow instead of the flattened contract fields.",
+      "source_evidence": [
+        "artifacts/v2/schemas/artifact_contract.json",
+        "artifacts/v2/model_modes_summary.json",
+        "scripts/build_v2_artifacts.py"
+      ],
+      "user_visible_risk": "Schema validation or future indexing could fail or encode the file incorrectly.",
+      "upgrade_handling_rule": "Choose one source of truth for this file shape before using it in downstream automation or navigator loaders.",
+      "notes": [
+        "Directly verified from current repo contents."
+      ]
+    },
+    {
+      "drift_id": "drift_contract_employee_scores_extra_columns",
+      "title": "employee_scores artifact includes extra columns beyond the declared required contract",
+      "severity": "low",
+      "status": "confirmed",
+      "canonical_side": "artifact_contract.json defines a required employee_scores column set and a small optional set.",
+      "current_side": "Current employee_scores.parquet also contains satisfaction_level, attrition_label, high_risk_flag, and employee_id, which are not declared in the current contract.",
+      "source_evidence": [
+        "artifacts/v2/schemas/artifact_contract.json",
+        "artifacts/v2/employee_scores.parquet"
+      ],
+      "user_visible_risk": "Downstream consumers may make assumptions based on undeclared fields or misread them as guaranteed long-term contract elements.",
+      "upgrade_handling_rule": "Treat undeclared extra columns as convenience fields until the contract is formally updated.",
+      "notes": [
+        "This drift is low severity because runtime does not currently break on the extra columns."
+      ]
+    },
+    {
+      "drift_id": "drift_public_narrative_vs_snapshot_evidence",
+      "title": "Public canonical narrative and current snapshot evidence need explicit separation",
+      "severity": "medium",
+      "status": "partially_confirmed",
+      "canonical_side": "Public app copy presents a polished operational story centered on weighted XGBoost, threshold choice, department exposure, and SHAP explainability.",
+      "current_side": "Current metadata snapshot includes provenance notes and local rerun evidence that are useful for auditability but not always surfaced in the public-facing page copy.",
+      "source_evidence": [
+        "README.md",
+        "app/pages/overview.py",
+        "app/pages/model_threshold_lab.py",
+        "artifacts/v2/metadata.json"
+      ],
+      "user_visible_risk": "Future upgrades may either over-audit public copy or over-polish runtime truth and erase the important distinction between narrative and snapshot evidence.",
+      "upgrade_handling_rule": "Keep public story, runtime truth, and audit/provenance evidence in separate layers with explicit cross-links.",
+      "notes": [
+        "This is partially confirmed because the repo contains both layers, but not every boundary is formalized yet."
+      ]
+    }
+  ]
+}

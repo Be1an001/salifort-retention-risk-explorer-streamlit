@@ -1,0 +1,268 @@
+{
+  "policy_version": "1.0.0",
+  "repo_name": "salifort-retention-risk-explorer-streamlit",
+  "scope": "governed_pace_agent_shell_policy",
+  "execution_policy": {
+    "mode": "preview_only",
+    "autonomous_execution_allowed": false,
+    "streamlit_execution_buttons_allowed": false,
+    "free_text_planning_allowed": false,
+    "background_jobs_allowed": false,
+    "airflow_triggering_allowed": false,
+    "secret_handling": "detect environment-variable requirements only; never read, print, persist, or transform secret values",
+    "notes": "WP15 agent shell may classify controlled requests and assemble transparent plan previews only."
+  },
+  "supported_intents": [
+    {
+      "intent_id": "inspect_truth",
+      "intent_title": "Inspect Governed Truth",
+      "description": "Route a controlled truth question to existing answer/reviewer surfaces and truth-bearing contracts.",
+      "allowed_operations": [
+        "classify controlled request",
+        "preview review workflow",
+        "recommend relevant app pages",
+        "surface truth/drift citations through existing reviewer surfaces"
+      ],
+      "workflow_ids": [
+        "single_query_review"
+      ],
+      "task_ids": [
+        "build_single_query_review",
+        "generate_review_exports"
+      ],
+      "page_routes": [
+        "pace-navigator",
+        "model-threshold-lab",
+        "methods-limitations"
+      ],
+      "pace_phase": "execute",
+      "human_review_required": true,
+      "api_dependency_mode": "may_require_existing_retrieval_api_path"
+    },
+    {
+      "intent_id": "inspect_drift",
+      "intent_title": "Inspect Governed Drift",
+      "description": "Route drift questions to governed drift summaries, reviewer citations, and orchestration-aware review workflows.",
+      "allowed_operations": [
+        "classify controlled request",
+        "preview drift-aware review workflow",
+        "surface drift caveats separately from direct answer"
+      ],
+      "workflow_ids": [
+        "single_query_review"
+      ],
+      "task_ids": [
+        "build_single_query_review",
+        "generate_review_exports"
+      ],
+      "page_routes": [
+        "pace-navigator",
+        "methods-limitations"
+      ],
+      "pace_phase": "execute",
+      "human_review_required": true,
+      "api_dependency_mode": "may_require_existing_retrieval_api_path"
+    },
+    {
+      "intent_id": "inspect_workflow",
+      "intent_title": "Inspect Workflow Contracts",
+      "description": "Route orchestration questions to the workflow/task contract layer without executing jobs.",
+      "allowed_operations": [
+        "preview workflow runbook",
+        "surface blockers",
+        "surface required artifacts and env vars",
+        "recommend human review checkpoints"
+      ],
+      "workflow_ids": [
+        "retrieval_validation",
+        "answer_assembly_validation",
+        "offline_retrieval_build"
+      ],
+      "task_ids": [
+        "validate_navigator_registries",
+        "validate_retrieval_pack",
+        "validate_retrieval_runtime",
+        "validate_answer_assembly"
+      ],
+      "page_routes": [
+        "pace-navigator"
+      ],
+      "pace_phase": "construct",
+      "human_review_required": false,
+      "api_dependency_mode": "env_var_detection_only"
+    },
+    {
+      "intent_id": "review_retrieval_quality",
+      "intent_title": "Review Retrieval Quality",
+      "description": "Route retrieval-quality questions to existing validation and reviewer-inspector contracts.",
+      "allowed_operations": [
+        "preview validation workflow",
+        "surface required index artifacts",
+        "surface API key requirement",
+        "recommend retrieval inspector review"
+      ],
+      "workflow_ids": [
+        "retrieval_validation"
+      ],
+      "task_ids": [
+        "validate_retrieval_runtime"
+      ],
+      "page_routes": [
+        "pace-navigator"
+      ],
+      "pace_phase": "construct",
+      "human_review_required": true,
+      "api_dependency_mode": "may_require_existing_retrieval_api_path"
+    },
+    {
+      "intent_id": "review_answer_support",
+      "intent_title": "Review Answer Support",
+      "description": "Route support-quality questions to answer assembly validation and reviewer support surfaces.",
+      "allowed_operations": [
+        "preview answer assembly validation",
+        "surface citations and checklist expectations",
+        "recommend reviewer support panels"
+      ],
+      "workflow_ids": [
+        "answer_assembly_validation",
+        "single_query_review"
+      ],
+      "task_ids": [
+        "validate_answer_assembly",
+        "build_single_query_review"
+      ],
+      "page_routes": [
+        "pace-navigator"
+      ],
+      "pace_phase": "execute",
+      "human_review_required": true,
+      "api_dependency_mode": "may_require_existing_retrieval_api_path"
+    },
+    {
+      "intent_id": "prepare_export",
+      "intent_title": "Prepare Governed Export",
+      "description": "Route export requests to existing governed export packet builders.",
+      "allowed_operations": [
+        "preview export workflow",
+        "surface export-ready prerequisites",
+        "recommend review checklist before export"
+      ],
+      "workflow_ids": [
+        "single_query_review",
+        "multi_query_audit"
+      ],
+      "task_ids": [
+        "generate_review_exports",
+        "build_multi_query_audit_workflow"
+      ],
+      "page_routes": [
+        "pace-navigator"
+      ],
+      "pace_phase": "execute",
+      "human_review_required": true,
+      "api_dependency_mode": "may_require_existing_retrieval_api_path"
+    },
+    {
+      "intent_id": "inspect_source_eligibility",
+      "intent_title": "Inspect Source Preview Eligibility",
+      "description": "Route source-preview questions to the governed source eligibility workflow.",
+      "allowed_operations": [
+        "preview source eligibility workflow",
+        "surface allowed/blocked preview rules",
+        "recommend chunk-level source detail fallback"
+      ],
+      "workflow_ids": [
+        "source_preview_review"
+      ],
+      "task_ids": [
+        "evaluate_source_preview_eligibility"
+      ],
+      "page_routes": [
+        "pace-navigator"
+      ],
+      "pace_phase": "execute",
+      "human_review_required": true,
+      "api_dependency_mode": "not_required"
+    },
+    {
+      "intent_id": "inspect_orchestration_blockers",
+      "intent_title": "Inspect Orchestration Blockers",
+      "description": "Route blocker checks to the orchestration contract summary and runbook views.",
+      "allowed_operations": [
+        "preview blocker summary",
+        "surface missing artifacts",
+        "surface missing environment-variable classes",
+        "surface scheduler eligibility"
+      ],
+      "workflow_ids": [
+        "offline_retrieval_build",
+        "retrieval_validation",
+        "answer_assembly_validation"
+      ],
+      "task_ids": [
+        "validate_navigator_registries",
+        "validate_retrieval_pack",
+        "validate_retrieval_runtime",
+        "validate_answer_assembly"
+      ],
+      "page_routes": [
+        "pace-navigator"
+      ],
+      "pace_phase": "construct",
+      "human_review_required": false,
+      "api_dependency_mode": "env_var_detection_only"
+    }
+  ],
+  "disallowed_behaviors": [
+    {
+      "behavior_id": "arbitrary_repo_execution",
+      "behavior_title": "Arbitrary Repository Execution",
+      "examples": [
+        "run any command you think is useful",
+        "execute this workflow now",
+        "modify files autonomously"
+      ],
+      "handling_rule": "Return blocked preview with no workflow execution."
+    },
+    {
+      "behavior_id": "unconstrained_chat",
+      "behavior_title": "Unconstrained Chat Or Search",
+      "examples": [
+        "ask anything",
+        "search the whole repo freely",
+        "answer as a general assistant"
+      ],
+      "handling_rule": "Return unsupported; route user back to controlled request catalog."
+    },
+    {
+      "behavior_id": "hidden_chain_execution",
+      "behavior_title": "Hidden Chain Execution",
+      "examples": [
+        "decide and run the steps silently",
+        "auto-fix all blockers",
+        "trigger Airflow automatically"
+      ],
+      "handling_rule": "Return blocked preview; no background execution is permitted."
+    },
+    {
+      "behavior_id": "secret_handling",
+      "behavior_title": "Secret Handling Beyond Env-Var Detection",
+      "examples": [
+        "read my API key",
+        "store this token",
+        "write a .env file"
+      ],
+      "handling_rule": "Return blocked; only environment-variable presence classes may be surfaced."
+    },
+    {
+      "behavior_id": "workflow_mutation",
+      "behavior_title": "Self-Directed Workflow Mutation",
+      "examples": [
+        "rewrite the orchestration contracts",
+        "invent a new workflow",
+        "add tasks automatically"
+      ],
+      "handling_rule": "Return blocked; WP15 consumes existing contracts only."
+    }
+  ]
+}

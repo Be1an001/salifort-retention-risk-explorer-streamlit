@@ -1,0 +1,299 @@
+{
+  "catalog_version": "1.0.0",
+  "repo_name": "salifort-retention-risk-explorer-streamlit",
+  "scope": "governed_pace_agent_shell_request_catalog",
+  "requests": [
+    {
+      "request_id": "review_public_model_truth",
+      "label": "Review public model truth",
+      "controlled_request": "Review the public model truth and where it is supported.",
+      "intent_id": "inspect_truth",
+      "request_class": "truth_review",
+      "pace_phase": "execute",
+      "workflow_id": "single_query_review",
+      "task_ids": [
+        "build_single_query_review",
+        "generate_review_exports"
+      ],
+      "page_routes": [
+        "pace-navigator",
+        "model-threshold-lab",
+        "methods-limitations"
+      ],
+      "governed_query": "what is the public model truth",
+      "required_inputs": [
+        "fixed governed query",
+        "retrieval index if reviewer answer surface is used"
+      ],
+      "expected_outputs": [
+        "plan preview",
+        "recommended reviewer surface",
+        "truth support route",
+        "export packet readiness notes"
+      ],
+      "review_checkpoints": [
+        "confirm weighted XGBoost remains public model truth",
+        "confirm threshold 0.29 remains preserved",
+        "inspect citations before exporting"
+      ],
+      "notes": "Routes to governed reviewer surfaces; does not answer through free-form generation."
+    },
+    {
+      "request_id": "review_fallback_vs_final_truth",
+      "label": "Review fallback vs final model truth",
+      "controlled_request": "Review how fallback differs from final/public model truth.",
+      "intent_id": "inspect_drift",
+      "request_class": "truth_and_drift_review",
+      "pace_phase": "execute",
+      "workflow_id": "single_query_review",
+      "task_ids": [
+        "build_single_query_review",
+        "generate_review_exports"
+      ],
+      "page_routes": [
+        "pace-navigator",
+        "methods-limitations"
+      ],
+      "governed_query": "how is fallback different from final model truth",
+      "required_inputs": [
+        "fixed governed query",
+        "retrieval index if reviewer answer surface is used"
+      ],
+      "expected_outputs": [
+        "plan preview",
+        "truth and drift support route",
+        "fallback separation checkpoint",
+        "reviewer citation path"
+      ],
+      "review_checkpoints": [
+        "confirm fallback is not labeled as final model probability",
+        "confirm drift/caveat context remains separate",
+        "inspect source detail before export"
+      ],
+      "notes": "Preserves fallback truth separation and routes through existing reviewer workflow."
+    },
+    {
+      "request_id": "inspect_threshold_rationale",
+      "label": "Inspect threshold rationale",
+      "controlled_request": "Inspect why threshold 0.29 is used and what supports it.",
+      "intent_id": "review_answer_support",
+      "request_class": "threshold_support_review",
+      "pace_phase": "execute",
+      "workflow_id": "single_query_review",
+      "task_ids": [
+        "build_single_query_review",
+        "generate_review_exports"
+      ],
+      "page_routes": [
+        "pace-navigator",
+        "model-threshold-lab",
+        "methods-limitations"
+      ],
+      "governed_query": "why is threshold 0.29 used",
+      "required_inputs": [
+        "fixed governed query",
+        "retrieval index if reviewer answer surface is used"
+      ],
+      "expected_outputs": [
+        "plan preview",
+        "threshold support route",
+        "review checklist",
+        "citation inspection recommendation"
+      ],
+      "review_checkpoints": [
+        "confirm threshold 0.29 is preserved",
+        "check whether rationale is stitched from multiple governed signals",
+        "avoid overstating a single-source rationale"
+      ],
+      "notes": "Routes threshold review to answer support and threshold lab surfaces."
+    },
+    {
+      "request_id": "check_retrieval_quality",
+      "label": "Check retrieval quality",
+      "controlled_request": "Check governed retrieval quality for the fixed evaluation set.",
+      "intent_id": "review_retrieval_quality",
+      "request_class": "retrieval_validation_review",
+      "pace_phase": "construct",
+      "workflow_id": "retrieval_validation",
+      "task_ids": [
+        "validate_retrieval_runtime"
+      ],
+      "page_routes": [
+        "pace-navigator"
+      ],
+      "governed_query": null,
+      "required_inputs": [
+        "retrieval pack",
+        "retrieval index",
+        "environment-provided OpenAI API key if validation is run manually"
+      ],
+      "expected_outputs": [
+        "plan preview",
+        "retrieval validation route",
+        "blocker summary",
+        "inspector recommendation"
+      ],
+      "review_checkpoints": [
+        "confirm vector count matches chunk count",
+        "confirm fixed-query expectations are satisfied",
+        "do not weaken validation into a meaningless pass"
+      ],
+      "notes": "WP15 only previews this path; it does not run validation."
+    },
+    {
+      "request_id": "inspect_workflow_blockers",
+      "label": "Inspect workflow blockers",
+      "controlled_request": "Inspect blockers for the governed orchestration workflows.",
+      "intent_id": "inspect_orchestration_blockers",
+      "request_class": "orchestration_blocker_review",
+      "pace_phase": "construct",
+      "workflow_id": "retrieval_validation",
+      "task_ids": [
+        "validate_navigator_registries",
+        "validate_retrieval_pack",
+        "validate_retrieval_runtime"
+      ],
+      "page_routes": [
+        "pace-navigator"
+      ],
+      "governed_query": null,
+      "required_inputs": [
+        "workflow registry",
+        "task registry",
+        "retrieval artifacts for selected validation workflows"
+      ],
+      "expected_outputs": [
+        "plan preview",
+        "required artifact summary",
+        "required environment-variable class summary",
+        "human-review flags"
+      ],
+      "review_checkpoints": [
+        "confirm missing env vars are labels only, never secret values",
+        "inspect mutating workflow flags before manual execution",
+        "confirm scheduler eligibility"
+      ],
+      "notes": "Routes to orchestration contract summary and never triggers Airflow."
+    },
+    {
+      "request_id": "prepare_single_query_export",
+      "label": "Prepare single-query export",
+      "controlled_request": "Prepare a governed single-query audit export preview.",
+      "intent_id": "prepare_export",
+      "request_class": "export_review",
+      "pace_phase": "execute",
+      "workflow_id": "single_query_review",
+      "task_ids": [
+        "build_single_query_review",
+        "generate_review_exports"
+      ],
+      "page_routes": [
+        "pace-navigator"
+      ],
+      "governed_query": "what is the public model truth",
+      "required_inputs": [
+        "fixed governed query",
+        "answer view",
+        "support review",
+        "source detail",
+        "audit checklist"
+      ],
+      "expected_outputs": [
+        "plan preview",
+        "export readiness checklist",
+        "recommended export surface"
+      ],
+      "review_checkpoints": [
+        "confirm direct answer is citation-backed",
+        "confirm checklist is not blocked",
+        "confirm exports do not include full preview text by default"
+      ],
+      "notes": "This recommends the existing export surface; it does not write export files automatically."
+    },
+    {
+      "request_id": "inspect_source_preview_rules",
+      "label": "Inspect source preview rules",
+      "controlled_request": "Inspect governed source preview eligibility and blocked reasons.",
+      "intent_id": "inspect_source_eligibility",
+      "request_class": "source_preview_review",
+      "pace_phase": "execute",
+      "workflow_id": "source_preview_review",
+      "task_ids": [
+        "evaluate_source_preview_eligibility"
+      ],
+      "page_routes": [
+        "pace-navigator"
+      ],
+      "governed_query": null,
+      "required_inputs": [
+        "governed source registry paths",
+        "retrieval-pack source paths"
+      ],
+      "expected_outputs": [
+        "plan preview",
+        "eligible source index route",
+        "blocked reason summary",
+        "chunk-level fallback guidance"
+      ],
+      "review_checkpoints": [
+        "confirm source path is governed",
+        "confirm no secret-like or binary path is previewed",
+        "confirm preview is capped and read-only"
+      ],
+      "notes": "Keeps source inspection bounded to governed source/index context."
+    },
+    {
+      "request_id": "review_multi_query_audit",
+      "label": "Review multi-query audit workflow",
+      "controlled_request": "Review the governed multi-query audit workflow and comparison outputs.",
+      "intent_id": "review_answer_support",
+      "request_class": "multi_query_audit_review",
+      "pace_phase": "execute",
+      "workflow_id": "multi_query_audit",
+      "task_ids": [
+        "build_single_query_review",
+        "build_multi_query_audit_workflow",
+        "generate_review_exports"
+      ],
+      "page_routes": [
+        "pace-navigator"
+      ],
+      "governed_query": null,
+      "required_inputs": [
+        "selected fixed governed queries",
+        "retrieval index if workflow is run manually",
+        "audit checklist"
+      ],
+      "expected_outputs": [
+        "plan preview",
+        "cross-query comparison route",
+        "combined audit packet route",
+        "support gap summary"
+      ],
+      "review_checkpoints": [
+        "confirm all selected queries are from fixed governed set",
+        "compare truth/drift/page-route support",
+        "review partial support before export"
+      ],
+      "notes": "Previews the multi-query reviewer workflow only; no workflow execution is triggered."
+    }
+  ],
+  "unsupported_request_examples": [
+    {
+      "request_text": "Run every workflow and fix whatever fails.",
+      "blocked_behavior_id": "arbitrary_repo_execution"
+    },
+    {
+      "request_text": "Ask the agent anything about the repo.",
+      "blocked_behavior_id": "unconstrained_chat"
+    },
+    {
+      "request_text": "Trigger Airflow in the background.",
+      "blocked_behavior_id": "hidden_chain_execution"
+    },
+    {
+      "request_text": "Store my API key for future jobs.",
+      "blocked_behavior_id": "secret_handling"
+    }
+  ]
+}

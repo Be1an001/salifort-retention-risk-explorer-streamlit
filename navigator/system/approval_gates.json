@@ -1,0 +1,165 @@
+{
+  "registry_version": "1.0.0",
+  "repo_name": "salifort-retention-risk-explorer-streamlit",
+  "scope": "governed_pace_navigator_approval_gates",
+  "status_vocabulary": [
+    "ready",
+    "review_needed",
+    "blocked",
+    "preview_only"
+  ],
+  "approval_gates": [
+    {
+      "gate_id": "preview_only_streamlit",
+      "gate_title": "Streamlit Surfaces Are Preview Only",
+      "applies_to": [
+        "PACE Navigator",
+        "governed agent shell",
+        "orchestration contract viewer"
+      ],
+      "status": "preview_only",
+      "execution_allowed_in_streamlit": false,
+      "human_review_required": true,
+      "approval_required_before_execution": true,
+      "blocked_when": [
+        "request asks Streamlit to run workflows",
+        "request asks Streamlit to trigger Airflow",
+        "request asks for background execution"
+      ],
+      "ready_when": [
+        "surface only displays route, blocker, and review information"
+      ],
+      "notes": "The app may preview and recommend governed workflows, but must not execute them."
+    },
+    {
+      "gate_id": "human_review_for_mutation",
+      "gate_title": "Human Review Required Before Mutating Repo Files",
+      "applies_to": [
+        "retrieval pack build",
+        "embedding index build",
+        "offline artifact generation"
+      ],
+      "status": "review_needed",
+      "execution_allowed_in_streamlit": false,
+      "human_review_required": true,
+      "approval_required_before_execution": true,
+      "blocked_when": [
+        "workflow mutates repo files and no explicit human approval exists"
+      ],
+      "ready_when": [
+        "mutating workflow is run deliberately from local CLI or approved automation outside Streamlit"
+      ],
+      "notes": "Mutating workflows remain offline/manual and should not be hidden behind UI controls."
+    },
+    {
+      "gate_id": "api_key_env_only",
+      "gate_title": "API Key Handling Is Environment-Only",
+      "applies_to": [
+        "retrieval validation",
+        "answer assembly validation",
+        "reviewer answer surface",
+        "embedding index build"
+      ],
+      "status": "review_needed",
+      "execution_allowed_in_streamlit": false,
+      "human_review_required": true,
+      "approval_required_before_execution": true,
+      "blocked_when": [
+        "API key is missing for API-backed retrieval",
+        "request tries to store or print a key",
+        "request tries to write a populated secrets file"
+      ],
+      "ready_when": [
+        "RAG_STREAMLIT_OPENAI_API_KEY or OPENAI_API_KEY is present in the local environment"
+      ],
+      "notes": "Only environment-variable presence classes may be surfaced; key values must never be displayed or persisted."
+    },
+    {
+      "gate_id": "artifact_preflight",
+      "gate_title": "Required Artifacts Must Exist Before Runtime Review",
+      "applies_to": [
+        "retrieval runtime",
+        "answer assembly",
+        "reviewer surfaces"
+      ],
+      "status": "ready",
+      "execution_allowed_in_streamlit": false,
+      "human_review_required": false,
+      "approval_required_before_execution": false,
+      "blocked_when": [
+        "retrieval pack files are missing",
+        "retrieval index files are missing",
+        "artifact contract files are missing"
+      ],
+      "ready_when": [
+        "required local artifact files exist and validation scripts pass"
+      ],
+      "notes": "Runtime review should fail honestly when artifacts are absent."
+    },
+    {
+      "gate_id": "airflow_optional",
+      "gate_title": "Airflow Is Optional And Local/Dev Only",
+      "applies_to": [
+        "Airflow DAG scaffold",
+        "orchestration registry"
+      ],
+      "status": "preview_only",
+      "execution_allowed_in_streamlit": false,
+      "human_review_required": true,
+      "approval_required_before_execution": true,
+      "blocked_when": [
+        "request treats Airflow scaffold as production deployment",
+        "request tries to trigger Airflow from Streamlit"
+      ],
+      "ready_when": [
+        "DAG scaffold imports safely whether Airflow is installed or missing"
+      ],
+      "notes": "Airflow support is a scaffold, not production infrastructure."
+    },
+    {
+      "gate_id": "agent_preview_only",
+      "gate_title": "Agent Shell Is Planning Preview Only",
+      "applies_to": [
+        "governed PACE agent shell",
+        "request catalog",
+        "agent policy"
+      ],
+      "status": "preview_only",
+      "execution_allowed_in_streamlit": false,
+      "human_review_required": true,
+      "approval_required_before_execution": true,
+      "blocked_when": [
+        "request is not in controlled catalog",
+        "request asks for autonomous execution",
+        "request asks for hidden planning"
+      ],
+      "ready_when": [
+        "controlled request maps to existing workflow/task contracts and returns execution_allowed=false"
+      ],
+      "notes": "The agent shell may classify and preview only; it must not act autonomously."
+    },
+    {
+      "gate_id": "truth_contract_preserved",
+      "gate_title": "Public Truth Contract Must Remain Preserved",
+      "applies_to": [
+        "all navigator surfaces",
+        "answer assembly",
+        "reviewer exports",
+        "agent shell"
+      ],
+      "status": "ready",
+      "execution_allowed_in_streamlit": false,
+      "human_review_required": true,
+      "approval_required_before_execution": true,
+      "blocked_when": [
+        "public model truth is changed",
+        "threshold 0.29 is changed",
+        "fallback is mislabeled as final model probability"
+      ],
+      "ready_when": [
+        "weighted XGBoost, threshold 0.29, artifact-backed runtime, and fallback separation remain explicit"
+      ],
+      "notes": "Truth/drift/fallback boundaries are not implementation details; they are governance constraints."
+    }
+  ]
+}
