@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from app.services import (
@@ -15,6 +16,7 @@ from app.services import (
     get_pace_phase,
     get_retrieval_evaluation_queries,
     get_runtime_governance_summary,
+    get_repo_root,
     get_truth_entries,
     load_all_navigator_registries,
     load_retrieval_pack,
@@ -148,6 +150,27 @@ _REVIEWER_SORT_OPTIONS = [
         "label": "Retrieval role grouping",
     },
 ]
+_PREVIEW_ALLOWED_EXTENSIONS = {
+    ".json",
+    ".md",
+    ".py",
+    ".toml",
+    ".txt",
+    ".yaml",
+    ".yml",
+}
+_PREVIEW_BLOCKED_EXTENSIONS = {
+    ".csv",
+    ".jpeg",
+    ".jpg",
+    ".npy",
+    ".parquet",
+    ".png",
+    ".webp",
+}
+_PREVIEW_MAX_BYTES = 80_000
+_PREVIEW_CHAR_LIMIT = 12_000
+_PREVIEW_SECRET_MARKERS = ("secret", "token", "credential", ".env")
 
 
 def _first_truth_entry(domain: str) -> dict[str, Any]:
@@ -217,6 +240,115 @@ def _as_markdown_list(items: list[str], empty_label: str = "None") -> str:
     if not items:
         return f"- {empty_label}"
     return "\n".join(f"- {item}" for item in items)
+
+
+def _source_path_is_governed(path: str) -> bool:
+    source_registry = load_all_navigator_registries().source_registry["sources"]
+    source_paths = {str(source["path"]) for source in source_registry}
+    chunk_source_paths = {
+        source_path
+        for chunk in load_retrieval_pack()["chunks"]
+        for source_path in chunk["source_paths"]
+    }
+    return path in source_paths or path in chunk_source_paths
+
+
+def _resolve_repo_local_path(path: str) -> Path | None:
+    candidate = Path(path)
+    if candidate.is_absolute():
+        return None
+    repo_root = get_repo_root().resolve()
+    resolved = (repo_root / candidate).resolve()
+    if repo_root != resolved and repo_root not in resolved.parents:
+        return None
+    return resolved
+
+
+def evaluate_source_preview(path: str) -> dict[str, Any]:
+    normalized_path = path.replace("\\", "/")
+    suffix = Path(normalized_path).suffix.lower()
+    lower_parts = [part.lower() for part in Path(normalized_path).parts]
+    lower_path = normalized_path.lower()
+    base_payload = {
+        "source_path": normalized_path,
+        "eligible": False,
+        "status": "ineligible",
+        "reason": "",
+        "preview_text": "",
+        "preview_char_count": 0,
+        "file_size_bytes": None,
+        "extension": suffix or "none",
+        "is_truncated": False,
+        "limit_note": (
+            f"Preview is capped at {_PREVIEW_CHAR_LIMIT} characters and {_PREVIEW_MAX_BYTES} bytes."
+        ),
+    }
+
+    if any(marker in lower_path for marker in _PREVIEW_SECRET_MARKERS):
+        return {
+            **base_payload,
+            "reason": "Path is blocked because it looks secret-like or environment-related.",
+        }
+    if ".git" in lower_parts or "__pycache__" in lower_parts or ".venv" in lower_parts:
+        return {
+            **base_payload,
+            "reason": "Path is blocked because hidden repo internals, caches, and local environments are never previewed.",
+        }
+    if suffix in _PREVIEW_BLOCKED_EXTENSIONS:
+        return {
+            **base_payload,
+            "reason": f"Extension `{suffix}` is explicitly blocked for governed preview.",
+        }
+    resolved = _resolve_repo_local_path(normalized_path)
+    if resolved is None:
+        return {
+            **base_payload,
+            "reason": "Only relative repo-local governed paths are eligible for preview.",
+        }
+    if not _source_path_is_governed(normalized_path):
+        return {
+            **base_payload,
+            "reason": "Source path is not present in the governed source registry or retrieval pack.",
+        }
+    if suffix not in _PREVIEW_ALLOWED_EXTENSIONS:
+        return {
+            **base_payload,
+            "reason": f"Extension `{suffix or 'none'}` is not in the allowed text-like preview list.",
+        }
+
+    if not resolved.exists() or not resolved.is_file():
+        return {
+            **base_payload,
+            "reason": "Local file does not exist as a readable repo file.",
+        }
+
+    file_size = resolved.stat().st_size
+    payload = {**base_payload, "file_size_bytes": file_size}
+    if file_size > _PREVIEW_MAX_BYTES:
+        return {
+            **payload,
+            "reason": f"File is larger than the governed preview size limit of {_PREVIEW_MAX_BYTES} bytes.",
+        }
+
+    try:
+        text = resolved.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return {
+            **payload,
+            "reason": "File is not valid UTF-8 text, so it is not previewed.",
+        }
+
+    truncated = len(text) > _PREVIEW_CHAR_LIMIT
+    preview_text = text[:_PREVIEW_CHAR_LIMIT]
+    return {
+        **payload,
+        "eligible": True,
+        "status": "eligible",
+        "reason": "Governed repo-local text-like file is eligible for read-only preview.",
+        "preview_text": preview_text,
+        "preview_char_count": len(preview_text),
+        "is_truncated": truncated,
+    }
 
 
 def get_project_identity_card() -> dict[str, Any]:
@@ -900,6 +1032,16 @@ def build_source_detail_view(
             str(item["chunk_id"]),
         )
     )
+    selected_source_paths = selected.get("source_paths", selected_chunk.get("source_paths", []))
+    preview_options = [
+        evaluate_source_preview(path)
+        for path in selected_source_paths
+    ]
+    preview_status = (
+        "eligible"
+        if any(option["eligible"] for option in preview_options)
+        else "ineligible"
+    )
 
     detail = {
         "status": "ready",
@@ -913,7 +1055,7 @@ def build_source_detail_view(
             "title": selected.get("title") or selected_chunk.get("title", ""),
             "document_id": selected_document_id,
             "chunk_kind": selected_chunk.get("chunk_kind", "unknown"),
-            "source_paths": selected.get("source_paths", selected_chunk.get("source_paths", [])),
+            "source_paths": selected_source_paths,
             "registry_refs": selected.get("registry_refs", selected_chunk.get("registry_refs", [])),
             "truth_tags": selected.get("truth_tags", selected_chunk.get("truth_tags", [])),
             "drift_tags": selected.get("drift_tags", selected_chunk.get("drift_tags", [])),
@@ -929,6 +1071,24 @@ def build_source_detail_view(
             "record_source": selected.get("record_source", "retrieval_pack"),
         },
         "related_chunks": related_chunks[:related_limit],
+        "preview_options": preview_options,
+        "preview_status": preview_status,
+        "evidence_trace": {
+            "query": answer_view["query"],
+            "answer_title": answer_view["answer"]["answer_title"],
+            "selected_chunk_id": selected_chunk_id,
+            "document_id": selected_document_id,
+            "source_paths": selected_source_paths,
+            "registry_refs": selected.get("registry_refs", selected_chunk.get("registry_refs", [])),
+            "related_chunk_count": min(len(related_chunks), related_limit),
+            "preview_status": preview_status,
+            "preview_rationale": (
+                "At least one governed source path is eligible for controlled read-only preview."
+                if preview_status == "eligible"
+                else "No selected source path passed the governed preview eligibility rules."
+            ),
+            "browser_level": "governed_chunk_level",
+        },
     }
     return detail
 
@@ -983,6 +1143,28 @@ def build_audit_summary_export(
             for citation in citation_rows
         ],
         "selected_source_detail": source_detail_payload["selected"] if source_detail_payload else None,
+        "evidence_trace": source_detail_payload["evidence_trace"] if source_detail_payload else None,
+        "source_preview_summary": (
+            {
+                "preview_status": source_detail_payload["preview_status"],
+                "preview_options": [
+                    {
+                        "source_path": option["source_path"],
+                        "eligible": option["eligible"],
+                        "status": option["status"],
+                        "reason": option["reason"],
+                        "extension": option["extension"],
+                        "file_size_bytes": option["file_size_bytes"],
+                        "is_truncated": option["is_truncated"],
+                        "limit_note": option["limit_note"],
+                    }
+                    for option in source_detail_payload["preview_options"]
+                ],
+                "preview_text_exported": False,
+            }
+            if source_detail_payload
+            else None
+        ),
         "build_context": {
             "retrieval_pack_version": manifest.get("pack_version"),
             "retrieval_pack_chunk_count": manifest.get("chunk_count"),
@@ -1007,6 +1189,7 @@ def build_audit_summary_export(
         for item in citation_rows
     ]
     selected_source_lines: list[str] = []
+    preview_lines: list[str] = []
     if source_detail_payload:
         selected = source_detail_payload["selected"]
         selected_source_lines = [
@@ -1014,6 +1197,13 @@ def build_audit_summary_export(
             f"document: `{selected['document_id']}`",
             f"source paths: {', '.join(selected['source_paths'])}",
             f"browser level: {source_detail_payload['browser_level']}",
+        ]
+        preview_lines = [
+            (
+                f"{option['source_path']} | eligible={option['eligible']} | "
+                f"reason={option['reason']}"
+            )
+            for option in source_detail_payload["preview_options"]
         ]
 
     markdown = "\n\n".join(
@@ -1030,6 +1220,7 @@ def build_audit_summary_export(
             "## Recommended Pages\n" + _as_markdown_list(recommended_pages),
             "## Citations\n" + _as_markdown_list(citations),
             "## Selected Source Detail\n" + _as_markdown_list(selected_source_lines),
+            "## Preview Eligibility\n" + _as_markdown_list(preview_lines),
             (
                 "## Build Context\n"
                 f"- retrieval pack version: {manifest.get('pack_version')}\n"
@@ -1259,6 +1450,8 @@ def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
         row = item["comparison_row"]
         answer_view = item["answer_view"]
         answer = answer_view.get("answer", {})
+        source_detail = item.get("source_detail")
+        source_detail_ready = source_detail and source_detail.get("status") == "ready"
         packet_items.append(
             {
                 "query": row["query"],
@@ -1291,6 +1484,25 @@ def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
                     }
                     for citation in answer_view.get("citation_rows", [])
                 ],
+                "evidence_trace": source_detail["evidence_trace"] if source_detail_ready else None,
+                "source_preview_summary": (
+                    {
+                        "preview_status": source_detail["preview_status"],
+                        "preview_options": [
+                            {
+                                "source_path": option["source_path"],
+                                "eligible": option["eligible"],
+                                "reason": option["reason"],
+                                "extension": option["extension"],
+                                "file_size_bytes": option["file_size_bytes"],
+                            }
+                            for option in source_detail["preview_options"]
+                        ],
+                        "preview_text_exported": False,
+                    }
+                    if source_detail_ready
+                    else None
+                ),
             }
         )
 
@@ -1329,6 +1541,12 @@ def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
             f"`{citation['chunk_id']}` | {citation['title']} | sources={', '.join(citation['source_paths'])}"
             for citation in item["citations"]
         ]
+        preview_lines = []
+        if item.get("source_preview_summary"):
+            preview_lines = [
+                f"{option['source_path']} | eligible={option['eligible']} | reason={option['reason']}"
+                for option in item["source_preview_summary"]["preview_options"]
+            ]
         per_query_sections.append(
             "\n\n".join(
                 [
@@ -1341,6 +1559,7 @@ def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
                     "Drift and caveats:\n" + _as_markdown_list(item["drift_and_caveats"]),
                     "Recommended pages:\n" + _as_markdown_list(recommended_pages),
                     "Citations:\n" + _as_markdown_list(citations),
+                    "Preview eligibility:\n" + _as_markdown_list(preview_lines),
                 ]
             )
         )

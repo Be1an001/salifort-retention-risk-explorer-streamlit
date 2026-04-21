@@ -174,6 +174,56 @@ def _render_source_detail(detail: dict[str, object]) -> None:
     st.info(str(detail["browser_note"]))
     _render_citation_detail_card(selected, "Selected governed chunk")
 
+    st.markdown("**Evidence trace**")
+    trace = detail["evidence_trace"]
+    trace_cols = st.columns(4)
+    trace_cols[0].metric("Selected Chunk", str(trace["selected_chunk_id"]))
+    trace_cols[1].metric("Related Chunks", str(trace["related_chunk_count"]))
+    trace_cols[2].metric("Preview Status", str(trace["preview_status"]).capitalize())
+    trace_cols[3].metric("Browser Level", str(trace["browser_level"]).replace("_", " ").title())
+    with st.expander("Trace chain details", expanded=False):
+        st.markdown(f"**Query:** {trace['query']}")
+        st.markdown(f"**Answer title:** {trace['answer_title']}")
+        st.markdown(f"**Document ID:** `{trace['document_id']}`")
+        st.markdown("**Source paths:**")
+        st.markdown("\n".join(f"- `{path}`" for path in trace["source_paths"]))
+        st.markdown("**Registry refs:**")
+        st.markdown("\n".join(f"- `{ref}`" for ref in trace["registry_refs"]) or "- None")
+        st.markdown(f"**Preview rationale:** {trace['preview_rationale']}")
+
+    st.markdown("**Eligible source-file preview**")
+    preview_options = detail["preview_options"]
+    if preview_options:
+        preview_labels = {
+            f"{option['source_path']} ({option['status']})": option
+            for option in preview_options
+        }
+        selected_preview_label = st.selectbox(
+            "Source path preview candidate",
+            options=list(preview_labels.keys()),
+            index=0,
+            help="Only governed, repo-local, small text-like files can be previewed.",
+        )
+        preview = preview_labels[selected_preview_label]
+        if preview["eligible"]:
+            st.success(preview["reason"])
+            st.caption(
+                f"Size: {preview['file_size_bytes']} bytes | Extension: `{preview['extension']}` | "
+                f"Truncated: {'Yes' if preview['is_truncated'] else 'No'} | {preview['limit_note']}"
+            )
+            st.text_area(
+                "Governed read-only source preview",
+                value=str(preview["preview_text"]),
+                height=320,
+            )
+        else:
+            st.warning(preview["reason"])
+            st.caption(
+                "Use the governed chunk text and related chunks above as the fallback context."
+            )
+    else:
+        st.info("No source paths are available for preview eligibility evaluation.")
+
     related_chunks = detail["related_chunks"]
     st.markdown("**Related governed chunks from the same document or source path**")
     if not related_chunks:
