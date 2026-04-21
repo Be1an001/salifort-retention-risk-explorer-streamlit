@@ -12,7 +12,10 @@ from app.services import (
     NavigatorRetrievalIndexNotFoundError,
     OpenAIEmbeddingConfig,
     assemble_governed_answer,
+    build_agent_plan_preview,
     build_runbook_view,
+    get_controlled_agent_requests,
+    get_disallowed_agent_behaviors,
     get_drift_items,
     get_execution_order,
     get_pace_phase,
@@ -20,6 +23,7 @@ from app.services import (
     get_runtime_governance_summary,
     get_repo_root,
     get_truth_entries,
+    get_supported_agent_intents,
     list_tasks_for_workflow,
     list_workflows,
     load_all_navigator_registries,
@@ -557,6 +561,69 @@ def build_orchestration_workflow_detail(workflow_id: str) -> dict[str, Any]:
         "summary": runbook["summary"],
         "blockers": runbook["blockers"],
         "task_rows": task_rows,
+    }
+
+
+def build_agent_shell_context() -> dict[str, Any]:
+    requests = get_controlled_agent_requests()
+    intents = get_supported_agent_intents()
+    disallowed = get_disallowed_agent_behaviors()
+    return {
+        "status": "ready",
+        "requests": requests,
+        "intents": intents,
+        "disallowed_behaviors": disallowed,
+        "summary": {
+            "controlled_request_count": len(requests),
+            "supported_intent_count": len(intents),
+            "disallowed_behavior_count": len(disallowed),
+            "governance_note": (
+                "The governed PACE agent shell classifies controlled requests and "
+                "builds preview plans only. It does not execute workflows or trigger Airflow."
+            ),
+        },
+    }
+
+
+def build_agent_shell_preview(request_id: str) -> dict[str, Any]:
+    preview = build_agent_plan_preview(request_id)
+    if preview["status"] != "preview_ready":
+        return preview
+
+    plan_rows = [
+        {
+            "order": index,
+            "task_id": step["task_id"],
+            "task_title": step["task_title"],
+            "included_for_request": step["included_for_request"],
+            "task_kind": step["task_kind"],
+            "runtime_mode": step["runtime_mode"],
+            "mutates_repo_files": step["mutates_repo_files"],
+            "human_review_required": step["human_review_required"],
+            "dependencies": step["dependencies"],
+            "preview_note": step["preview_note"],
+        }
+        for index, step in enumerate(preview["plan_steps"], start=1)
+    ]
+    route_summary = {
+        "request_id": preview["request"]["request_id"],
+        "label": preview["request"]["label"],
+        "intent_id": preview["intent"]["intent_id"],
+        "intent_title": preview["intent"]["intent_title"],
+        "workflow_id": preview["workflow_id"],
+        "workflow_title": preview["workflow"]["workflow_title"],
+        "pace_phase": preview["pace_phase"],
+        "page_routes": preview["page_routes"],
+        "governed_query": preview["governed_query"],
+        "execution_allowed": preview["execution_allowed"],
+        "blocker_status": preview["blockers"]["status"],
+        "missing_artifacts": preview["blockers"]["artifact_status"]["missing"],
+        "missing_env_vars": preview["blockers"]["env_status"]["missing"],
+    }
+    return {
+        **preview,
+        "route_summary": route_summary,
+        "plan_rows": plan_rows,
     }
 
 

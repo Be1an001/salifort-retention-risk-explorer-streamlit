@@ -4,6 +4,8 @@ import pandas as pd
 import streamlit as st
 
 from app.viewmodels import (
+    build_agent_shell_context,
+    build_agent_shell_preview,
     build_audit_summary_export,
     build_audit_workflow,
     build_audit_checklist,
@@ -284,6 +286,106 @@ def _render_orchestration_summary(orchestration: dict[str, object]) -> None:
         st.markdown("\n".join(f"- {item}" for item in blockers["blocked_states"]))
         st.markdown("**Workflow notes:**")
         st.write(detail["workflow"]["notes"])
+
+
+def _render_agent_shell(agent_context: dict[str, object]) -> None:
+    summary = agent_context["summary"]
+    st.caption(str(summary["governance_note"]))
+    metric_cols = st.columns(4)
+    metric_cols[0].metric("Controlled Requests", str(summary["controlled_request_count"]))
+    metric_cols[1].metric("Supported Intents", str(summary["supported_intent_count"]))
+    metric_cols[2].metric("Blocked Behaviors", str(summary["disallowed_behavior_count"]))
+    metric_cols[3].metric("Execution", "Preview only")
+
+    request_labels = {
+        f"{request['label']} ({request['request_id']})": request["request_id"]
+        for request in agent_context["requests"]
+    }
+    selected_label = st.selectbox(
+        "Controlled agent request",
+        options=list(request_labels.keys()),
+        index=0,
+        help="Choose from governed request intents only. This is not a free-text agent prompt.",
+    )
+    preview = build_agent_shell_preview(request_labels[selected_label])
+    if preview["status"] != "preview_ready":
+        st.warning(preview["classification_note"])
+        return
+
+    route = preview["route_summary"]
+    route_cols = st.columns(4)
+    route_cols[0].metric("Intent", str(route["intent_title"]))
+    route_cols[1].metric("PACE Phase", str(route["pace_phase"]).capitalize())
+    route_cols[2].metric("Workflow", str(route["workflow_id"]))
+    route_cols[3].metric("Execution Allowed", "No")
+
+    st.info(preview["execution_policy_note"])
+    st.markdown("**Route explanation**")
+    st.write(
+        f"`{route['label']}` maps to `{route['intent_id']}` and workflow "
+        f"`{route['workflow_title']}`. Recommended page routes: "
+        + ", ".join(f"`/{page}`" for page in route["page_routes"])
+    )
+    if route["governed_query"]:
+        st.caption(f"Governed fixed query: `{route['governed_query']}`")
+
+    st.markdown("**Plan preview and task contract mapping**")
+    plan_rows = [
+        {
+            "Order": row["order"],
+            "Task ID": row["task_id"],
+            "Included": "Yes" if row["included_for_request"] else "Context",
+            "Kind": row["task_kind"],
+            "Runtime": row["runtime_mode"],
+            "Writes Files": "Yes" if row["mutates_repo_files"] else "No",
+            "Human Review": "Yes" if row["human_review_required"] else "No",
+            "Dependencies": ", ".join(row["dependencies"]) if row["dependencies"] else "None",
+            "Note": row["preview_note"],
+        }
+        for row in preview["plan_rows"]
+    ]
+    st.dataframe(pd.DataFrame(plan_rows), use_container_width=True, hide_index=True)
+
+    info_cols = st.columns(2)
+    with info_cols[0]:
+        st.markdown("**Required inputs**")
+        st.markdown(
+            "\n".join(
+                f"- {item}" for item in preview["required_inputs"]["request_inputs"]
+            )
+        )
+        st.markdown("**Missing artifacts**")
+        st.markdown(
+            "\n".join(f"- `{item}`" for item in route["missing_artifacts"])
+            or "- None detected"
+        )
+    with info_cols[1]:
+        st.markdown("**Expected outputs**")
+        st.markdown(
+            "\n".join(
+                f"- {item}"
+                for item in preview["expected_outputs"]["request_expected_outputs"]
+            )
+        )
+        st.markdown("**Missing environment requirements**")
+        st.markdown(
+            "\n".join(f"- `{item}`" for item in route["missing_env_vars"])
+            or "- None detected"
+        )
+
+    st.markdown("**Human-review checkpoints**")
+    st.markdown("\n".join(f"- {item}" for item in preview["review_checkpoints"]))
+
+    with st.expander("Agent shell guardrails and disallowed behavior policy", expanded=False):
+        st.markdown("**Guardrails:**")
+        st.markdown("\n".join(f"- {item}" for item in preview["guardrails"]["guardrails"]))
+        st.markdown("**Explicitly disallowed behavior classes:**")
+        st.markdown(
+            "\n".join(
+                f"- `{item['behavior_id']}`: {item['handling_rule']}"
+                for item in agent_context["disallowed_behaviors"]
+            )
+        )
 
 
 def _render_citation_detail_card(item: dict[str, object], label: str) -> None:
@@ -701,6 +803,7 @@ def render() -> None:
     answer_view = build_governed_answer_view(selected_answer_query, top_k=selected_top_k)
     eligible_source_index = build_eligible_source_index()
     orchestration_summary = build_orchestration_summary()
+    agent_shell_context = build_agent_shell_context()
 
     st.title(context["page_title"])
     st.caption(context["page_caption"])
@@ -1045,6 +1148,13 @@ def render() -> None:
         "This area is informational only; it does not execute jobs."
     )
     _render_orchestration_summary(orchestration_summary)
+
+    st.subheader("Governed PACE Agent Shell")
+    st.caption(
+        "Preview how a controlled request maps to governed intents, workflows, tasks, blockers, and review checkpoints. "
+        "This shell does not execute workflows, trigger Airflow, or accept free-form agent prompts."
+    )
+    _render_agent_shell(agent_shell_context)
 
     st.markdown("**Relevant truth summaries**")
     for truth in selected_topic["truth_summaries"]:
