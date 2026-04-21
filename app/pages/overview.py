@@ -92,6 +92,14 @@ def render() -> None:
             "not as a standalone decision."
         )
 
+    st.subheader("Where Retrieval and Advanced Review Fit In")
+    st.markdown(
+        "Most pages load checked-in data, generated artifacts, and static figures. "
+        "The PACE Navigator adds an optional reviewer layer: fixed questions retrieve prepared project evidence, "
+        "assemble citation-backed answers, and show source traces. The OpenAI API is used only for embeddings when a local key is provided; "
+        "the app does not store keys, run a chatbot, or execute jobs from Streamlit."
+    )
+
     st.subheader("Suggested Review Path")
     st.markdown(
         "1. **Overview:** understand the question, data, model, and threshold.\n"
