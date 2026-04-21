@@ -61,6 +61,11 @@ def render() -> None:
         if has_core_v2_model_tables
         else "This page is using reference visuals for sections that do not yet have generated tables."
     )
+    st.markdown(
+        "**How to use this page:** start with the champion model and headline metrics, then inspect model comparison, "
+        "precision-recall behavior, the threshold curve, and the confusion matrix. The goal is to understand review trade-offs, "
+        "not to find a magic cutoff."
+    )
 
     st.markdown(f"**Champion Model:** {_pretty_model_name(str(metadata['final_model']))}")
 
@@ -71,6 +76,9 @@ def render() -> None:
     metric_cols[3].metric("Accuracy", _format_percent(float(metadata["selected_test_accuracy"])))
 
     st.subheader("Model Comparison")
+    st.caption(
+        "This section compares candidate models and their validation metrics. Look for the balance between recall, precision, and cost."
+    )
     if validation_comparison is not None and not validation_comparison.empty:
         comparison_view = validation_comparison.rename(
             columns={
@@ -116,6 +124,9 @@ def render() -> None:
         )
 
     st.subheader("Precision and Recall")
+    st.caption(
+        "Precision-recall views are useful when the event of interest is relatively uncommon. Here they show the trade-off between finding likely leavers and creating extra review work."
+    )
     if pr_curve_points is not None and not pr_curve_points.empty and {"model", "recall", "precision"}.issubset(pr_curve_points.columns):
         chart_points = pr_curve_points.copy()
         chart_points["model"] = chart_points["model"].map(_pretty_model_name)
@@ -146,6 +157,9 @@ def render() -> None:
         )
 
     st.subheader("Threshold Trade-Off Curve")
+    st.caption(
+        "The selected threshold controls how many employees are flagged for review. Use this chart to see what changes when the cutoff moves."
+    )
     if threshold_curve is not None and not threshold_curve.empty and "threshold" in threshold_curve.columns:
         threshold_view = threshold_curve.copy()
         selected_threshold = float(metadata["selected_threshold"])
@@ -211,6 +225,9 @@ def render() -> None:
         )
 
     st.subheader("Selected Threshold Confusion Matrix")
+    st.caption(
+        "The confusion matrix shows correct and incorrect classifications at the selected threshold. It is a review-design tool, not a final HR action rule."
+    )
     if confusion_matrix is not None and not confusion_matrix.empty:
         matrix_row = confusion_matrix.iloc[0]
         matrix_df = None

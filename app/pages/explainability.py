@@ -56,6 +56,10 @@ def render() -> None:
         "Plain-English model interpretation using SHAP outputs and selected project visuals."
     )
     st.caption(f"Runtime mode: {get_runtime_mode_label()}.")
+    st.markdown(
+        "**How to use this page:** read the ranked features as model explanation, not proof of cause. "
+        "Use the chart and table to discuss which patterns most influenced the risk signal."
+    )
 
     if shap_importance is not None and not shap_importance.empty:
         model_name = shap_importance["model_name"].iloc[0] if "model_name" in shap_importance.columns else "selected model"
@@ -116,6 +120,9 @@ def render() -> None:
         )
 
     st.subheader("Top Drivers in Plain Language")
+    st.caption(
+        "This list translates the strongest SHAP-ranked features into plain English for portfolio review."
+    )
     if shap_importance is not None and not shap_importance.empty:
         top_features = shap_importance.sort_values("rank").head(6)["feature"].tolist()
         bullet_lines = [

@@ -16,6 +16,10 @@ def render() -> None:
     st.caption(
         "Stable project visuals that show the main workforce patterns behind the retention-risk story."
     )
+    st.markdown(
+        "**How to use this page:** choose a tab, scan the figure caption, then read the short interpretation below each chart. "
+        "These figures explain why workload, salary, department, tenure, and project load matter in the broader project."
+    )
 
     workload_tab, structure_tab, tenure_tab = st.tabs(
         ["Workload Patterns", "Department / Salary Structure", "Tenure / Project Structure"]

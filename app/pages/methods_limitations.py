@@ -30,16 +30,30 @@ def render() -> None:
 
     st.subheader("How the Project Works")
     st.markdown(
+        "The project has two layers: an offline project-building layer and a public Streamlit app layer. "
+        "The offline layer prepares data, model outputs, tables, and figures. The Streamlit layer loads those files "
+        "and presents them for review."
+    )
+    st.markdown(
         "- Clean the checked-in HR dataset and remove duplicate records.\n"
-        "- Use generated project outputs to summarize EDA, validation, threshold tuning, and explainability.\n"
-        "- Present the model story through a lightweight Streamlit portfolio app.\n"
-        "- Load generated row-level files when available, with a simpler screening fallback when those files are absent."
+        "- Build model outputs, threshold tables, SHAP summaries, and figures outside Streamlit.\n"
+        "- Load generated files into the app when they are available.\n"
+        "- Keep the web app focused on explanation, exploration, and responsible review."
     )
 
     st.subheader("What This Public App Focuses On")
     st.markdown(
         "This public app focuses on the fields available in the checked-in HR dataset and on a workflow that is practical to package and share. "
         "It is not a production HR platform, and it does not retrain models while a visitor is using the site."
+    )
+
+    st.subheader("Architecture in Simple English")
+    st.markdown(
+        "- **Dataset:** `data/hr_capstone_dataset.csv` is checked into the repo so the demo is reproducible.\n"
+        "- **Cleaning:** the app loader standardizes column names and removes duplicates before showing metrics.\n"
+        "- **Generated artifacts:** files in `artifacts/v2/` hold model metadata, row-level scores, threshold tables, department exposure, and SHAP summaries.\n"
+        "- **Static figures:** PNGs in `outputs/figures/` preserve the original visual story for EDA, validation, threshold tuning, and explainability.\n"
+        "- **Streamlit runtime:** Streamlit reads local files and renders pages; it does not train models or run background workflows."
     )
 
     st.subheader("Dataset Note")
@@ -74,4 +88,26 @@ def render() -> None:
         "- The app can prefer generated files when they are available.\n"
         "- Generated files can replace parts of the static presentation layer for metadata, model comparison, threshold analysis, department exposure, and explainability.\n"
         "- Offline artifact generation remains the source of truth; Streamlit runtime should only load those outputs, not rebuild them."
+    )
+
+    st.subheader("Fallback Logic")
+    st.markdown(
+        "If row-level generated artifacts are missing, some interactive views use a simpler screening score so the app remains explorable. "
+        "That fallback is clearly labeled and should not be confused with the final weighted XGBoost probability."
+    )
+
+    st.subheader("Advanced Navigator Concepts")
+    st.markdown(
+        "- **PACE:** a simple project map: Plan, Analyze, Construct, Execute. It helps organize the project story.\n"
+        "- **Retrieval / RAG preparation:** the Navigator can search prepared project chunks and citations. In this repo, retrieval supports review and evidence tracing; it does not write free-form HR judgments.\n"
+        "- **Answer assembly:** fixed questions can produce structured answers from retrieved evidence, with citations and caveats separated.\n"
+        "- **Airflow scaffold:** the repo includes local workflow scaffolding for future orchestration review. Streamlit does not run Airflow jobs.\n"
+        "- **Agent shell:** the Navigator includes a controlled plan-preview area. It maps fixed request types to known workflows but does not execute them."
+    )
+
+    st.subheader("Production-Like vs Portfolio-Only")
+    st.markdown(
+        "- **Production-like:** clear data contracts, offline artifact generation, runtime fallbacks, citations, validation scripts, and responsible-use boundaries.\n"
+        "- **Portfolio/demo-only:** no live HR data feed, no production scheduler, no autonomous agent execution, no employee action workflow, and no hidden model retraining.\n"
+        "- **Reviewer-only:** advanced retrieval, source previews, audit exports, and readiness panels are included to make the project easier to inspect."
     )
