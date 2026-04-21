@@ -50,13 +50,13 @@ st.markdown(
 )
 
 with st.sidebar:
-    st.markdown('<div class="app-kicker">Attrition Risk Review</div>', unsafe_allow_html=True)
+    st.markdown('<div class="app-kicker">Portfolio Demo</div>', unsafe_allow_html=True)
     st.markdown("## Salifort Motors")
-    st.caption("Operational HR Analytics Decision App")
+    st.caption("Retention Risk Explorer")
     st.divider()
     st.caption(
-        "This app brings together the cleaned HR dataset, generated model outputs, "
-        "and project visuals for a practical review of attrition risk."
+        "Explore a Streamlit portfolio app that combines HR data, model outputs, "
+        "and project visuals to review employee retention risk responsibly."
     )
 
 navigation = st.navigation(

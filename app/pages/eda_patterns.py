@@ -14,7 +14,7 @@ def _show_figure(figure_key: str, caption: str, interpretation: str) -> None:
 def render() -> None:
     st.title("EDA & Patterns")
     st.caption(
-        "Selected project visuals from the analysis workflow, shown here as stable reference figures."
+        "Stable project visuals that show the main workforce patterns behind the retention-risk story."
     )
 
     workload_tab, structure_tab, tenure_tab = st.tabs(
@@ -25,19 +25,19 @@ def render() -> None:
         _show_figure(
             "01_hours_vs_satisfaction_density",
             "Hours vs satisfaction density",
-            "Low satisfaction clusters become more concerning when combined with sustained heavy monthly hours, which is one reason workload pressure matters operationally.",
+            "Low satisfaction becomes more concerning when it appears alongside sustained heavy monthly hours. This is one reason workload pressure matters in the project.",
         )
         _show_figure(
             "04_salary_retention_survival_like_curve",
             "Salary retention survival-like curve",
-            "Retention patterns vary meaningfully across salary bands, reinforcing that compensation context matters when screening for exposure and planning intervention.",
+            "Retention patterns differ by salary band, so pay context is useful when reviewing risk patterns.",
         )
 
     with structure_tab:
         _show_figure(
             "02_department_salary_attrition_promotion_heatmaps",
             "Department, salary, attrition, and promotion heatmaps",
-            "Department and pay structure do not move independently. Promotion access and observed attrition differ across combinations, which is useful when comparing pockets of workforce strain.",
+            "Department, pay, promotion, and attrition patterns overlap. Reading them together helps identify where workforce strain may be concentrated.",
         )
         _show_figure(
             "03_department_salary_count_heatmap",
@@ -49,7 +49,7 @@ def render() -> None:
         _show_figure(
             "05_project_tenure_count_heatmap",
             "Project count by tenure heatmap",
-            "Project load and tenure form recognizable structural patterns, helping frame where employees may be carrying sustained delivery pressure.",
+            "Project load and tenure help show where employees may be carrying sustained delivery pressure.",
         )
         _show_figure(
             "06_project_tenure_attrition_heatmap",

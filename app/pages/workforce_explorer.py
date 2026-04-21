@@ -210,13 +210,13 @@ def render() -> None:
     _initialize_filters(base_df)
 
     st.title("Workforce Explorer")
-    st.caption("Interactive workforce review built on the cleaned Salifort Motors dataset.")
+    st.caption("Filter the cleaned HR dataset to compare departments, workload patterns, and retention-risk signals.")
     st.caption(f"Runtime mode: {get_runtime_mode_label()}. Row-level source: {row_mode_label}.")
 
     if use_v2_rows:
         st.info(
-            "This page is using generated row-level model outputs when they are available. "
-            "If a required file is missing or incomplete, it falls back to a simpler screening score for exploration."
+            "This view is using generated row-level model outputs. If those files are missing or incomplete, "
+            "the app switches to a simpler screening score so the demo can still be explored."
         )
     else:
         st.warning(
@@ -320,15 +320,15 @@ def render() -> None:
         st.subheader("How to Read This View")
         if use_v2_rows:
             st.markdown(
-                "- This view is using generated row-level attrition probabilities.\n"
-                "- The selected-threshold flag drives the flagged-employee filter and flagged count.\n"
-                "- The exposure index comes from the generated risk-cost exposure field.\n"
-                "- Department summaries use the generated exposure file when the current filters stay at the department level; otherwise they are rebuilt from the filtered row-level data."
+                "- Use the filters to narrow the workforce slice you want to review.\n"
+                "- The flagged count uses the selected model threshold, not an automatic employment decision.\n"
+                "- The exposure index combines predicted risk with a simple cost-weighting idea for comparison.\n"
+                "- Department summaries use the generated exposure file when filters stay department-level; otherwise they are rebuilt from filtered rows."
             )
         else:
             st.markdown(
                 "- The fallback score emphasizes low satisfaction, heavy workload, long tenure without promotion, and lower salary bands.\n"
-                "- The fallback flag marks employees at or above the fallback screening cutoff for exploration.\n"
+                "- The fallback flag marks employees above the demo screening cutoff for exploration.\n"
                 "- The exposure index scales the fallback score by a simple salary cost weight to help compare screening concentration across teams.\n"
                 "- Use this page to triage where to investigate, not to make case-level employment decisions."
             )
@@ -350,7 +350,7 @@ def render() -> None:
         column_config=summary_config,
     )
 
-    st.subheader("Employee-Level Explorer Table")
+    st.subheader("Employee-Level Review Table")
     if use_v2_rows:
         selected_columns = [
             "employee_id",

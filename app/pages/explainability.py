@@ -53,7 +53,7 @@ def render() -> None:
 
     st.title("Explainability")
     st.caption(
-        "Model interpretation view using generated SHAP outputs and selected project visuals."
+        "Plain-English model interpretation using SHAP outputs and selected project visuals."
     )
     st.caption(f"Runtime mode: {get_runtime_mode_label()}.")
 
@@ -61,7 +61,7 @@ def render() -> None:
         model_name = shap_importance["model_name"].iloc[0] if "model_name" in shap_importance.columns else "selected model"
         model_mode = shap_importance["model_mode"].iloc[0] if "model_mode" in shap_importance.columns else "current mode"
         st.caption(
-            f"Using generated SHAP importance data for {_humanize_model_name(str(model_name))} in {model_mode} mode."
+            f"Using generated SHAP importance data for {_humanize_model_name(str(model_name))} ({model_mode} mode)."
         )
         shap_view = shap_importance.sort_values("rank").copy()
         display_view = shap_view.copy()
@@ -133,12 +133,12 @@ def render() -> None:
             "- Promotion history and salary context: stalled progression and lower pay bands contribute to screening risk."
         )
 
-    st.subheader("How to Interpret These Visuals")
+    st.subheader("How to Read SHAP Here")
     st.markdown(
-        "These SHAP visuals and tables help explain how the model is making distinctions in the project workflow. "
-        "In this app, they support the explanation layer while the main focus remains screening, threshold choice, and manager review."
+        "SHAP helps show which features pushed the model's risk signal higher or lower. "
+        "In this portfolio app, it supports explanation and review; it does not prove what caused an employee to leave."
     )
 
     st.warning(
-        "SHAP is used here as model interpretation support, not causal HR truth. A feature showing high explanatory importance does not prove that changing that feature will cause retention to improve."
+        "Treat SHAP as model interpretation support, not causal HR proof. A highly ranked feature does not mean changing that feature will automatically improve retention."
     )
