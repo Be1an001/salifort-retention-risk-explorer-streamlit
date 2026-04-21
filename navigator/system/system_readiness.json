@@ -1,0 +1,223 @@
+{
+  "registry_version": "1.0.0",
+  "repo_name": "salifort-retention-risk-explorer-streamlit",
+  "scope": "governed_pace_navigator_system_readiness",
+  "readiness_components": [
+    {
+      "component_id": "registry_foundation",
+      "component_title": "Registry Foundation",
+      "readiness_kind": "local_contract",
+      "status_goal": "ready",
+      "required_artifacts": [
+        "navigator/source_registry.yaml",
+        "navigator/truth_registry.json",
+        "navigator/drift_register.json",
+        "navigator/pace_phase_map.json",
+        "navigator/glossary.json"
+      ],
+      "required_env_vars": [],
+      "validation_scripts": [
+        "scripts/validate_navigator_layer.py"
+      ],
+      "approval_gates": [
+        "truth_contract_preserved"
+      ],
+      "ready_when": [
+        "all navigator registries load and validate"
+      ],
+      "blocked_when": [
+        "missing registry file",
+        "malformed registry content"
+      ],
+      "demo_message": "Core source/truth/drift/PACE registries are ready for governed review."
+    },
+    {
+      "component_id": "retrieval_pack",
+      "component_title": "Governed Retrieval Pack",
+      "readiness_kind": "local_artifact",
+      "status_goal": "ready",
+      "required_artifacts": [
+        "navigator/retrieval_pack/manifest.json",
+        "navigator/retrieval_pack/documents.jsonl",
+        "navigator/retrieval_pack/chunks.jsonl",
+        "navigator/retrieval_pack/eligibility_policy.json"
+      ],
+      "required_env_vars": [],
+      "validation_scripts": [
+        "scripts/validate_retrieval_pack.py"
+      ],
+      "approval_gates": [
+        "artifact_preflight",
+        "truth_contract_preserved"
+      ],
+      "ready_when": [
+        "retrieval pack artifacts exist and are traceable"
+      ],
+      "blocked_when": [
+        "missing retrieval pack files",
+        "duplicate or untraceable chunks"
+      ],
+      "demo_message": "Retrieval preparation artifacts are present and traceable."
+    },
+    {
+      "component_id": "retrieval_index",
+      "component_title": "Embedding Retrieval Runtime",
+      "readiness_kind": "api_dependent_artifact",
+      "status_goal": "ready_or_api_key_needed",
+      "required_artifacts": [
+        "navigator/retrieval_index/manifest.json",
+        "navigator/retrieval_index/chunk_index.jsonl",
+        "navigator/retrieval_index/chunk_vectors.npy"
+      ],
+      "required_env_vars": [
+        "RAG_STREAMLIT_OPENAI_API_KEY",
+        "OPENAI_API_KEY"
+      ],
+      "validation_scripts": [
+        "scripts/validate_retrieval_runtime.py"
+      ],
+      "approval_gates": [
+        "artifact_preflight",
+        "api_key_env_only"
+      ],
+      "ready_when": [
+        "retrieval index exists and an API key is available for live query embedding"
+      ],
+      "blocked_when": [
+        "missing retrieval index",
+        "missing API key for live retrieval"
+      ],
+      "demo_message": "Retrieval runtime is ready when local index exists and API key is supplied outside git."
+    },
+    {
+      "component_id": "reviewer_surfaces",
+      "component_title": "Reviewer Surfaces",
+      "readiness_kind": "streamlit_read_only",
+      "status_goal": "ready",
+      "required_artifacts": [
+        "navigator/retrieval_pack/manifest.json",
+        "navigator/retrieval_index/manifest.json"
+      ],
+      "required_env_vars": [
+        "RAG_STREAMLIT_OPENAI_API_KEY",
+        "OPENAI_API_KEY"
+      ],
+      "validation_scripts": [
+        "scripts/validate_answer_assembly.py"
+      ],
+      "approval_gates": [
+        "preview_only_streamlit",
+        "api_key_env_only",
+        "truth_contract_preserved"
+      ],
+      "ready_when": [
+        "fixed-query answer/reviewer surfaces can assemble governed citation-backed payloads"
+      ],
+      "blocked_when": [
+        "missing retrieval index",
+        "missing API key for live review"
+      ],
+      "demo_message": "Reviewer surfaces are demo-ready when API-backed retrieval is available."
+    },
+    {
+      "component_id": "source_preview",
+      "component_title": "Source Preview And Evidence Trace",
+      "readiness_kind": "streamlit_read_only",
+      "status_goal": "ready",
+      "required_artifacts": [
+        "navigator/source_registry.yaml",
+        "navigator/retrieval_pack/chunks.jsonl"
+      ],
+      "required_env_vars": [],
+      "validation_scripts": [],
+      "approval_gates": [
+        "preview_only_streamlit",
+        "truth_contract_preserved"
+      ],
+      "ready_when": [
+        "governed source registry and retrieval-pack source paths are available"
+      ],
+      "blocked_when": [
+        "source path is outside governed universe",
+        "source path is secret-like, binary, too large, or missing"
+      ],
+      "demo_message": "Chunk-level trace and controlled source-preview eligibility are available."
+    },
+    {
+      "component_id": "orchestration_contracts",
+      "component_title": "Orchestration Contracts",
+      "readiness_kind": "local_contract",
+      "status_goal": "ready",
+      "required_artifacts": [
+        "navigator/orchestration/task_registry.json",
+        "navigator/orchestration/workflow_registry.json"
+      ],
+      "required_env_vars": [],
+      "validation_scripts": [
+        "scripts/validate_orchestration_registry.py"
+      ],
+      "approval_gates": [
+        "human_review_for_mutation",
+        "preview_only_streamlit"
+      ],
+      "ready_when": [
+        "task/workflow registries validate and dependency ordering is intact"
+      ],
+      "blocked_when": [
+        "unknown task references",
+        "unsafe task ordering",
+        "missing registry file"
+      ],
+      "demo_message": "Workflow and task contracts are inspectable and non-executing."
+    },
+    {
+      "component_id": "airflow_scaffold",
+      "component_title": "Airflow-Safe Scaffold",
+      "readiness_kind": "optional_local_scaffold",
+      "status_goal": "preview_only",
+      "required_artifacts": [
+        "orchestration/airflow/dags/pace_navigator_governed_workflows.py"
+      ],
+      "required_env_vars": [],
+      "validation_scripts": [
+        "scripts/validate_airflow_scaffold.py"
+      ],
+      "approval_gates": [
+        "airflow_optional"
+      ],
+      "ready_when": [
+        "DAG scaffold imports safely with or without Airflow installed"
+      ],
+      "blocked_when": [
+        "DAG scaffold cannot import"
+      ],
+      "demo_message": "Airflow scaffold is optional and local/dev only."
+    },
+    {
+      "component_id": "agent_shell",
+      "component_title": "Governed PACE Agent Shell",
+      "readiness_kind": "preview_only_planner",
+      "status_goal": "preview_only",
+      "required_artifacts": [
+        "navigator/agent/agent_policy.json",
+        "navigator/agent/request_catalog.json"
+      ],
+      "required_env_vars": [],
+      "validation_scripts": [
+        "scripts/validate_agent_shell.py"
+      ],
+      "approval_gates": [
+        "agent_preview_only",
+        "preview_only_streamlit"
+      ],
+      "ready_when": [
+        "controlled requests map to existing workflow/task contracts with execution_allowed=false"
+      ],
+      "blocked_when": [
+        "request is unsupported",
+        "request asks for autonomous execution"
+      ],
+      "demo_message": "Agent shell is demo-ready as controlled plan preview only."
+    }
+  ]
+}

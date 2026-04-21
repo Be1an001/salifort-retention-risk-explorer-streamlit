@@ -13,7 +13,10 @@ from app.services import (
     OpenAIEmbeddingConfig,
     assemble_governed_answer,
     build_agent_plan_preview,
+    build_demo_readiness_checklist,
+    build_execution_eligibility_summary,
     build_runbook_view,
+    build_system_readiness_report,
     get_controlled_agent_requests,
     get_disallowed_agent_behaviors,
     get_drift_items,
@@ -624,6 +627,41 @@ def build_agent_shell_preview(request_id: str) -> dict[str, Any]:
         **preview,
         "route_summary": route_summary,
         "plan_rows": plan_rows,
+    }
+
+
+def build_final_system_readiness_context() -> dict[str, Any]:
+    readiness = build_system_readiness_report()
+    checklist = build_demo_readiness_checklist()
+    execution = build_execution_eligibility_summary()
+    component_cards = [
+        {
+            "component_id": row["component_id"],
+            "component_title": row["component_title"],
+            "readiness_kind": row["readiness_kind"],
+            "status": row["status"],
+            "status_label": row["status_label"],
+            "human_review_required": row["human_review_required"],
+            "execution_allowed_in_streamlit": row["execution_allowed_in_streamlit"],
+            "missing_artifacts": row["missing_artifacts"],
+            "missing_env_vars": row["missing_env_vars"],
+            "demo_message": row["demo_message"],
+            "approval_gate_titles": [
+                gate["gate_title"] for gate in row["approval_gates"]
+            ],
+        }
+        for row in readiness["component_rows"]
+    ]
+    return {
+        "status": "ready",
+        "summary": readiness["summary"],
+        "demo_ready": readiness["demo_ready"],
+        "status_counts": readiness["status_counts"],
+        "component_cards": component_cards,
+        "approval_gates": readiness["approval_gates"],
+        "demo_checklist": checklist,
+        "execution_eligibility": execution,
+        "guardrails": readiness["guardrails"],
     }
 
 

@@ -12,6 +12,7 @@ from app.viewmodels import (
     build_citation_comparison,
     build_cross_query_audit_export,
     build_eligible_source_index,
+    build_final_system_readiness_context,
     build_governed_answer_view,
     build_navigator_page_context,
     build_navigator_topic_drilldown,
@@ -386,6 +387,71 @@ def _render_agent_shell(agent_context: dict[str, object]) -> None:
                 for item in agent_context["disallowed_behaviors"]
             )
         )
+
+
+def _render_final_system_readiness(readiness: dict[str, object]) -> None:
+    summary = readiness["summary"]
+    counts = readiness["status_counts"]
+    st.caption(str(summary["governance_note"]))
+    metric_cols = st.columns(4)
+    metric_cols[0].metric("Demo Status", str(summary["demo_status"]))
+    metric_cols[1].metric("Ready", str(counts["ready"]))
+    metric_cols[2].metric("Review Needed", str(counts["review_needed"]))
+    metric_cols[3].metric("Preview Only", str(counts["preview_only"]))
+
+    component_rows = [
+        {
+            "Component": item["component_title"],
+            "Status": item["status_label"],
+            "Kind": item["readiness_kind"],
+            "Human Review": "Yes" if item["human_review_required"] else "No",
+            "Streamlit Execution": "No",
+            "Missing Artifacts": ", ".join(item["missing_artifacts"]) or "None",
+            "Missing Env": ", ".join(item["missing_env_vars"]) or "None",
+        }
+        for item in readiness["component_cards"]
+    ]
+    st.markdown("**Integrated readiness matrix**")
+    st.dataframe(pd.DataFrame(component_rows), use_container_width=True, hide_index=True)
+
+    checklist = readiness["demo_checklist"]
+    st.markdown("**Demo checklist**")
+    checklist_rows = [
+        {
+            "Check": item["label"],
+            "Status": str(item["status"]).replace("_", " ").title(),
+        }
+        for item in checklist["items"]
+    ]
+    st.dataframe(pd.DataFrame(checklist_rows), use_container_width=True, hide_index=True)
+    st.markdown("\n".join(f"- {note}" for note in checklist["notes"]))
+
+    execution = readiness["execution_eligibility"]
+    st.markdown("**Execution eligibility boundary**")
+    st.info(str(execution["summary"]["note"]))
+    workflow_rows = [
+        {
+            "Workflow": row["workflow_id"],
+            "Runtime": row["runtime_mode"],
+            "Scheduler": row["scheduler_eligibility"],
+            "Writes Files": "Yes" if row["mutates_repo_files"] else "No",
+            "Human Review": "Yes" if row["human_review_required"] else "No",
+            "Streamlit Execution": "No",
+            "Blocker Status": row["blocker_status"],
+        }
+        for row in execution["workflow_rows"]
+    ]
+    st.dataframe(pd.DataFrame(workflow_rows), use_container_width=True, hide_index=True)
+
+    with st.expander("Approval gates and final guardrails", expanded=False):
+        st.markdown("**Approval gates:**")
+        for gate in readiness["approval_gates"]:
+            st.markdown(
+                f"- `{gate['gate_id']}` | {gate['gate_title']} | status={gate['status']} | "
+                f"Streamlit execution allowed={gate['execution_allowed_in_streamlit']}"
+            )
+        st.markdown("**Shared guardrails:**")
+        st.markdown("\n".join(f"- {item}" for item in readiness["guardrails"]))
 
 
 def _render_citation_detail_card(item: dict[str, object], label: str) -> None:
@@ -804,6 +870,7 @@ def render() -> None:
     eligible_source_index = build_eligible_source_index()
     orchestration_summary = build_orchestration_summary()
     agent_shell_context = build_agent_shell_context()
+    final_readiness = build_final_system_readiness_context()
 
     st.title(context["page_title"])
     st.caption(context["page_caption"])
@@ -812,6 +879,13 @@ def render() -> None:
         "This page is a governed navigator shell. It explains the current project contract, "
         "preserved public truth, and known drift without changing any model, artifact, or runtime behavior."
     )
+
+    st.subheader("Final System Readiness")
+    st.caption(
+        "Integrated demo/readiness status across registries, retrieval, reviewer surfaces, orchestration contracts, "
+        "Airflow scaffold, and the governed agent shell. This section is read-only and does not execute workflows."
+    )
+    _render_final_system_readiness(final_readiness)
 
     st.subheader("What This Navigator Is")
     top_cols = st.columns([1.15, 0.85], gap="large")
