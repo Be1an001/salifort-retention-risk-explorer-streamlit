@@ -116,15 +116,20 @@ def _render_drift_explorer(drift_records: list[dict[str, object]]) -> None:
                 st.markdown("\n".join(f"- {note}" for note in item["notes"]))
 
 
+def _page_link(title: object, route: object) -> str:
+    route_text = str(route).strip("/")
+    return f"[{title}](/{route_text})"
+
+
 def _render_recommended_pages(recommended_pages: list[dict[str, object]]) -> None:
     if not recommended_pages:
-        st.info("No governed page recommendations are available for this query.")
+        st.info("No page recommendations are available for this query.")
         return
 
     for item in recommended_pages:
         with st.container(border=True):
-            st.markdown(f"**{item['title']}**")
-            st.markdown(f"`/{item['route']}`")
+            st.markdown(f"**{_page_link(item['title'], item['route'])}**")
+            st.caption(f"Route: `/{item['route']}`")
             st.caption(str(item["reason"]))
 
 
@@ -740,7 +745,7 @@ def _render_audit_workflow(workflow: dict[str, object]) -> None:
                 st.markdown("**Recommended pages:**")
                 st.markdown(
                     "\n".join(
-                        f"- `{page['title']}` (`/{page['route']}`): {page['reason']}"
+                        f"- {_page_link(page['title'], page['route'])}: {page['reason']}"
                         for page in row["recommended_pages"]
                     )
                 )
@@ -904,9 +909,8 @@ def render() -> None:
         )
     with console_cols[1]:
         st.markdown("**Recommended destination**")
-        st.markdown(
-            f"`{routing['recommended_page_title']}` (`/{routing['recommended_page_route']}`)"
-        )
+        st.markdown(_page_link(routing["recommended_page_title"], routing["recommended_page_route"]))
+        st.caption(f"Route: `/{routing['recommended_page_route']}`")
         st.markdown(
             f"**Why this page:** {routing['reason']}"
         )
@@ -918,6 +922,64 @@ def render() -> None:
                 "Related source IDs: " + ", ".join(routing["related_source_ids"])
             )
 
+    st.markdown("**Relevant truth summaries**")
+    for truth in selected_topic["truth_summaries"]:
+        with st.container(border=True):
+            st.markdown(f"**{truth['title']}**")
+            st.markdown(truth["description"])
+            st.caption(f"Authority rule: {truth['authority_rule']}")
+
+    st.subheader("Runtime Governance")
+    governance_cols = st.columns(2, gap="large")
+    for column, card in zip(governance_cols, context["runtime_governance_cards"]):
+        with column:
+            _render_card(card["title"], card["summary"], tone=card["tone"])
+            st.caption(card["authority_rule"])
+
+    st.subheader("Source-of-Truth Drilldown")
+    st.caption(
+        "This section shows which files govern the selected topic, how authoritative they are, and which runtime surfaces consume them."
+    )
+    _render_source_table(selected_topic["source_records"])
+
+    st.subheader("Known Differences to Preserve and Explain")
+    st.caption(
+        "Some project layers intentionally differ. This section keeps those differences visible instead of smoothing them over."
+    )
+    for drift_card in context["drift_highlight_cards"]:
+        with st.expander(
+            f"{drift_card['severity']} severity: {drift_card['title']}",
+            expanded=False,
+        ):
+            st.markdown(f"**Status:** {drift_card['status']}")
+            st.markdown(f"**User-visible risk:** {drift_card['user_visible_risk']}")
+            st.markdown(
+                f"**Upgrade handling rule:** {drift_card['upgrade_handling_rule']}"
+            )
+
+    st.subheader("Drift Register Explorer")
+    filter_cols = st.columns(2)
+    severity_options = ["All"] + context["drift_filters"]["severities"]
+    status_options = ["All"] + context["drift_filters"]["statuses"]
+    selected_severity = filter_cols[0].selectbox(
+        "Severity filter",
+        options=severity_options,
+        index=0,
+    )
+    selected_status = filter_cols[1].selectbox(
+        "Status filter",
+        options=status_options,
+        index=0,
+    )
+    drift_records = get_drift_records(
+        severity=None if selected_severity == "All" else selected_severity,
+        status=None if selected_status == "All" else selected_status,
+    )
+    _render_drift_explorer(drift_records)
+
+    st.markdown("**Topic-linked drift highlights**")
+    _render_drift_explorer(selected_topic["drift_records"])
+
     st.subheader("Where to Go Next")
     st.caption(
         "Use these page recommendations as a reviewer-friendly route through the app. "
@@ -926,10 +988,8 @@ def render() -> None:
     for item in context["topic_recommendations"]:
         with st.container(border=True):
             st.markdown(f"**Topic:** {item['topic']}")
-            st.markdown(
-                f"**Recommended page:** `{item['recommended_page_title']}` "
-                f"(`/{item['recommended_page_route']}`)"
-            )
+            st.markdown(f"**Recommended page:** {_page_link(item['recommended_page_title'], item['recommended_page_route'])}")
+            st.caption(f"Route: `/{item['recommended_page_route']}`")
             st.markdown(
                 f"**Supporting PACE phase:** {str(item['supporting_phase']).capitalize()}"
             )
@@ -966,7 +1026,8 @@ def render() -> None:
     st.subheader("Advanced Answer Viewer")
     st.caption(
         "This reviewer tool runs fixed questions through the prepared retrieval and answer-assembly stack. "
-        "It shows answer text, caveats, citations, coverage, and retrieved evidence side by side."
+        "It shows answer text, caveats, citations, coverage, and retrieved evidence side by side. "
+        "When retrieval is used, the OpenAI API supplies embeddings from a local key; no key is stored in the repo."
     )
     control_cols = st.columns([1.3, 0.7], gap="large")
     with control_cols[0]:
@@ -1288,61 +1349,3 @@ def render() -> None:
         "Airflow scaffold, and the plan-preview shell. This section is read-only and does not execute workflows."
     )
     _render_final_system_readiness(final_readiness)
-
-    st.markdown("**Relevant truth summaries**")
-    for truth in selected_topic["truth_summaries"]:
-        with st.container(border=True):
-            st.markdown(f"**{truth['title']}**")
-            st.markdown(truth["description"])
-            st.caption(f"Authority rule: {truth['authority_rule']}")
-
-    st.subheader("Runtime Governance")
-    governance_cols = st.columns(2, gap="large")
-    for column, card in zip(governance_cols, context["runtime_governance_cards"]):
-        with column:
-            _render_card(card["title"], card["summary"], tone=card["tone"])
-            st.caption(card["authority_rule"])
-
-    st.subheader("Source-of-Truth Drilldown")
-    st.caption(
-        "This section shows which files govern the selected topic, how authoritative they are, and which runtime surfaces consume them."
-    )
-    _render_source_table(selected_topic["source_records"])
-
-    st.subheader("Known Differences to Preserve and Explain")
-    st.caption(
-        "Some project layers intentionally differ. This section keeps those differences visible instead of smoothing them over."
-    )
-    for drift_card in context["drift_highlight_cards"]:
-        with st.expander(
-            f"{drift_card['severity']} severity: {drift_card['title']}",
-            expanded=False,
-        ):
-            st.markdown(f"**Status:** {drift_card['status']}")
-            st.markdown(f"**User-visible risk:** {drift_card['user_visible_risk']}")
-            st.markdown(
-                f"**Upgrade handling rule:** {drift_card['upgrade_handling_rule']}"
-            )
-
-    st.subheader("Drift Register Explorer")
-    filter_cols = st.columns(2)
-    severity_options = ["All"] + context["drift_filters"]["severities"]
-    status_options = ["All"] + context["drift_filters"]["statuses"]
-    selected_severity = filter_cols[0].selectbox(
-        "Severity filter",
-        options=severity_options,
-        index=0,
-    )
-    selected_status = filter_cols[1].selectbox(
-        "Status filter",
-        options=status_options,
-        index=0,
-    )
-    drift_records = get_drift_records(
-        severity=None if selected_severity == "All" else selected_severity,
-        status=None if selected_status == "All" else selected_status,
-    )
-    _render_drift_explorer(drift_records)
-
-    st.markdown("**Topic-linked drift highlights**")
-    _render_drift_explorer(selected_topic["drift_records"])

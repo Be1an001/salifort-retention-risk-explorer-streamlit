@@ -40,7 +40,7 @@ _DEFAULT_TOPIC_PREVIEWS = (
     "where the public model truth lives",
     "team exposure prioritization for managers",
     "threshold tradeoffs and confusion matrix",
-    "why fallback is not the final model probability",
+    "fallback runtime limitations and final probability boundaries",
 )
 _TOPIC_CONFIG = {
     "public_model_choice": {
@@ -72,7 +72,7 @@ _TOPIC_CONFIG = {
     },
     "fallback_vs_final_truth": {
         "label": "Fallback vs final model truth",
-        "query_text": "why fallback is not the final model probability",
+        "query_text": "fallback runtime limitations and final probability boundaries",
         "summary": "Why fallback screening must remain separate from the final weighted XGBoost probability.",
         "truth_domains": ["fallback_truth", "runtime_truth", "public_model_truth"],
         "drift_ids": ["drift_runtime_rows_vs_fallback_rows"],

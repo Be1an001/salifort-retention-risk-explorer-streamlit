@@ -53,7 +53,7 @@ def render() -> None:
 
     st.title("Explainability")
     st.caption(
-        "Plain-English model interpretation using SHAP outputs and selected project visuals."
+        "Model interpretation using SHAP outputs and selected project visuals."
     )
     st.caption(f"Runtime mode: {get_runtime_mode_label()}.")
     st.markdown(
@@ -119,9 +119,9 @@ def render() -> None:
             "This can support a future employee-level drilldown."
         )
 
-    st.subheader("Top Drivers in Plain Language")
+    st.subheader("Top Model Drivers")
     st.caption(
-        "This list translates the strongest SHAP-ranked features into plain English for portfolio review."
+        "This list explains the strongest SHAP-ranked features for portfolio review."
     )
     if shap_importance is not None and not shap_importance.empty:
         top_features = shap_importance.sort_values("rank").head(6)["feature"].tolist()

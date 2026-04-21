@@ -23,7 +23,7 @@ How can Salifort Motors spot early retention risk, focus manager attention, and 
 - Explains limitations, runtime behavior, and responsible-use boundaries.
 - Provides optional advanced reviewer tools for citations, retrieval evidence, source previews, workflow readiness, and plan previews.
 
-## Architecture in Plain English
+## Architecture Overview
 
 The project has an offline build layer and a Streamlit app layer.
 
@@ -33,6 +33,8 @@ The project has an offline build layer and a Streamlit app layer.
 - **Static figures:** `outputs/figures/` contains stable PNG figures used for EDA, validation, threshold, and SHAP pages.
 - **Streamlit runtime:** `app/app.py` and `app/pages/` load local files and render the app. Streamlit does not retrain models or regenerate SHAP values during a visitor session.
 - **Offline builders:** scripts in `scripts/` can rebuild artifacts or validate advanced Navigator assets outside Streamlit.
+
+For a page-by-page tour, see the [Streamlit app walkthrough](docs/streamlit-app-walkthrough.md). For the full docs index, see [docs/README.md](docs/README.md).
 
 ## Model and Threshold Truth
 

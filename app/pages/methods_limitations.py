@@ -7,7 +7,7 @@ from app.utils.load_data import get_runtime_mode_summary, load_v2_employee_score
 
 def render() -> None:
     st.title("Methods & Limitations")
-    st.caption("A plain-English guide to what this portfolio app does, how it runs, and where its limits are.")
+    st.caption("A clear guide to what this portfolio app does, how it runs, and where its limits are.")
 
     runtime_summary = get_runtime_mode_summary()
     using_v2_rows = load_v2_employee_scores() is not None
@@ -47,7 +47,7 @@ def render() -> None:
         "It is not a production HR platform, and it does not retrain models while a visitor is using the site."
     )
 
-    st.subheader("Architecture in Simple English")
+    st.subheader("Architecture Overview")
     st.markdown(
         "- **Dataset:** `data/hr_capstone_dataset.csv` is checked into the repo so the demo is reproducible.\n"
         "- **Cleaning:** the app loader standardizes column names and removes duplicates before showing metrics.\n"
@@ -99,7 +99,8 @@ def render() -> None:
     st.subheader("Advanced Navigator Concepts")
     st.markdown(
         "- **PACE:** a simple project map: Plan, Analyze, Construct, Execute. It helps organize the project story.\n"
-        "- **Retrieval / RAG preparation:** the Navigator can search prepared project chunks and citations. In this repo, retrieval supports review and evidence tracing; it does not write free-form HR judgments.\n"
+        "- **Retrieval / RAG preparation:** selected docs and registry entries are prepared into traceable chunks. Fixed review questions retrieve those chunks and show citations.\n"
+        "- **OpenAI API use:** the API is used for embeddings when building or querying the local retrieval index. The key must come from a local environment variable and is never stored in the repo.\n"
         "- **Answer assembly:** fixed questions can produce structured answers from retrieved evidence, with citations and caveats separated.\n"
         "- **Airflow scaffold:** the repo includes local workflow scaffolding for future orchestration review. Streamlit does not run Airflow jobs.\n"
         "- **Agent shell:** the Navigator includes a controlled plan-preview area. It maps fixed request types to known workflows but does not execute them."

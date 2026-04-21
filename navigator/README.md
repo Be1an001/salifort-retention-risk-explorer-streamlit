@@ -23,4 +23,4 @@ Most visitors do not need to read these files directly. They are here so the app
 
 These files support review and demo transparency. They do not change the public model truth, retrain models, or make Streamlit execute workflows.
 
-In plain English: this folder helps the app explain where its claims come from, what evidence supports them, and which advanced features are review-only.
+This folder helps the app explain where its claims come from, what evidence supports them, and which advanced features are review-only.

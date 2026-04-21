@@ -93,7 +93,7 @@ Use this page to see which features influence the model signal.
 What to look for:
 
 - Ranked SHAP importance table or chart.
-- Plain-English driver descriptions.
+- Feature-driver descriptions written for portfolio review.
 - Reference SHAP visuals if generated tables are unavailable.
 
 How to interpret it:
@@ -131,7 +131,7 @@ Key ideas:
 - Model training and artifact generation happen offline.
 - Fallback logic keeps the app usable but stays separate from final model truth.
 
-This page also explains advanced terms such as PACE, retrieval/RAG, Airflow scaffold, and agent shell in simple English.
+This page also explains advanced terms such as PACE, retrieval/RAG, Airflow scaffold, and agent shell in reviewer-friendly language.
 
 ## 8. PACE Navigator
 
