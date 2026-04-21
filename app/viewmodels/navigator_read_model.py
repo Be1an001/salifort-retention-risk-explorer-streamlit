@@ -351,6 +351,121 @@ def evaluate_source_preview(path: str) -> dict[str, Any]:
     }
 
 
+def _size_bucket(file_size_bytes: int | None) -> str:
+    if file_size_bytes is None:
+        return "unknown"
+    if file_size_bytes <= 10_000:
+        return "small"
+    if file_size_bytes <= _PREVIEW_MAX_BYTES:
+        return "preview_limit"
+    return "large_or_blocked"
+
+
+def build_eligible_source_index() -> dict[str, Any]:
+    source_registry = load_all_navigator_registries().source_registry["sources"]
+    retrieval_chunks = load_retrieval_pack()["chunks"]
+    metadata_by_path: dict[str, dict[str, Any]] = {}
+
+    def ensure_path(path: str) -> dict[str, Any]:
+        normalized = str(path).replace("\\", "/")
+        if normalized not in metadata_by_path:
+            metadata_by_path[normalized] = {
+                "source_path": normalized,
+                "source_ids": [],
+                "source_titles": [],
+                "source_kinds": [],
+                "repo_layers": [],
+                "authority_levels": [],
+                "consumer_pages": [],
+                "document_ids": [],
+                "chunk_ids": [],
+                "source_universe": set(),
+            }
+        return metadata_by_path[normalized]
+
+    for source in source_registry:
+        record = ensure_path(source["path"])
+        record["source_universe"].add("source_registry")
+        record["source_ids"].append(source["source_id"])
+        record["source_titles"].append(source["title"])
+        record["source_kinds"].append(source["source_kind"])
+        record["repo_layers"].append(source["repo_layer"])
+        record["authority_levels"].append(source["authority_level"])
+        record["consumer_pages"].extend(source.get("consumer_pages", []))
+
+    for chunk in retrieval_chunks:
+        for source_path in chunk["source_paths"]:
+            record = ensure_path(source_path)
+            record["source_universe"].add("retrieval_pack")
+            record["document_ids"].append(chunk["document_id"])
+            record["chunk_ids"].append(chunk["chunk_id"])
+            if chunk.get("authority_level"):
+                record["authority_levels"].append(chunk["authority_level"])
+
+    rows: list[dict[str, Any]] = []
+    for source_path, metadata in metadata_by_path.items():
+        preview = evaluate_source_preview(source_path)
+        extension = preview["extension"]
+        source_universe = sorted(metadata["source_universe"])
+        source_titles = sorted(set(metadata["source_titles"]))
+        source_kinds = sorted(set(metadata["source_kinds"]))
+        authority_levels = sorted(set(metadata["authority_levels"]))
+        repo_layers = sorted(set(metadata["repo_layers"]))
+        consumer_pages = sorted(set(metadata["consumer_pages"]))
+        document_ids = sorted(set(metadata["document_ids"]))
+        chunk_ids = sorted(set(metadata["chunk_ids"]))
+        rows.append(
+            {
+                "source_path": source_path,
+                "source_label": source_titles[0] if source_titles else Path(source_path).name,
+                "source_type": ", ".join(source_kinds) if source_kinds else "retrieval_pack_source",
+                "source_universe": ", ".join(source_universe),
+                "preview_eligible": bool(preview["eligible"]),
+                "preview_status": preview["status"],
+                "blocked_reason": "" if preview["eligible"] else preview["reason"],
+                "preview_reason": preview["reason"],
+                "extension": extension,
+                "file_size_bytes": preview["file_size_bytes"],
+                "size_bucket": _size_bucket(preview["file_size_bytes"]),
+                "preview_class": "previewable_text" if preview["eligible"] else "blocked_or_unavailable",
+                "source_ids": sorted(set(metadata["source_ids"])),
+                "document_ids": document_ids,
+                "chunk_count": len(chunk_ids),
+                "authority_levels": authority_levels,
+                "repo_layers": repo_layers,
+                "consumer_pages": consumer_pages,
+            }
+        )
+
+    rows.sort(
+        key=lambda item: (
+            0 if item["preview_eligible"] else 1,
+            str(item["source_path"]).lower(),
+        )
+    )
+    eligible_rows = [row for row in rows if row["preview_eligible"]]
+    blocked_rows = [row for row in rows if not row["preview_eligible"]]
+    return {
+        "status": "ready",
+        "rows": rows,
+        "summary": {
+            "total_sources": len(rows),
+            "eligible_sources": len(eligible_rows),
+            "blocked_sources": len(blocked_rows),
+            "source_registry_count": len(source_registry),
+            "retrieval_pack_chunk_count": len(retrieval_chunks),
+            "allowed_extensions": sorted(_PREVIEW_ALLOWED_EXTENSIONS),
+            "blocked_extensions": sorted(_PREVIEW_BLOCKED_EXTENSIONS),
+            "preview_max_bytes": _PREVIEW_MAX_BYTES,
+            "preview_char_limit": _PREVIEW_CHAR_LIMIT,
+            "governance_note": (
+                "This index is limited to governed source-registry and retrieval-pack paths. "
+                "It is not arbitrary repository enumeration or unrestricted file browsing."
+            ),
+        },
+    }
+
+
 def get_project_identity_card() -> dict[str, Any]:
     identity_truth = _first_truth_entry("project_identity_truth")
     method_truth = _first_truth_entry("method_truth")
@@ -941,6 +1056,195 @@ def build_support_quality_review(answer_view: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _checklist_item(
+    item_id: str,
+    label: str,
+    status: str,
+    detail: str,
+) -> dict[str, str]:
+    return {
+        "item_id": item_id,
+        "label": label,
+        "status": status,
+        "detail": detail,
+    }
+
+
+def build_audit_checklist(
+    answer_view: dict[str, Any],
+    support_review: dict[str, Any],
+    source_detail: dict[str, Any] | None = None,
+    export_payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    fixed_queries = {item["query"] for item in get_governed_answer_query_options()}
+    query = str(answer_view.get("query", ""))
+    answer_ready = answer_view.get("status") == "ready"
+    source_detail_ready = bool(source_detail and source_detail.get("status") == "ready")
+    source_preview_checked = bool(
+        source_detail_ready and source_detail.get("preview_options") is not None
+    )
+    has_preview_signal = bool(
+        source_detail_ready and source_detail.get("preview_status") in {"eligible", "ineligible"}
+    )
+    export_ready = bool(export_payload and export_payload.get("status") == "ready")
+
+    if answer_ready:
+        answer = answer_view["answer"]
+        retrieval_rows = answer_view["retrieval_rows"]
+        citation_rows = answer_view["citation_rows"]
+        direct_answer = str(answer.get("direct_answer", "")).strip()
+        truth_present = any(row["truth_tags"] for row in retrieval_rows)
+        drift_present = any(row["drift_tags"] for row in retrieval_rows) or bool(
+            answer.get("drift_and_caveats")
+        )
+        coverage_status = answer["coverage_summary"]["status"]
+    else:
+        direct_answer = ""
+        citation_rows = []
+        truth_present = False
+        drift_present = False
+        coverage_status = "blocked"
+
+    items = [
+        _checklist_item(
+            "fixed_governed_query",
+            "Query is from the fixed governed set",
+            "ready" if query in fixed_queries else "blocked",
+            (
+                "Selected query is controlled by the governed scenario set."
+                if query in fixed_queries
+                else "Query is not in the fixed governed scenario set."
+            ),
+        ),
+        _checklist_item(
+            "direct_answer_present",
+            "Direct governed answer is present",
+            "ready" if direct_answer else "blocked",
+            (
+                "Deterministic answer assembly produced a direct governed answer."
+                if direct_answer
+                else "No direct governed answer is available."
+            ),
+        ),
+        _checklist_item(
+            "support_quality_checked",
+            "Support-quality status was checked",
+            "ready" if support_review.get("status_label") != "Blocked" else "blocked",
+            f"Support quality status: {support_review.get('status_label', 'Unknown')}.",
+        ),
+        _checklist_item(
+            "citations_present",
+            "Citations are present",
+            "ready" if citation_rows else "attention",
+            (
+                f"{len(citation_rows)} citations are attached."
+                if citation_rows
+                else "No citations are attached; reviewer should not treat this as complete."
+            ),
+        ),
+        _checklist_item(
+            "truth_context_checked",
+            "Truth context was checked",
+            "ready" if truth_present else "attention",
+            (
+                "At least one retrieved/cited chunk carries truth tags."
+                if truth_present
+                else "No truth-tagged chunk is visible in the current retrieval set."
+            ),
+        ),
+        _checklist_item(
+            "drift_context_checked",
+            "Drift/caveat context was checked",
+            "ready" if drift_present else "attention",
+            (
+                "Drift or caveat context is visible and separated from the direct answer."
+                if drift_present
+                else "No drift/caveat context is attached for this query."
+            ),
+        ),
+        _checklist_item(
+            "related_chunk_inspection",
+            "Related chunk inspection is available",
+            "ready"
+            if source_detail_ready and source_detail.get("related_chunks")
+            else "attention",
+            (
+                f"{len(source_detail.get('related_chunks', []))} related chunks are available."
+                if source_detail_ready
+                else "No source-detail target is ready for related chunk inspection."
+            ),
+        ),
+        _checklist_item(
+            "source_preview_checked",
+            "Source preview eligibility was checked",
+            "ready" if source_preview_checked and has_preview_signal else "attention",
+            (
+                f"Preview status: {source_detail.get('preview_status')}."
+                if source_detail_ready
+                else "Source preview eligibility was not evaluated for a selected chunk."
+            ),
+        ),
+        _checklist_item(
+            "export_ready",
+            "Export packet is ready",
+            "ready" if export_ready else "attention",
+            (
+                "Current governed review can be exported as markdown, text, or JSON."
+                if export_ready
+                else "Export packet has not been built or is blocked."
+            ),
+        ),
+    ]
+
+    ready_count = sum(1 for item in items if item["status"] == "ready")
+    attention_count = sum(1 for item in items if item["status"] == "attention")
+    blocked_count = sum(1 for item in items if item["status"] == "blocked")
+    if blocked_count:
+        status_key = "blocked"
+        status_label = "Blocked"
+    elif attention_count:
+        status_key = "partial"
+        status_label = "Review attention needed"
+    else:
+        status_key = "ready"
+        status_label = "Review ready"
+
+    notes: list[str] = []
+    if coverage_status != "sufficient":
+        notes.append(
+            "Coverage is not marked sufficient; keep the review status partial until citations are inspected."
+        )
+    if not truth_present:
+        notes.append("Canonical truth support is not visible in the retrieved set.")
+    if not drift_present:
+        notes.append(
+            "No drift/caveat context is attached; this may be acceptable for some queries but should be checked."
+        )
+    if source_detail_ready and source_detail.get("preview_status") == "ineligible":
+        notes.append(
+            "Selected source detail is governed at chunk level, but whole-file preview is not eligible."
+        )
+    if export_ready:
+        notes.append("Export packet is ready; final reviewer exports include checklist metadata.")
+    if not notes:
+        notes.append("Checklist is complete for the selected governed query.")
+
+    return {
+        "status_key": status_key,
+        "status_label": status_label,
+        "completeness_score": round(ready_count / len(items), 3),
+        "items": items,
+        "summary": {
+            "total_items": len(items),
+            "ready_items": ready_count,
+            "attention_items": attention_count,
+            "blocked_items": blocked_count,
+            "coverage_status": coverage_status,
+            "notes": notes,
+        },
+    }
+
+
 def build_source_detail_options(answer_view: dict[str, Any]) -> list[dict[str, str]]:
     if answer_view["status"] != "ready":
         return []
@@ -1097,6 +1401,8 @@ def build_audit_summary_export(
     answer_view: dict[str, Any],
     support_review: dict[str, Any],
     source_detail: dict[str, Any] | None = None,
+    checklist: dict[str, Any] | None = None,
+    eligible_source_index: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if answer_view["status"] != "ready":
         return {
@@ -1112,6 +1418,11 @@ def build_audit_summary_export(
     manifest = _retrieval_pack_manifest()
     citation_rows = answer_view["citation_rows"]
     source_detail_payload = source_detail if source_detail and source_detail.get("status") == "ready" else None
+    eligible_source_summary = (
+        eligible_source_index["summary"]
+        if eligible_source_index and eligible_source_index.get("status") == "ready"
+        else None
+    )
     packet = {
         "packet_type": "governed_pace_navigator_review",
         "query": answer["query"],
@@ -1165,6 +1476,27 @@ def build_audit_summary_export(
             if source_detail_payload
             else None
         ),
+        "audit_checklist": (
+            {
+                "status_key": checklist["status_key"],
+                "status_label": checklist["status_label"],
+                "completeness_score": checklist["completeness_score"],
+                "summary": checklist["summary"],
+                "items": checklist["items"],
+            }
+            if checklist
+            else None
+        ),
+        "eligible_source_index_summary": (
+            {
+                "total_sources": eligible_source_summary["total_sources"],
+                "eligible_sources": eligible_source_summary["eligible_sources"],
+                "blocked_sources": eligible_source_summary["blocked_sources"],
+                "governance_note": eligible_source_summary["governance_note"],
+            }
+            if eligible_source_summary
+            else None
+        ),
         "build_context": {
             "retrieval_pack_version": manifest.get("pack_version"),
             "retrieval_pack_chunk_count": manifest.get("chunk_count"),
@@ -1190,6 +1522,8 @@ def build_audit_summary_export(
     ]
     selected_source_lines: list[str] = []
     preview_lines: list[str] = []
+    checklist_lines: list[str] = []
+    source_index_lines: list[str] = []
     if source_detail_payload:
         selected = source_detail_payload["selected"]
         selected_source_lines = [
@@ -1204,6 +1538,21 @@ def build_audit_summary_export(
                 f"reason={option['reason']}"
             )
             for option in source_detail_payload["preview_options"]
+        ]
+    if checklist:
+        checklist_lines = [
+            (
+                f"{item['label']} | status={item['status']} | "
+                f"{item['detail']}"
+            )
+            for item in checklist["items"]
+        ]
+    if eligible_source_summary:
+        source_index_lines = [
+            f"total governed sources: {eligible_source_summary['total_sources']}",
+            f"preview eligible: {eligible_source_summary['eligible_sources']}",
+            f"blocked or unavailable: {eligible_source_summary['blocked_sources']}",
+            eligible_source_summary["governance_note"],
         ]
 
     markdown = "\n\n".join(
@@ -1221,6 +1570,8 @@ def build_audit_summary_export(
             "## Citations\n" + _as_markdown_list(citations),
             "## Selected Source Detail\n" + _as_markdown_list(selected_source_lines),
             "## Preview Eligibility\n" + _as_markdown_list(preview_lines),
+            "## Audit Checklist\n" + _as_markdown_list(checklist_lines),
+            "## Eligible Source Index Summary\n" + _as_markdown_list(source_index_lines),
             (
                 "## Build Context\n"
                 f"- retrieval pack version: {manifest.get('pack_version')}\n"
@@ -1322,6 +1673,9 @@ def build_audit_workflow(
                 "total_queries": 0,
                 "ready_queries": 0,
                 "blocked_queries": 0,
+                "checklist_ready_queries": [],
+                "checklist_attention_queries": [],
+                "checklist_blocked_queries": [],
                 "strong_queries": [],
                 "partial_or_attention_queries": [],
                 "drift_heavy_queries": [],
@@ -1333,6 +1687,7 @@ def build_audit_workflow(
 
     items: list[dict[str, Any]] = []
     comparison_rows: list[dict[str, Any]] = []
+    eligible_source_index = build_eligible_source_index()
     for query in selected_queries:
         answer_view = build_governed_answer_view(query, top_k=top_k)
         support_review = build_support_quality_review(answer_view)
@@ -1342,14 +1697,33 @@ def build_audit_workflow(
             if source_options
             else None
         )
-        export_payload = build_audit_summary_export(answer_view, support_review, source_detail)
+        preliminary_export = build_audit_summary_export(answer_view, support_review, source_detail)
+        checklist = build_audit_checklist(
+            answer_view,
+            support_review,
+            source_detail,
+            preliminary_export,
+        )
+        export_payload = build_audit_summary_export(
+            answer_view,
+            support_review,
+            source_detail,
+            checklist,
+            eligible_source_index,
+        )
         row = _answer_support_row(answer_view, support_review, source_detail)
+        row["checklist_status"] = checklist["status_label"]
+        row["checklist_score"] = checklist["completeness_score"]
+        row["checklist_ready_items"] = checklist["summary"]["ready_items"]
+        row["checklist_attention_items"] = checklist["summary"]["attention_items"]
+        row["checklist_blocked_items"] = checklist["summary"]["blocked_items"]
         items.append(
             {
                 "query": query,
                 "answer_view": answer_view,
                 "support_review": support_review,
                 "source_detail": source_detail,
+                "audit_checklist": checklist,
                 "single_query_export": export_payload,
                 "comparison_row": row,
             }
@@ -1379,6 +1753,21 @@ def build_audit_workflow(
         for row in comparison_rows
         if int(row["reference_only_count"]) > 0
     ]
+    checklist_ready_queries = [
+        row["query"]
+        for row in comparison_rows
+        if row.get("checklist_status") == "Review ready"
+    ]
+    checklist_attention_queries = [
+        row["query"]
+        for row in comparison_rows
+        if row.get("checklist_status") == "Review attention needed"
+    ]
+    checklist_blocked_queries = [
+        row["query"]
+        for row in comparison_rows
+        if row.get("checklist_status") == "Blocked"
+    ]
 
     if blocked_count == len(comparison_rows):
         workflow_status = "Blocked"
@@ -1406,6 +1795,14 @@ def build_audit_workflow(
         review_notes.append(
             f"{len(reference_supported_queries)} selected queries use reference-only chunks; review citations before overclaiming."
         )
+    if checklist_attention_queries:
+        review_notes.append(
+            f"{len(checklist_attention_queries)} selected queries have checklist attention items before export."
+        )
+    if checklist_blocked_queries:
+        review_notes.append(
+            f"{len(checklist_blocked_queries)} selected queries have blocked checklist items."
+        )
     if blocked_count:
         review_notes.append(
             f"{blocked_count} selected queries are blocked by retrieval runtime setup."
@@ -1422,6 +1819,9 @@ def build_audit_workflow(
             "total_queries": len(comparison_rows),
             "ready_queries": ready_count,
             "blocked_queries": blocked_count,
+            "checklist_ready_queries": checklist_ready_queries,
+            "checklist_attention_queries": checklist_attention_queries,
+            "checklist_blocked_queries": checklist_blocked_queries,
             "strong_queries": strong_queries,
             "partial_or_attention_queries": partial_or_attention_queries,
             "drift_heavy_queries": drift_heavy_queries,
@@ -1445,6 +1845,7 @@ def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
 
     manifest = _retrieval_pack_manifest()
     summary = workflow["summary"]
+    eligible_source_summary = build_eligible_source_index()["summary"]
     packet_items = []
     for item in workflow["items"]:
         row = item["comparison_row"]
@@ -1452,6 +1853,7 @@ def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
         answer = answer_view.get("answer", {})
         source_detail = item.get("source_detail")
         source_detail_ready = source_detail and source_detail.get("status") == "ready"
+        checklist = item.get("audit_checklist")
         packet_items.append(
             {
                 "query": row["query"],
@@ -1466,6 +1868,17 @@ def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
                 "page_route_support_present": row["page_route_support_present"],
                 "reference_only_count": row["reference_only_count"],
                 "citation_count": row["citation_count"],
+                "audit_checklist": (
+                    {
+                        "status_key": checklist["status_key"],
+                        "status_label": checklist["status_label"],
+                        "completeness_score": checklist["completeness_score"],
+                        "summary": checklist["summary"],
+                        "items": checklist["items"],
+                    }
+                    if checklist
+                    else None
+                ),
                 "supporting_points": answer.get("supporting_points", []),
                 "review_notes": row["review_notes"],
                 "drift_and_caveats": row["drift_and_caveats"],
@@ -1511,6 +1924,12 @@ def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
         "selected_queries": workflow["selected_queries"],
         "workflow_summary": summary,
         "query_reviews": packet_items,
+        "eligible_source_index_summary": {
+            "total_sources": eligible_source_summary["total_sources"],
+            "eligible_sources": eligible_source_summary["eligible_sources"],
+            "blocked_sources": eligible_source_summary["blocked_sources"],
+            "governance_note": eligible_source_summary["governance_note"],
+        },
         "build_context": {
             "retrieval_pack_version": manifest.get("pack_version"),
             "retrieval_pack_chunk_count": manifest.get("chunk_count"),
@@ -1527,7 +1946,8 @@ def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
         (
             f"{row['query']} | support={row['support_quality_status']} | "
             f"truth={row['canonical_truth_present']} | drift={row['drift_context_present']} | "
-            f"citations={row['citation_count']} | reference_only={row['reference_only_count']}"
+            f"citations={row['citation_count']} | reference_only={row['reference_only_count']} | "
+            f"checklist={row.get('checklist_status', 'Not checked')}"
         )
         for row in workflow["comparison_rows"]
     ]
@@ -1542,10 +1962,16 @@ def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
             for citation in item["citations"]
         ]
         preview_lines = []
+        checklist_lines = []
         if item.get("source_preview_summary"):
             preview_lines = [
                 f"{option['source_path']} | eligible={option['eligible']} | reason={option['reason']}"
                 for option in item["source_preview_summary"]["preview_options"]
+            ]
+        if item.get("audit_checklist"):
+            checklist_lines = [
+                f"{entry['label']} | status={entry['status']} | {entry['detail']}"
+                for entry in item["audit_checklist"]["items"]
             ]
         per_query_sections.append(
             "\n\n".join(
@@ -1560,6 +1986,7 @@ def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
                     "Recommended pages:\n" + _as_markdown_list(recommended_pages),
                     "Citations:\n" + _as_markdown_list(citations),
                     "Preview eligibility:\n" + _as_markdown_list(preview_lines),
+                    "Audit checklist:\n" + _as_markdown_list(checklist_lines),
                 ]
             )
         )
@@ -1573,6 +2000,13 @@ def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
             f"**Blocked queries:** {summary['blocked_queries']}",
             "## Workflow Review Notes\n" + _as_markdown_list(summary["review_notes"]),
             "## Comparison Matrix\n" + _as_markdown_list(comparison_lines),
+            (
+                "## Eligible Source Index Summary\n"
+                f"- total governed sources: {eligible_source_summary['total_sources']}\n"
+                f"- preview eligible: {eligible_source_summary['eligible_sources']}\n"
+                f"- blocked or unavailable: {eligible_source_summary['blocked_sources']}\n"
+                f"- {eligible_source_summary['governance_note']}"
+            ),
             "## Per-Query Reviews\n" + "\n\n".join(per_query_sections),
             (
                 "## Build Context\n"

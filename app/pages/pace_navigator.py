@@ -6,8 +6,10 @@ import streamlit as st
 from app.viewmodels import (
     build_audit_summary_export,
     build_audit_workflow,
+    build_audit_checklist,
     build_citation_comparison,
     build_cross_query_audit_export,
+    build_eligible_source_index,
     build_governed_answer_view,
     build_navigator_page_context,
     build_navigator_topic_drilldown,
@@ -133,6 +135,73 @@ def _render_support_quality_review(review: dict[str, object]) -> None:
         column.metric(str(indicator["label"]), str(indicator["value"]))
     st.markdown("**Review notes**")
     st.markdown("\n".join(f"- {note}" for note in review["review_notes"]))
+
+
+def _render_audit_checklist(checklist: dict[str, object]) -> None:
+    summary = checklist["summary"]
+    metric_cols = st.columns(4)
+    metric_cols[0].metric("Checklist Status", str(checklist["status_label"]))
+    metric_cols[1].metric("Completeness", f"{float(checklist['completeness_score']) * 100:.0f}%")
+    metric_cols[2].metric("Ready Items", str(summary["ready_items"]))
+    metric_cols[3].metric("Attention / Blocked", f"{summary['attention_items']} / {summary['blocked_items']}")
+
+    table_rows = [
+        {
+            "Checklist Item": item["label"],
+            "Status": str(item["status"]).replace("_", " ").title(),
+            "Detail": item["detail"],
+        }
+        for item in checklist["items"]
+    ]
+    st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+    st.markdown("**Checklist notes**")
+    st.markdown("\n".join(f"- {note}" for note in summary["notes"]))
+
+
+def _render_eligible_source_index(source_index: dict[str, object]) -> None:
+    summary = source_index["summary"]
+    st.caption(str(summary["governance_note"]))
+    metric_cols = st.columns(4)
+    metric_cols[0].metric("Governed Sources", str(summary["total_sources"]))
+    metric_cols[1].metric("Preview Eligible", str(summary["eligible_sources"]))
+    metric_cols[2].metric("Blocked / Unavailable", str(summary["blocked_sources"]))
+    metric_cols[3].metric("Preview Cap", f"{summary['preview_max_bytes']} bytes")
+
+    rows = source_index["rows"]
+    status_filter = st.selectbox(
+        "Source index preview filter",
+        options=["All", "Preview eligible", "Blocked or unavailable"],
+        index=0,
+        help="This filters governed source-registry and retrieval-pack paths only.",
+    )
+    if status_filter == "Preview eligible":
+        filtered_rows = [row for row in rows if row["preview_eligible"]]
+    elif status_filter == "Blocked or unavailable":
+        filtered_rows = [row for row in rows if not row["preview_eligible"]]
+    else:
+        filtered_rows = list(rows)
+
+    table_rows = [
+        {
+            "Source Path": row["source_path"],
+            "Label": row["source_label"],
+            "Universe": row["source_universe"],
+            "Eligible": "Yes" if row["preview_eligible"] else "No",
+            "Extension": row["extension"],
+            "Size Bucket": row["size_bucket"],
+            "Class": row["preview_class"],
+            "Blocked Reason": row["blocked_reason"] or "None",
+        }
+        for row in filtered_rows
+    ]
+    st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+    with st.expander("Source preview governance rules", expanded=False):
+        st.markdown(
+            "- Only governed source-registry and retrieval-pack paths are indexed.\n"
+            "- Only small, repo-local, text-like files can be previewed.\n"
+            "- Secret-like paths, environment files, binaries, generated arrays, images, and large files remain blocked.\n"
+            "- This is not arbitrary repo enumeration or unrestricted file browsing."
+        )
 
 
 def _render_citation_detail_card(item: dict[str, object], label: str) -> None:
@@ -362,6 +431,8 @@ def _render_audit_workflow(workflow: dict[str, object]) -> None:
                 "Reference-only": row["reference_only_count"],
                 "Citations": row["citation_count"],
                 "Source Detail": "Yes" if row["selected_source_detail_present"] else "No",
+                "Checklist": row.get("checklist_status", "Not checked"),
+                "Checklist Score": f"{float(row.get('checklist_score', 0)) * 100:.0f}%",
             }
         )
     st.markdown("**Cross-query comparison matrix**")
@@ -381,6 +452,22 @@ def _render_audit_workflow(workflow: dict[str, object]) -> None:
     grouped_cols[2].markdown("**Drift or caveat context**")
     grouped_cols[2].markdown(
         "\n".join(f"- {query}" for query in summary["drift_heavy_queries"])
+        or "- None"
+    )
+    checklist_cols = st.columns(3)
+    checklist_cols[0].markdown("**Checklist ready**")
+    checklist_cols[0].markdown(
+        "\n".join(f"- {query}" for query in summary.get("checklist_ready_queries", []))
+        or "- None"
+    )
+    checklist_cols[1].markdown("**Checklist attention**")
+    checklist_cols[1].markdown(
+        "\n".join(f"- {query}" for query in summary.get("checklist_attention_queries", []))
+        or "- None"
+    )
+    checklist_cols[2].markdown("**Checklist blocked**")
+    checklist_cols[2].markdown(
+        "\n".join(f"- {query}" for query in summary.get("checklist_blocked_queries", []))
         or "- None"
     )
 
@@ -408,8 +495,13 @@ def _render_audit_workflow(workflow: dict[str, object]) -> None:
                     )
                 )
             st.caption(
-                f"Citations: {row['citation_count']} | Reference-only chunks: {row['reference_only_count']}"
+                f"Citations: {row['citation_count']} | Reference-only chunks: {row['reference_only_count']} | "
+                f"Checklist: {row.get('checklist_status', 'Not checked')} ({float(row.get('checklist_score', 0)) * 100:.0f}%)"
             )
+            checklist = item.get("audit_checklist")
+            if checklist:
+                with st.expander("Checklist item detail", expanded=False):
+                    _render_audit_checklist(checklist)
 
 
 def _render_citations(citation_rows: list[dict[str, object]]) -> None:
@@ -525,6 +617,7 @@ def render() -> None:
         help="Controls how many governed chunks are retrieved for the answer viewer and inspector.",
     )
     answer_view = build_governed_answer_view(selected_answer_query, top_k=selected_top_k)
+    eligible_source_index = build_eligible_source_index()
 
     st.title(context["page_title"])
     st.caption(context["page_caption"])
@@ -623,6 +716,7 @@ def render() -> None:
                 "Recommended Pages",
                 "Citations",
                 "Source Detail",
+                "Audit Checklist",
                 "Export Review",
                 "Retrieval Inspector",
             ]
@@ -730,6 +824,20 @@ def render() -> None:
                 st.info("No governed source detail options are available.")
 
         with answer_tabs[7]:
+            preliminary_export = build_audit_summary_export(
+                answer_view,
+                support_review,
+                source_detail if source_detail_options else None,
+            )
+            checklist = build_audit_checklist(
+                answer_view,
+                support_review,
+                source_detail if source_detail_options else None,
+                preliminary_export,
+            )
+            _render_audit_checklist(checklist)
+
+        with answer_tabs[8]:
             if source_detail_options:
                 export_source_detail = source_detail
             else:
@@ -738,10 +846,12 @@ def render() -> None:
                 answer_view,
                 support_review,
                 export_source_detail,
+                checklist,
+                eligible_source_index,
             )
             _render_audit_export(export_payload)
 
-        with answer_tabs[8]:
+        with answer_tabs[9]:
             filter_options = build_reviewer_filter_options(answer_view["retrieval_rows"])
             sort_options = {
                 item["label"]: item["key"]
@@ -799,6 +909,13 @@ def render() -> None:
                 f"Showing {len(filtered_rows)} of {len(answer_view['retrieval_rows'])} retrieved chunks."
             )
             _render_retrieval_inspector(filtered_rows)
+
+    st.subheader("Governed Eligible Source Index")
+    st.caption(
+        "This index shows preview eligibility for governed source-registry and retrieval-pack paths only. "
+        "It is a curated review surface, not a general repository browser."
+    )
+    _render_eligible_source_index(eligible_source_index)
 
     st.subheader("Audit Workflow Mode")
     st.caption(

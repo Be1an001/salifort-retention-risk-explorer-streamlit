@@ -1,8 +1,10 @@
 from app.viewmodels.navigator_read_model import (
     build_audit_summary_export,
     build_audit_workflow,
+    build_audit_checklist,
     build_citation_comparison,
     build_cross_query_audit_export,
+    build_eligible_source_index,
     build_navigator_page_context,
     build_navigator_topic_drilldown,
     build_governed_answer_view,
@@ -28,8 +30,10 @@ from app.viewmodels.navigator_read_model import (
 __all__ = [
     "build_audit_summary_export",
     "build_audit_workflow",
+    "build_audit_checklist",
     "build_citation_comparison",
     "build_cross_query_audit_export",
+    "build_eligible_source_index",
     "build_navigator_page_context",
     "build_navigator_topic_drilldown",
     "build_governed_answer_view",
