@@ -1058,3 +1058,323 @@ def build_audit_summary_export(
             "json": f"pace-review-{safe_query}.json",
         },
     }
+
+
+def _answer_support_row(
+    answer_view: dict[str, Any],
+    support_review: dict[str, Any],
+    source_detail: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if answer_view["status"] != "ready":
+        return {
+            "query": answer_view["query"],
+            "status": answer_view["status"],
+            "answer_title": "Blocked",
+            "support_quality_status": support_review["status_label"],
+            "assembly_status": "blocked",
+            "coverage_status": "blocked",
+            "canonical_truth_present": False,
+            "drift_context_present": False,
+            "page_route_support_present": False,
+            "reference_only_count": 0,
+            "citation_count": 0,
+            "recommended_pages": [],
+            "review_notes": support_review["review_notes"],
+            "drift_and_caveats": [],
+            "selected_source_detail_present": False,
+            "message": answer_view.get("message", ""),
+        }
+
+    answer = answer_view["answer"]
+    retrieval_rows = answer_view["retrieval_rows"]
+    return {
+        "query": answer["query"],
+        "status": answer_view["status"],
+        "answer_title": answer["answer_title"],
+        "direct_answer": answer["direct_answer"],
+        "support_quality_status": support_review["status_label"],
+        "assembly_status": answer["assembly_status"],
+        "coverage_status": answer["coverage_summary"]["status"],
+        "canonical_truth_present": any(row["truth_tags"] for row in retrieval_rows),
+        "drift_context_present": any(row["drift_tags"] for row in retrieval_rows),
+        "page_route_support_present": any(row["page_routes"] for row in retrieval_rows),
+        "reference_only_count": sum(
+            1 for row in retrieval_rows if row["retrieval_role"] == "reference_only"
+        ),
+        "citation_count": len(answer_view["citation_rows"]),
+        "recommended_pages": answer["recommended_pages"],
+        "review_notes": support_review["review_notes"],
+        "drift_and_caveats": answer["drift_and_caveats"],
+        "selected_source_detail_present": bool(
+            source_detail and source_detail.get("status") == "ready"
+        ),
+        "top_citation_chunk_id": (
+            answer_view["citation_rows"][0]["chunk_id"]
+            if answer_view["citation_rows"]
+            else None
+        ),
+    }
+
+
+def build_audit_workflow(
+    selected_queries: list[str],
+    *,
+    top_k: int = 8,
+) -> dict[str, Any]:
+    if not selected_queries:
+        return {
+            "status": "empty",
+            "selected_queries": [],
+            "items": [],
+            "comparison_rows": [],
+            "summary": {
+                "total_queries": 0,
+                "ready_queries": 0,
+                "blocked_queries": 0,
+                "strong_queries": [],
+                "partial_or_attention_queries": [],
+                "drift_heavy_queries": [],
+                "reference_supported_queries": [],
+                "workflow_status": "No queries selected",
+                "review_notes": ["Select at least one fixed governed query to build the audit workflow."],
+            },
+        }
+
+    items: list[dict[str, Any]] = []
+    comparison_rows: list[dict[str, Any]] = []
+    for query in selected_queries:
+        answer_view = build_governed_answer_view(query, top_k=top_k)
+        support_review = build_support_quality_review(answer_view)
+        source_options = build_source_detail_options(answer_view)
+        source_detail = (
+            build_source_detail_view(answer_view, source_options[0]["chunk_id"])
+            if source_options
+            else None
+        )
+        export_payload = build_audit_summary_export(answer_view, support_review, source_detail)
+        row = _answer_support_row(answer_view, support_review, source_detail)
+        items.append(
+            {
+                "query": query,
+                "answer_view": answer_view,
+                "support_review": support_review,
+                "source_detail": source_detail,
+                "single_query_export": export_payload,
+                "comparison_row": row,
+            }
+        )
+        comparison_rows.append(row)
+
+    ready_count = sum(1 for row in comparison_rows if row["status"] == "ready")
+    blocked_count = sum(1 for row in comparison_rows if row["status"] != "ready")
+    strong_queries = [
+        row["query"]
+        for row in comparison_rows
+        if row["support_quality_status"] == "Strong governed support"
+    ]
+    partial_or_attention_queries = [
+        row["query"]
+        for row in comparison_rows
+        if row["support_quality_status"]
+        in {"Partial governed support", "Needs reviewer attention", "Blocked"}
+    ]
+    drift_heavy_queries = [
+        row["query"]
+        for row in comparison_rows
+        if row["drift_context_present"] or row["drift_and_caveats"]
+    ]
+    reference_supported_queries = [
+        row["query"]
+        for row in comparison_rows
+        if int(row["reference_only_count"]) > 0
+    ]
+
+    if blocked_count == len(comparison_rows):
+        workflow_status = "Blocked"
+    elif blocked_count:
+        workflow_status = "Mixed readiness"
+    elif partial_or_attention_queries:
+        workflow_status = "Ready with review attention"
+    else:
+        workflow_status = "Ready"
+
+    review_notes: list[str] = []
+    if strong_queries:
+        review_notes.append(
+            f"{len(strong_queries)} selected queries have strong governed support."
+        )
+    if partial_or_attention_queries:
+        review_notes.append(
+            f"{len(partial_or_attention_queries)} selected queries need closer reviewer attention."
+        )
+    if drift_heavy_queries:
+        review_notes.append(
+            f"{len(drift_heavy_queries)} selected queries include drift or caveat context that should be preserved."
+        )
+    if reference_supported_queries:
+        review_notes.append(
+            f"{len(reference_supported_queries)} selected queries use reference-only chunks; review citations before overclaiming."
+        )
+    if blocked_count:
+        review_notes.append(
+            f"{blocked_count} selected queries are blocked by retrieval runtime setup."
+        )
+    if not review_notes:
+        review_notes.append("All selected queries are ready with no extra workflow warnings.")
+
+    return {
+        "status": "ready" if ready_count else "blocked",
+        "selected_queries": selected_queries,
+        "items": items,
+        "comparison_rows": comparison_rows,
+        "summary": {
+            "total_queries": len(comparison_rows),
+            "ready_queries": ready_count,
+            "blocked_queries": blocked_count,
+            "strong_queries": strong_queries,
+            "partial_or_attention_queries": partial_or_attention_queries,
+            "drift_heavy_queries": drift_heavy_queries,
+            "reference_supported_queries": reference_supported_queries,
+            "workflow_status": workflow_status,
+            "review_notes": review_notes,
+        },
+    }
+
+
+def build_cross_query_audit_export(workflow: dict[str, Any]) -> dict[str, Any]:
+    if workflow["status"] == "empty":
+        return {
+            "status": "blocked",
+            "message": "No selected queries are available for combined export.",
+            "markdown": "",
+            "text": "",
+            "json": "{}",
+            "filenames": {},
+        }
+
+    manifest = _retrieval_pack_manifest()
+    summary = workflow["summary"]
+    packet_items = []
+    for item in workflow["items"]:
+        row = item["comparison_row"]
+        answer_view = item["answer_view"]
+        answer = answer_view.get("answer", {})
+        packet_items.append(
+            {
+                "query": row["query"],
+                "status": row["status"],
+                "answer_title": row["answer_title"],
+                "direct_answer": row.get("direct_answer", ""),
+                "support_quality_status": row["support_quality_status"],
+                "assembly_status": row["assembly_status"],
+                "coverage_status": row["coverage_status"],
+                "canonical_truth_present": row["canonical_truth_present"],
+                "drift_context_present": row["drift_context_present"],
+                "page_route_support_present": row["page_route_support_present"],
+                "reference_only_count": row["reference_only_count"],
+                "citation_count": row["citation_count"],
+                "supporting_points": answer.get("supporting_points", []),
+                "review_notes": row["review_notes"],
+                "drift_and_caveats": row["drift_and_caveats"],
+                "recommended_pages": row["recommended_pages"],
+                "citations": [
+                    {
+                        "chunk_id": citation["chunk_id"],
+                        "title": citation["title"],
+                        "document_id": citation["document_id"],
+                        "retrieval_role": citation["retrieval_role"],
+                        "authority_level": citation["authority_level"],
+                        "source_paths": citation["source_paths"],
+                        "truth_tags": citation["truth_tags"],
+                        "drift_tags": citation["drift_tags"],
+                        "phase_tags": citation["phase_tags"],
+                    }
+                    for citation in answer_view.get("citation_rows", [])
+                ],
+            }
+        )
+
+    packet = {
+        "packet_type": "governed_pace_navigator_cross_query_audit",
+        "selected_queries": workflow["selected_queries"],
+        "workflow_summary": summary,
+        "query_reviews": packet_items,
+        "build_context": {
+            "retrieval_pack_version": manifest.get("pack_version"),
+            "retrieval_pack_chunk_count": manifest.get("chunk_count"),
+            "retrieval_pack_document_count": manifest.get("document_count"),
+            "generator_module": manifest.get("generator_module"),
+        },
+        "governance_note": (
+            "This packet compares fixed governed queries only. It is deterministic, citation-backed, "
+            "and does not contain secrets or generated free-form analysis."
+        ),
+    }
+
+    comparison_lines = [
+        (
+            f"{row['query']} | support={row['support_quality_status']} | "
+            f"truth={row['canonical_truth_present']} | drift={row['drift_context_present']} | "
+            f"citations={row['citation_count']} | reference_only={row['reference_only_count']}"
+        )
+        for row in workflow["comparison_rows"]
+    ]
+    per_query_sections = []
+    for item in packet_items:
+        recommended_pages = [
+            f"{page['title']} (`/{page['route']}`): {page['reason']}"
+            for page in item["recommended_pages"]
+        ]
+        citations = [
+            f"`{citation['chunk_id']}` | {citation['title']} | sources={', '.join(citation['source_paths'])}"
+            for citation in item["citations"]
+        ]
+        per_query_sections.append(
+            "\n\n".join(
+                [
+                    f"### {item['answer_title']}",
+                    f"**Query:** {item['query']}",
+                    f"**Support quality:** {item['support_quality_status']}",
+                    f"**Coverage:** `{item['coverage_status']}`",
+                    "Direct answer:\n" + (item["direct_answer"] or "Blocked or unavailable."),
+                    "Review notes:\n" + _as_markdown_list(item["review_notes"]),
+                    "Drift and caveats:\n" + _as_markdown_list(item["drift_and_caveats"]),
+                    "Recommended pages:\n" + _as_markdown_list(recommended_pages),
+                    "Citations:\n" + _as_markdown_list(citations),
+                ]
+            )
+        )
+
+    markdown = "\n\n".join(
+        [
+            "# Governed PACE Navigator Cross-Query Audit",
+            f"**Workflow status:** {summary['workflow_status']}",
+            f"**Selected queries:** {summary['total_queries']}",
+            f"**Ready queries:** {summary['ready_queries']}",
+            f"**Blocked queries:** {summary['blocked_queries']}",
+            "## Workflow Review Notes\n" + _as_markdown_list(summary["review_notes"]),
+            "## Comparison Matrix\n" + _as_markdown_list(comparison_lines),
+            "## Per-Query Reviews\n" + "\n\n".join(per_query_sections),
+            (
+                "## Build Context\n"
+                f"- retrieval pack version: {manifest.get('pack_version')}\n"
+                f"- retrieval pack chunks: {manifest.get('chunk_count')}\n"
+                f"- retrieval pack documents: {manifest.get('document_count')}"
+            ),
+            "## Governance Note\n" + packet["governance_note"],
+        ]
+    )
+    text = markdown.replace("# ", "").replace("## ", "").replace("### ", "")
+    query_count = summary["total_queries"]
+    return {
+        "status": "ready",
+        "packet": packet,
+        "markdown": markdown,
+        "text": text,
+        "json": json.dumps(packet, indent=2, sort_keys=True),
+        "filenames": {
+            "markdown": f"pace-cross-query-audit-{query_count}-queries.md",
+            "text": f"pace-cross-query-audit-{query_count}-queries.txt",
+            "json": f"pace-cross-query-audit-{query_count}-queries.json",
+        },
+    }

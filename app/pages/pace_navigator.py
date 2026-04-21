@@ -5,7 +5,9 @@ import streamlit as st
 
 from app.viewmodels import (
     build_audit_summary_export,
+    build_audit_workflow,
     build_citation_comparison,
+    build_cross_query_audit_export,
     build_governed_answer_view,
     build_navigator_page_context,
     build_navigator_topic_drilldown,
@@ -243,6 +245,121 @@ def _render_audit_export(export_payload: dict[str, object]) -> None:
     )
     with st.expander("JSON packet preview", expanded=False):
         st.json(export_payload["packet"])
+
+
+def _render_cross_query_export(export_payload: dict[str, object]) -> None:
+    if export_payload["status"] != "ready":
+        st.warning(str(export_payload["message"]))
+        return
+
+    filenames = export_payload["filenames"]
+    st.markdown("**Copyable cross-query audit markdown**")
+    st.text_area(
+        "Cross-query audit markdown",
+        value=str(export_payload["markdown"]),
+        height=380,
+        help="Copy this governed multi-query review block into an audit note or PR review.",
+    )
+    download_cols = st.columns(3)
+    download_cols[0].download_button(
+        "Download Cross-Query Markdown",
+        data=str(export_payload["markdown"]),
+        file_name=str(filenames["markdown"]),
+        mime="text/markdown",
+    )
+    download_cols[1].download_button(
+        "Download Cross-Query JSON",
+        data=str(export_payload["json"]),
+        file_name=str(filenames["json"]),
+        mime="application/json",
+    )
+    download_cols[2].download_button(
+        "Download Cross-Query Text",
+        data=str(export_payload["text"]),
+        file_name=str(filenames["text"]),
+        mime="text/plain",
+    )
+    with st.expander("Cross-query JSON packet preview", expanded=False):
+        st.json(export_payload["packet"])
+
+
+def _render_audit_workflow(workflow: dict[str, object]) -> None:
+    summary = workflow["summary"]
+    metric_cols = st.columns(4)
+    metric_cols[0].metric("Workflow Status", str(summary["workflow_status"]))
+    metric_cols[1].metric("Selected Queries", str(summary["total_queries"]))
+    metric_cols[2].metric("Ready", str(summary["ready_queries"]))
+    metric_cols[3].metric("Blocked", str(summary["blocked_queries"]))
+
+    st.markdown("**Workflow review notes**")
+    st.markdown("\n".join(f"- {note}" for note in summary["review_notes"]))
+
+    if not workflow["comparison_rows"]:
+        st.info("No queries are selected for comparison.")
+        return
+
+    table_rows = []
+    for row in workflow["comparison_rows"]:
+        table_rows.append(
+            {
+                "Query": row["query"],
+                "Answer Title": row["answer_title"],
+                "Support": row["support_quality_status"],
+                "Coverage": row["coverage_status"],
+                "Truth": "Yes" if row["canonical_truth_present"] else "No",
+                "Drift": "Yes" if row["drift_context_present"] else "No",
+                "Page Route": "Yes" if row["page_route_support_present"] else "No",
+                "Reference-only": row["reference_only_count"],
+                "Citations": row["citation_count"],
+                "Source Detail": "Yes" if row["selected_source_detail_present"] else "No",
+            }
+        )
+    st.markdown("**Cross-query comparison matrix**")
+    st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+
+    grouped_cols = st.columns(3)
+    grouped_cols[0].markdown("**Strong governed support**")
+    grouped_cols[0].markdown(
+        "\n".join(f"- {query}" for query in summary["strong_queries"])
+        or "- None"
+    )
+    grouped_cols[1].markdown("**Needs attention / partial**")
+    grouped_cols[1].markdown(
+        "\n".join(f"- {query}" for query in summary["partial_or_attention_queries"])
+        or "- None"
+    )
+    grouped_cols[2].markdown("**Drift or caveat context**")
+    grouped_cols[2].markdown(
+        "\n".join(f"- {query}" for query in summary["drift_heavy_queries"])
+        or "- None"
+    )
+
+    st.markdown("**Per-query review cards**")
+    for item in workflow["items"]:
+        row = item["comparison_row"]
+        with st.expander(f"{row['support_quality_status']} | {row['query']}", expanded=False):
+            st.markdown(f"**Answer title:** {row['answer_title']}")
+            if row.get("direct_answer"):
+                st.markdown("**Direct governed answer:**")
+                st.write(row["direct_answer"])
+            if row.get("message"):
+                st.warning(row["message"])
+            st.markdown("**Review notes:**")
+            st.markdown("\n".join(f"- {note}" for note in row["review_notes"]))
+            if row["drift_and_caveats"]:
+                st.markdown("**Drift and caveats:**")
+                st.markdown("\n".join(f"- {note}" for note in row["drift_and_caveats"]))
+            if row["recommended_pages"]:
+                st.markdown("**Recommended pages:**")
+                st.markdown(
+                    "\n".join(
+                        f"- `{page['title']}` (`/{page['route']}`): {page['reason']}"
+                        for page in row["recommended_pages"]
+                    )
+                )
+            st.caption(
+                f"Citations: {row['citation_count']} | Reference-only chunks: {row['reference_only_count']}"
+            )
 
 
 def _render_citations(citation_rows: list[dict[str, object]]) -> None:
@@ -632,6 +749,45 @@ def render() -> None:
                 f"Showing {len(filtered_rows)} of {len(answer_view['retrieval_rows'])} retrieved chunks."
             )
             _render_retrieval_inspector(filtered_rows)
+
+    st.subheader("Audit Workflow Mode")
+    st.caption(
+        "Compare multiple fixed governed queries in one reviewer workspace. This is still a controlled workflow, not free-form chat."
+    )
+    default_workflow_queries = [
+        "what is the public model truth",
+        "how is fallback different from final model truth",
+        "why is threshold 0.29 used",
+    ]
+    selected_workflow_queries = st.multiselect(
+        "Fixed governed queries for audit workflow",
+        options=[item["query"] for item in answer_query_options],
+        default=[
+            query
+            for query in default_workflow_queries
+            if query in {item["query"] for item in answer_query_options}
+        ],
+        format_func=lambda query: answer_query_labels[query],
+        help="Select from the existing fixed governed query set only.",
+    )
+    run_audit_workflow = st.checkbox(
+        "Run multi-query audit workflow",
+        value=False,
+        help="Runs one governed retrieval/answer assembly pass per selected query.",
+    )
+    if run_audit_workflow:
+        workflow = build_audit_workflow(
+            selected_workflow_queries,
+            top_k=selected_top_k,
+        )
+        _render_audit_workflow(workflow)
+        st.markdown("**Combined audit packet export**")
+        combined_export = build_cross_query_audit_export(workflow)
+        _render_cross_query_export(combined_export)
+    else:
+        st.info(
+            "Select the fixed queries to compare, then enable the workflow when you are ready to run the controlled multi-query review."
+        )
 
     st.markdown("**Relevant truth summaries**")
     for truth in selected_topic["truth_summaries"]:
