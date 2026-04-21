@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from functools import lru_cache
 from typing import Any
 
@@ -178,6 +179,19 @@ def _chunk_text_lookup() -> dict[str, str]:
     }
 
 
+@lru_cache(maxsize=1)
+def _chunk_record_lookup() -> dict[str, dict[str, Any]]:
+    return {
+        chunk["chunk_id"]: chunk
+        for chunk in load_retrieval_pack()["chunks"]
+    }
+
+
+@lru_cache(maxsize=1)
+def _retrieval_pack_manifest() -> dict[str, Any]:
+    return load_retrieval_pack()["manifest"]
+
+
 def _authority_priority(authority_level: str) -> int:
     normalized = authority_level.lower()
     if "canonical" in normalized or "public" in normalized:
@@ -197,6 +211,12 @@ def _role_priority(retrieval_role: str) -> int:
 
 def _has_any(values: list[str], selected: str | None) -> bool:
     return selected in (None, "All") or selected in values
+
+
+def _as_markdown_list(items: list[str], empty_label: str = "None") -> str:
+    if not items:
+        return f"- {empty_label}"
+    return "\n".join(f"- {item}" for item in items)
 
 
 def get_project_identity_card() -> dict[str, Any]:
@@ -786,4 +806,255 @@ def build_support_quality_review(answer_view: dict[str, Any]) -> dict[str, Any]:
         "tone": tone,
         "indicators": indicators,
         "review_notes": review_notes,
+    }
+
+
+def build_source_detail_options(answer_view: dict[str, Any]) -> list[dict[str, str]]:
+    if answer_view["status"] != "ready":
+        return []
+
+    options: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for source_name, rows in (
+        ("citation", answer_view["citation_rows"]),
+        ("retrieval", answer_view["retrieval_rows"]),
+    ):
+        for row in rows:
+            chunk_id = row["chunk_id"]
+            if chunk_id in seen:
+                continue
+            seen.add(chunk_id)
+            options.append(
+                {
+                    "chunk_id": chunk_id,
+                    "label": f"{row['title']} ({chunk_id})",
+                    "record_source": source_name,
+                }
+            )
+    return options
+
+
+def build_source_detail_view(
+    answer_view: dict[str, Any],
+    selected_chunk_id: str,
+    *,
+    related_limit: int = 5,
+) -> dict[str, Any]:
+    if answer_view["status"] != "ready":
+        return {
+            "status": "blocked",
+            "browser_note": "Source detail is available only after a governed answer view is ready.",
+        }
+
+    rows_by_chunk: dict[str, dict[str, Any]] = {}
+    for row in answer_view["retrieval_rows"]:
+        rows_by_chunk[row["chunk_id"]] = {**row, "record_source": "retrieval"}
+    for row in answer_view["citation_rows"]:
+        rows_by_chunk[row["chunk_id"]] = {
+            **rows_by_chunk.get(row["chunk_id"], {}),
+            **row,
+            "record_source": "citation",
+        }
+
+    selected = rows_by_chunk.get(selected_chunk_id)
+    if selected is None:
+        return {
+            "status": "missing",
+            "browser_note": f"No governed chunk record found for {selected_chunk_id!r}.",
+        }
+
+    chunk_records = _chunk_record_lookup()
+    selected_chunk = chunk_records.get(selected_chunk_id, {})
+    selected_document_id = selected.get("document_id") or selected_chunk.get("document_id")
+    selected_sources = set(selected.get("source_paths", []))
+
+    related_chunks: list[dict[str, Any]] = []
+    for chunk in chunk_records.values():
+        if chunk["chunk_id"] == selected_chunk_id:
+            continue
+        same_document = chunk.get("document_id") == selected_document_id
+        source_overlap = bool(selected_sources.intersection(chunk.get("source_paths", [])))
+        if not same_document and not source_overlap:
+            continue
+        related_chunks.append(
+            {
+                "chunk_id": chunk["chunk_id"],
+                "title": chunk["title"],
+                "document_id": chunk["document_id"],
+                "chunk_kind": chunk["chunk_kind"],
+                "relationship": "same document" if same_document else "shared source path",
+                "source_paths": chunk["source_paths"],
+                "truth_tags": chunk["truth_tags"],
+                "drift_tags": chunk["drift_tags"],
+                "phase_tags": chunk["phase_tags"],
+                "retrieval_role": chunk["retrieval_role"],
+                "authority_level": chunk["authority_level"],
+                "text_preview": chunk["text"][:420],
+            }
+        )
+
+    related_chunks.sort(
+        key=lambda item: (
+            0 if item["relationship"] == "same document" else 1,
+            str(item["document_id"]),
+            str(item["chunk_id"]),
+        )
+    )
+
+    detail = {
+        "status": "ready",
+        "browser_level": "governed_chunk_level",
+        "browser_note": (
+            "This is a governed chunk-level source browser. It exposes retrieval-pack context "
+            "and related chunks, not an unrestricted full-file viewer."
+        ),
+        "selected": {
+            "chunk_id": selected_chunk_id,
+            "title": selected.get("title") or selected_chunk.get("title", ""),
+            "document_id": selected_document_id,
+            "chunk_kind": selected_chunk.get("chunk_kind", "unknown"),
+            "source_paths": selected.get("source_paths", selected_chunk.get("source_paths", [])),
+            "registry_refs": selected.get("registry_refs", selected_chunk.get("registry_refs", [])),
+            "truth_tags": selected.get("truth_tags", selected_chunk.get("truth_tags", [])),
+            "drift_tags": selected.get("drift_tags", selected_chunk.get("drift_tags", [])),
+            "phase_tags": selected.get("phase_tags", selected_chunk.get("phase_tags", [])),
+            "page_routes": selected.get("page_routes", selected_chunk.get("page_routes", [])),
+            "page_titles": selected.get("page_titles", []),
+            "retrieval_role": selected.get("retrieval_role", selected_chunk.get("retrieval_role", "")),
+            "authority_level": selected.get("authority_level", selected_chunk.get("authority_level", "")),
+            "similarity_score": selected.get("similarity_score"),
+            "text_preview": selected.get("text_preview") or selected_chunk.get("text", "")[:420],
+            "full_text": selected.get("full_text") or selected_chunk.get("text", ""),
+            "caveats": selected.get("caveats", selected_chunk.get("caveats", [])),
+            "record_source": selected.get("record_source", "retrieval_pack"),
+        },
+        "related_chunks": related_chunks[:related_limit],
+    }
+    return detail
+
+
+def build_audit_summary_export(
+    answer_view: dict[str, Any],
+    support_review: dict[str, Any],
+    source_detail: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if answer_view["status"] != "ready":
+        return {
+            "status": "blocked",
+            "message": answer_view.get("message", "Answer view is not ready."),
+            "markdown": "",
+            "text": "",
+            "json": "{}",
+            "filenames": {},
+        }
+
+    answer = answer_view["answer"]
+    manifest = _retrieval_pack_manifest()
+    citation_rows = answer_view["citation_rows"]
+    source_detail_payload = source_detail if source_detail and source_detail.get("status") == "ready" else None
+    packet = {
+        "packet_type": "governed_pace_navigator_review",
+        "query": answer["query"],
+        "answer_title": answer["answer_title"],
+        "direct_answer": answer["direct_answer"],
+        "assembly_status": answer["assembly_status"],
+        "coverage_summary": answer["coverage_summary"],
+        "support_quality": {
+            "status_label": support_review["status_label"],
+            "indicators": support_review["indicators"],
+            "review_notes": support_review["review_notes"],
+        },
+        "supporting_points": answer["supporting_points"],
+        "drift_and_caveats": answer["drift_and_caveats"],
+        "recommended_pages": answer["recommended_pages"],
+        "citations": [
+            {
+                "chunk_id": citation["chunk_id"],
+                "title": citation["title"],
+                "document_id": citation["document_id"],
+                "retrieval_role": citation["retrieval_role"],
+                "authority_level": citation["authority_level"],
+                "source_paths": citation["source_paths"],
+                "registry_refs": citation["registry_refs"],
+                "truth_tags": citation["truth_tags"],
+                "drift_tags": citation["drift_tags"],
+                "phase_tags": citation["phase_tags"],
+            }
+            for citation in citation_rows
+        ],
+        "selected_source_detail": source_detail_payload["selected"] if source_detail_payload else None,
+        "build_context": {
+            "retrieval_pack_version": manifest.get("pack_version"),
+            "retrieval_pack_chunk_count": manifest.get("chunk_count"),
+            "retrieval_pack_document_count": manifest.get("document_count"),
+            "generator_module": manifest.get("generator_module"),
+        },
+        "governance_note": (
+            "This packet contains governed answer, review, citation, and chunk-level source context. "
+            "It is not a model-generated free-form answer and does not include secrets."
+        ),
+    }
+
+    recommended_pages = [
+        f"{item['title']} (`/{item['route']}`): {item['reason']}"
+        for item in answer["recommended_pages"]
+    ]
+    citations = [
+        (
+            f"`{item['chunk_id']}` | {item['title']} | role={item['retrieval_role']} | "
+            f"authority={item['authority_level']} | sources={', '.join(item['source_paths'])}"
+        )
+        for item in citation_rows
+    ]
+    selected_source_lines: list[str] = []
+    if source_detail_payload:
+        selected = source_detail_payload["selected"]
+        selected_source_lines = [
+            f"selected chunk: `{selected['chunk_id']}`",
+            f"document: `{selected['document_id']}`",
+            f"source paths: {', '.join(selected['source_paths'])}",
+            f"browser level: {source_detail_payload['browser_level']}",
+        ]
+
+    markdown = "\n\n".join(
+        [
+            f"# Governed PACE Navigator Review: {answer['answer_title']}",
+            f"**Query:** {answer['query']}",
+            f"**Assembly status:** `{answer['assembly_status']}`",
+            f"**Coverage:** `{answer['coverage_summary']['status']}`",
+            f"**Support quality:** {support_review['status_label']}",
+            "## Direct Governed Answer\n" + answer["direct_answer"],
+            "## Supporting Points\n" + _as_markdown_list(answer["supporting_points"]),
+            "## Drift And Caveats\n" + _as_markdown_list(answer["drift_and_caveats"]),
+            "## Review Notes\n" + _as_markdown_list(support_review["review_notes"]),
+            "## Recommended Pages\n" + _as_markdown_list(recommended_pages),
+            "## Citations\n" + _as_markdown_list(citations),
+            "## Selected Source Detail\n" + _as_markdown_list(selected_source_lines),
+            (
+                "## Build Context\n"
+                f"- retrieval pack version: {manifest.get('pack_version')}\n"
+                f"- retrieval pack chunks: {manifest.get('chunk_count')}\n"
+                f"- retrieval pack documents: {manifest.get('document_count')}"
+            ),
+            "## Governance Note\n" + packet["governance_note"],
+        ]
+    )
+    text = markdown.replace("# ", "").replace("## ", "")
+    safe_query = "".join(
+        char if char.isalnum() else "-"
+        for char in str(answer["query"]).lower()
+    ).strip("-")
+    safe_query = "-".join(part for part in safe_query.split("-") if part)[:80]
+
+    return {
+        "status": "ready",
+        "packet": packet,
+        "markdown": markdown,
+        "text": text,
+        "json": json.dumps(packet, indent=2, sort_keys=True),
+        "filenames": {
+            "markdown": f"pace-review-{safe_query}.md",
+            "text": f"pace-review-{safe_query}.txt",
+            "json": f"pace-review-{safe_query}.json",
+        },
     }

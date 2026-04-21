@@ -1,9 +1,12 @@
 from app.viewmodels.navigator_read_model import (
+    build_audit_summary_export,
     build_citation_comparison,
     build_navigator_page_context,
     build_navigator_topic_drilldown,
     build_governed_answer_view,
     build_reviewer_filter_options,
+    build_source_detail_options,
+    build_source_detail_view,
     build_support_quality_review,
     filter_and_sort_retrieval_rows,
     get_available_drift_filters,
@@ -20,11 +23,14 @@ from app.viewmodels.navigator_read_model import (
 )
 
 __all__ = [
+    "build_audit_summary_export",
     "build_citation_comparison",
     "build_navigator_page_context",
     "build_navigator_topic_drilldown",
     "build_governed_answer_view",
     "build_reviewer_filter_options",
+    "build_source_detail_options",
+    "build_source_detail_view",
     "build_support_quality_review",
     "filter_and_sort_retrieval_rows",
     "get_available_drift_filters",

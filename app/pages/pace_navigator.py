@@ -4,11 +4,14 @@ import pandas as pd
 import streamlit as st
 
 from app.viewmodels import (
+    build_audit_summary_export,
     build_citation_comparison,
     build_governed_answer_view,
     build_navigator_page_context,
     build_navigator_topic_drilldown,
     build_reviewer_filter_options,
+    build_source_detail_options,
+    build_source_detail_view,
     build_support_quality_review,
     filter_and_sort_retrieval_rows,
     get_governed_answer_query_options,
@@ -158,6 +161,88 @@ def _render_citation_detail_card(item: dict[str, object], label: str) -> None:
     st.write(item.get("text_preview") or "No preview text available.")
     with st.expander("Full chunk text", expanded=False):
         st.write(item.get("full_text") or "No full chunk text is available.")
+
+
+def _render_source_detail(detail: dict[str, object]) -> None:
+    if detail["status"] != "ready":
+        st.warning(str(detail["browser_note"]))
+        return
+
+    selected = detail["selected"]
+    st.info(str(detail["browser_note"]))
+    _render_citation_detail_card(selected, "Selected governed chunk")
+
+    related_chunks = detail["related_chunks"]
+    st.markdown("**Related governed chunks from the same document or source path**")
+    if not related_chunks:
+        st.caption("No related chunks were found in the governed retrieval pack.")
+        return
+
+    table_rows = []
+    for item in related_chunks:
+        table_rows.append(
+            {
+                "Relationship": item["relationship"],
+                "Chunk ID": item["chunk_id"],
+                "Kind": item["chunk_kind"],
+                "Role": item["retrieval_role"],
+                "Authority": item["authority_level"],
+                "Title": item["title"],
+            }
+        )
+    st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+    for item in related_chunks:
+        with st.expander(f"{item['relationship']}: {item['title']}", expanded=False):
+            st.markdown(f"**Chunk ID:** `{item['chunk_id']}`")
+            st.markdown(f"**Document ID:** `{item['document_id']}`")
+            st.markdown(f"**Chunk kind:** `{item['chunk_kind']}`")
+            if item["truth_tags"]:
+                st.markdown("**Truth tags:** " + ", ".join(f"`{tag}`" for tag in item["truth_tags"]))
+            if item["drift_tags"]:
+                st.markdown("**Drift tags:** " + ", ".join(f"`{tag}`" for tag in item["drift_tags"]))
+            if item["phase_tags"]:
+                st.markdown("**Phase tags:** " + ", ".join(f"`{tag}`" for tag in item["phase_tags"]))
+            st.markdown("**Source paths:**")
+            st.markdown("\n".join(f"- `{path}`" for path in item["source_paths"]))
+            st.markdown("**Preview:**")
+            st.write(item["text_preview"])
+
+
+def _render_audit_export(export_payload: dict[str, object]) -> None:
+    if export_payload["status"] != "ready":
+        st.warning(str(export_payload["message"]))
+        return
+
+    filenames = export_payload["filenames"]
+    st.markdown("**Copyable governed markdown summary**")
+    st.text_area(
+        "Review summary markdown",
+        value=str(export_payload["markdown"]),
+        height=360,
+        help="Copy this governed review block into an audit note or PR review.",
+    )
+
+    download_cols = st.columns(3)
+    download_cols[0].download_button(
+        "Download Markdown",
+        data=str(export_payload["markdown"]),
+        file_name=str(filenames["markdown"]),
+        mime="text/markdown",
+    )
+    download_cols[1].download_button(
+        "Download JSON Packet",
+        data=str(export_payload["json"]),
+        file_name=str(filenames["json"]),
+        mime="application/json",
+    )
+    download_cols[2].download_button(
+        "Download Text Summary",
+        data=str(export_payload["text"]),
+        file_name=str(filenames["text"]),
+        mime="text/plain",
+    )
+    with st.expander("JSON packet preview", expanded=False):
+        st.json(export_payload["packet"])
 
 
 def _render_citations(citation_rows: list[dict[str, object]]) -> None:
@@ -361,6 +446,7 @@ def render() -> None:
     else:
         answer = answer_view["answer"]
         support_review = build_support_quality_review(answer_view)
+        source_detail_options = build_source_detail_options(answer_view)
         answer_tabs = st.tabs(
             [
                 "Answer Summary",
@@ -369,6 +455,8 @@ def render() -> None:
                 "Drift & Caveats",
                 "Recommended Pages",
                 "Citations",
+                "Source Detail",
+                "Export Review",
                 "Retrieval Inspector",
             ]
         )
@@ -451,6 +539,42 @@ def render() -> None:
                 st.info("At least two citations are needed for side-by-side comparison.")
 
         with answer_tabs[6]:
+            if source_detail_options:
+                source_option_labels = {
+                    item["label"]: item["chunk_id"]
+                    for item in source_detail_options
+                }
+                selected_source_label = st.selectbox(
+                    "Source detail target",
+                    options=list(source_option_labels.keys()),
+                    index=0,
+                    help="Choose a citation or retrieved chunk to inspect at governed chunk level.",
+                )
+                source_detail = build_source_detail_view(
+                    answer_view,
+                    source_option_labels[selected_source_label],
+                )
+                _render_source_detail(source_detail)
+            else:
+                source_detail = {
+                    "status": "blocked",
+                    "browser_note": "No governed source detail options are available.",
+                }
+                st.info("No governed source detail options are available.")
+
+        with answer_tabs[7]:
+            if source_detail_options:
+                export_source_detail = source_detail
+            else:
+                export_source_detail = None
+            export_payload = build_audit_summary_export(
+                answer_view,
+                support_review,
+                export_source_detail,
+            )
+            _render_audit_export(export_payload)
+
+        with answer_tabs[8]:
             filter_options = build_reviewer_filter_options(answer_view["retrieval_rows"])
             sort_options = {
                 item["label"]: item["key"]
