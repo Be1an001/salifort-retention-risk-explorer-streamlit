@@ -1,6 +1,6 @@
 registry_version: "1.0"
 repo_name: "salifort-retention-risk-explorer-streamlit"
-scope: "WP1 deterministic navigator foundation"
+scope: "deterministic navigator foundation"
 sources:
   - source_id: legacy_repo_readme_reference
     title: "Legacy modeling repo README reference"

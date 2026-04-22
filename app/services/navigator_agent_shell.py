@@ -442,7 +442,7 @@ def build_agent_plan_preview(request_id_or_text: str) -> dict[str, Any]:
         "guardrails": build_agent_guardrails_summary(),
         "execution_allowed": False,
         "execution_policy_note": (
-            "WP15 agent shell previews and recommends only. It does not execute workflows, "
+            "The agent shell previews and recommends only. It does not execute workflows, "
             "trigger Airflow, mutate files, or run background jobs."
         ),
     }

@@ -10,7 +10,7 @@
     "background_jobs_allowed": false,
     "airflow_triggering_allowed": false,
     "secret_handling": "detect environment-variable requirements only; never read, print, persist, or transform secret values",
-    "notes": "WP15 agent shell may classify controlled requests and assemble transparent plan previews only."
+    "notes": "The agent shell may classify controlled requests and assemble transparent plan previews only."
   },
   "supported_intents": [
     {
@@ -262,7 +262,7 @@
         "invent a new workflow",
         "add tasks automatically"
       ],
-      "handling_rule": "Return blocked; WP15 consumes existing contracts only."
+      "handling_rule": "Return blocked; the agent shell consumes existing contracts only."
     }
   ]
 }

@@ -138,7 +138,7 @@
         "confirm fixed-query expectations are satisfied",
         "do not weaken validation into a meaningless pass"
       ],
-      "notes": "WP15 only previews this path; it does not run validation."
+      "notes": "This path is preview-only; it does not run validation."
     },
     {
       "request_id": "inspect_workflow_blockers",

@@ -320,10 +320,14 @@ def _render_agent_shell(agent_context: dict[str, object]) -> None:
 
     route = preview["route_summary"]
     route_cols = st.columns(4)
-    route_cols[0].metric("Intent", str(route["intent_title"]))
-    route_cols[1].metric("PACE Phase", str(route["pace_phase"]).capitalize())
-    route_cols[2].metric("Workflow", str(route["workflow_id"]))
-    route_cols[3].metric("Execution Allowed", "No")
+    route_cols[0].markdown("**Intent**")
+    route_cols[0].write(str(route["intent_title"]))
+    route_cols[1].markdown("**PACE phase**")
+    route_cols[1].write(str(route["pace_phase"]).capitalize())
+    route_cols[2].markdown("**Workflow**")
+    route_cols[2].code(str(route["workflow_id"]))
+    route_cols[3].markdown("**Execution**")
+    route_cols[3].write("Not allowed from the app")
 
     st.info(preview["execution_policy_note"])
     st.markdown("**Route explanation**")
@@ -396,13 +400,19 @@ def _render_agent_shell(agent_context: dict[str, object]) -> None:
 
 def _render_final_system_readiness(readiness: dict[str, object]) -> None:
     summary = readiness["summary"]
-    counts = readiness["status_counts"]
+    counts = readiness["combined_status_counts"]
     st.caption(str(summary["governance_note"]))
-    metric_cols = st.columns(4)
-    metric_cols[0].metric("Demo Status", str(summary["demo_status"]))
+    metric_cols = st.columns(5)
+    metric_cols[0].metric("Demo", "Ready" if readiness["demo_ready"] else "Blocked")
     metric_cols[1].metric("Ready", str(counts["ready"]))
-    metric_cols[2].metric("Review Needed", str(counts["review_needed"]))
+    metric_cols[2].metric("Needs Review", str(counts["review_needed"]))
     metric_cols[3].metric("Preview Only", str(counts["preview_only"]))
+    metric_cols[4].metric("Blocked", str(counts["blocked"]))
+    st.caption(
+        "Status counts combine the readiness matrix and approval gates shown below. "
+        f"Total counted items: {readiness['combined_status_total']}."
+    )
+    st.caption(f"Demo status detail: {summary['demo_status']}")
 
     component_rows = [
         {
@@ -902,7 +912,7 @@ def render() -> None:
             selected_topic["topic_label"],
             (
                 f"{selected_topic['topic_summary']}<br><br>"
-                f"<strong>Supporting phase:</strong> {selected_topic['supporting_phase']['phase_title']}<br>"
+                f"<strong>Topic lens:</strong> {selected_topic['supporting_phase']['phase_title']}<br>"
                 f"<strong>Phase goal:</strong> {selected_topic['supporting_phase']['phase_goal']}"
             ),
             tone="primary",
@@ -915,7 +925,7 @@ def render() -> None:
             f"**Why this page:** {routing['reason']}"
         )
         st.markdown(
-            f"**Supporting phase:** {str(routing['supporting_phase']).capitalize()}"
+            f"**Recommended page phase:** {str(routing['supporting_phase']).capitalize()}"
         )
         if routing["related_source_ids"]:
             st.caption(
@@ -991,7 +1001,7 @@ def render() -> None:
             st.markdown(f"**Recommended page:** {_page_link(item['recommended_page_title'], item['recommended_page_route'])}")
             st.caption(f"Route: `/{item['recommended_page_route']}`")
             st.markdown(
-                f"**Supporting PACE phase:** {str(item['supporting_phase']).capitalize()}"
+                f"**Recommended page phase:** {str(item['supporting_phase']).capitalize()}"
             )
             st.caption(item["reason"])
 

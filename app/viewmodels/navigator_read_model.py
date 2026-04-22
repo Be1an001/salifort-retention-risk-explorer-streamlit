@@ -201,6 +201,17 @@ def _source_registry_lookup() -> tuple[list[dict[str, Any]], dict[str, dict[str,
     return source_registry, by_path
 
 
+def _path_is_repo_local(path: str) -> bool:
+    path_text = str(path).strip()
+    if not path_text:
+        return False
+    if path_text.startswith(("../", "..\\")):
+        return False
+    if "://" in path_text:
+        return False
+    return not Path(path_text).is_absolute()
+
+
 def _drift_lookup() -> dict[str, dict[str, Any]]:
     return {item["drift_id"]: item for item in get_drift_items()}
 
@@ -652,13 +663,27 @@ def build_final_system_readiness_context() -> dict[str, Any]:
         }
         for row in readiness["component_rows"]
     ]
+    approval_gates = readiness["approval_gates"]
+    combined_status_counts = {
+        "ready": 0,
+        "review_needed": 0,
+        "blocked": 0,
+        "preview_only": 0,
+    }
+    for item in [*component_cards, *approval_gates]:
+        status = str(item.get("status", "blocked"))
+        if status in combined_status_counts:
+            combined_status_counts[status] += 1
+    combined_status_total = sum(combined_status_counts.values())
     return {
         "status": "ready",
         "summary": readiness["summary"],
         "demo_ready": readiness["demo_ready"],
         "status_counts": readiness["status_counts"],
+        "combined_status_counts": combined_status_counts,
+        "combined_status_total": combined_status_total,
         "component_cards": component_cards,
-        "approval_gates": readiness["approval_gates"],
+        "approval_gates": approval_gates,
         "demo_checklist": checklist,
         "execution_eligibility": execution,
         "guardrails": readiness["guardrails"],
@@ -814,19 +839,39 @@ def _build_source_drilldown(truth_summaries: list[dict[str, Any]]) -> list[dict[
     def add_record(path: str, role: str) -> None:
         source = source_by_path.get(path)
         if source is None:
+            repo_local = _path_is_repo_local(path)
+            source_id = f"in_repo::{path}" if repo_local else f"external::{path}"
+            if source_id in seen_source_ids:
+                return
+            seen_source_ids.add(source_id)
             source_records.append(
                 {
-                    "source_id": f"external::{path}",
+                    "source_id": source_id,
                     "title": path,
                     "role": role,
-                    "source_kind": "external_reference",
+                    "source_kind": (
+                        "in_repo_governed_reference"
+                        if repo_local
+                        else "external_reference"
+                    ),
                     "path": path,
-                    "repo_layer": "external",
-                    "authority_level": "external_reference",
+                    "repo_layer": (
+                        "governed_project_file" if repo_local else "external"
+                    ),
+                    "authority_level": (
+                        "referenced_governed_source"
+                        if repo_local
+                        else "external_reference"
+                    ),
                     "canonical_scope": [],
                     "runtime_scope": [],
                     "consumer_pages": [],
-                    "notes": "Referenced by truth registry but not present in the in-repo source registry.",
+                    "notes": (
+                        "Referenced by the truth registry as an in-repo governed file, "
+                        "but not separately cataloged as a source-registry entry."
+                        if repo_local
+                        else "Referenced by truth registry but not present in this repo."
+                    ),
                 }
             )
             return
