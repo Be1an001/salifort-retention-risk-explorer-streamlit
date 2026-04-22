@@ -84,7 +84,7 @@ A later rename would likely require coordinated updates to:
 
 ## Final Recommendation For Now
 
-Do not rename the repo in Work Package 1.
+Do not rename the repo during this recommendation-only assessment.
 
 Recommendation for now: keep `salifort-retention-risk-explorer-streamlit` as-is.
 

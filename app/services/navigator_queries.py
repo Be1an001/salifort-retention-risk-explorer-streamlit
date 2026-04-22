@@ -233,8 +233,9 @@ def recommend_page_for_topic(topic: str) -> dict[str, Any]:
     phase_name = page_to_phase.get(best_page, "execute")
 
     reason = (
-        f"Matched topic cues {matched_terms[best_page]} to the page most aligned with "
-        f"{best_page} and the {phase_name.capitalize()} phase."
+        f"Matched topic cues {matched_terms[best_page]} to {best_page}. "
+        f"In the current page map, that destination sits under the "
+        f"{phase_name.capitalize()} phase; related topics may also connect to other phases."
     )
 
     return {

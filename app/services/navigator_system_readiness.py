@@ -358,6 +358,6 @@ def build_execution_eligibility_summary() -> dict[str, Any]:
             "streamlit_executable_workflows": 0,
             "mutating_workflows": sum(1 for row in rows if row["mutates_repo_files"]),
             "human_review_workflows": sum(1 for row in rows if row["human_review_required"]),
-            "note": "No workflow is executable from Streamlit in WP16.",
+            "note": "No workflow is executable from Streamlit.",
         },
     }
