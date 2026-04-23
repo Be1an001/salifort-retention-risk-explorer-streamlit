@@ -1,18 +1,66 @@
 # Documentation Guide
 
-This folder collects reviewer-facing notes for the Salifort Motors Retention Risk Explorer.
+This folder is the documentation hub for the **Salifort Motors Retention Risk Explorer**.
 
-## Start Here
+Use it when you want more detail than the root `README.md` provides.
 
-- [Streamlit app walkthrough](streamlit-app-walkthrough.md): page-by-page guide for using the app.
+## Recommended Reading Paths
+
+### For GitHub visitors and interviewers
+
+1. [Root README](../README.md)
+2. [Streamlit App Walkthrough](user-guide/streamlit-app-walkthrough.md)
+3. [User Manual](user-guide/user-manual.md)
+
+### For technical reviewers
+
+1. [Technical Design and Architecture](technical/technical-design-and-architecture.md)
+2. [Navigator Notes](navigator/README.md)
+3. [Demo Readiness Walkthrough](navigator/demo-readiness-walkthrough.md)
+
+### For developers who want to run or deploy the app
+
+1. [Environment Setup and Deployment Guide](deployment/environment-setup-and-deployment-guide.md)
+2. [Technical Design and Architecture](technical/technical-design-and-architecture.md)
+3. [Scripts Folder Guide](../scripts/README.md)
+
+## Core Documents
+
+### Product and project framing
+
+- [Product Requirements Document](product/product-requirements-document.md): product goals, audiences, scope, non-goals, and success criteria.
+
+### Technical design
+
+- [Technical Design and Architecture](technical/technical-design-and-architecture.md): runtime layers, data flow, artifacts, retrieval design, workflow contracts, and deployment boundaries.
+
+### Setup and deployment
+
+- [Environment Setup and Deployment Guide](deployment/environment-setup-and-deployment-guide.md): local setup, optional API configuration, runtime expectations, and Streamlit Community Cloud deployment.
+
+### User-facing guidance
+
+- [User Manual](user-guide/user-manual.md): how to use the app responsibly and what each page is for.
+- [Streamlit App Walkthrough](user-guide/streamlit-app-walkthrough.md): page-by-page review flow and what to look for.
+
+## Advanced Navigator Documentation
+
 - [Navigator documentation](navigator/README.md): overview of the advanced PACE Navigator reviewer layer.
-- [Demo readiness walkthrough](navigator/demo-readiness-walkthrough.md): final review checklist and system boundaries.
+- [Demo readiness walkthrough](navigator/demo-readiness-walkthrough.md): current demo posture and review boundaries.
+- `docs/navigator/wp*.md`: technical implementation-history notes for the advanced Navigator layers.
 
-## What These Docs Cover
+## Existing Folder Guides
 
-- How the Streamlit app loads checked-in data, generated artifacts, and static figures.
-- Where retrieval/RAG appears in the project and how OpenAI embeddings are used with a local key.
-- Why advanced review features are fixed-choice, citation-backed, and read-only.
-- What the Airflow scaffold and plan-preview shell represent, and what they do not execute.
+- [Artifacts guide](../artifacts/v2/README.md)
+- [Data guide](../data/README.md)
+- [Figures guide](../outputs/figures/README.md)
+- [Navigator metadata guide](../navigator/README.md)
+- [Scripts guide](../scripts/README.md)
 
-These docs are for portfolio review and technical inspection. They do not describe a production HR system.
+## Documentation Principles in This Repo
+
+- The root `README.md` stays the main entry point.
+- Formal docs live under `docs/`.
+- Advanced Navigator notes remain available, but they are not the first stop for most visitors.
+- The repo is described as a portfolio and educational decision-support app, not a production HR platform.
+- Retrieval, OpenAI usage, Airflow, and the agent shell are documented accurately and proportionally.

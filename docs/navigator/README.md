@@ -1,15 +1,34 @@
 # Navigator Notes
 
-This folder documents the PACE Navigator and its advanced review features.
+This folder documents the **PACE Navigator**, the advanced reviewer layer inside the portfolio app.
 
-The Navigator is the technical-review layer of the portfolio app. It starts as a guided project map and then offers optional advanced tools for reviewers who want to inspect project truth, drift, retrieval evidence, source previews, audit exports, workflow contracts, and plan-preview guardrails.
+The Navigator starts as a guided project map and then offers optional tools for reviewers who want to inspect project truth, drift, retrieval evidence, source previews, audit exports, workflow contracts, readiness notes, and preview-only planning.
 
-## How to Read These Notes
+## When to Read These Notes
 
-- Start with `demo-readiness-walkthrough.md` for the current demo posture.
-- Use the individual technical notes in this folder as implementation history for the Navigator layers.
-- Use `../streamlit-app-walkthrough.md` for a visitor-friendly page-by-page app walkthrough.
+Start elsewhere first if you are new to the repo:
 
-These notes are for technical review. The main app pages and root `README.md` are the best starting point for recruiters and first-time visitors.
+- [Root README](../../README.md)
+- [Documentation Guide](../README.md)
+- [User Manual](../user-guide/user-manual.md)
+- [Streamlit App Walkthrough](../user-guide/streamlit-app-walkthrough.md)
+
+Use this folder when you want a deeper technical review of the advanced Navigator layer.
+
+## Recommended Reading Order
+
+1. `demo-readiness-walkthrough.md` for the current demo posture and review boundaries.
+2. `../technical/technical-design-and-architecture.md` for the system-level technical view.
+3. The `wp*.md` note files in this folder if you want implementation-history detail for the Navigator build-out.
+
+## Scope of These Notes
+
+These notes help explain:
+
+- how the Navigator organizes project truth and drift
+- where retrieval-backed reviewer tools fit
+- how workflow contracts and readiness summaries are modeled
+- why the agent shell is preview-only
+- why Airflow visibility in this repo is scaffold-level rather than runtime execution
 
 The Navigator is not a chatbot, production scheduler, or autonomous agent. Its advanced features are meant to make the portfolio project easier to audit.

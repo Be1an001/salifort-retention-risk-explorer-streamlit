@@ -13,3 +13,9 @@ These scripts are for local development and project review. The Streamlit app sh
 Some scripts may require local environment variables or optional modeling/API dependencies. Do not commit API keys, `.env` files, or generated secrets.
 
 If a script uses the OpenAI API for retrieval indexing or validation, the key must be supplied manually through the local environment. The repo should never store that key.
+
+## Related Documents
+
+- [Environment Setup and Deployment Guide](../docs/deployment/environment-setup-and-deployment-guide.md)
+- [Technical Design and Architecture](../docs/technical/technical-design-and-architecture.md)
+- [Navigator Notes](../docs/navigator/README.md)

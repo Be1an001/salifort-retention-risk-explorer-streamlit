@@ -34,7 +34,19 @@ The project has an offline build layer and a Streamlit app layer.
 - **Streamlit runtime:** `app/app.py` and `app/pages/` load local files and render the app. Streamlit does not retrain models or regenerate SHAP values during a visitor session.
 - **Offline builders:** scripts in `scripts/` can rebuild artifacts or validate advanced Navigator assets outside Streamlit.
 
-For a page-by-page tour, see the [Streamlit app walkthrough](docs/streamlit-app-walkthrough.md). For the full docs index, see [docs/README.md](docs/README.md).
+For a page-by-page tour, see the [Streamlit app walkthrough](docs/user-guide/streamlit-app-walkthrough.md). For the full docs index, see [docs/README.md](docs/README.md).
+
+## Documentation Map
+
+Use these documents when you want more detail than this README:
+
+- [Documentation Guide](docs/README.md): central index for all project docs.
+- [Product Requirements Document](docs/product/product-requirements-document.md): business framing, target audiences, scope, and non-goals.
+- [Technical Design and Architecture](docs/technical/technical-design-and-architecture.md): runtime layers, artifacts, retrieval design, workflow contracts, and boundaries.
+- [Environment Setup and Deployment Guide](docs/deployment/environment-setup-and-deployment-guide.md): local setup, optional API configuration, and deployment steps.
+- [User Manual](docs/user-guide/user-manual.md): how to use the app responsibly and what each page is for.
+- [Streamlit App Walkthrough](docs/user-guide/streamlit-app-walkthrough.md): page-by-page review order and guidance.
+- [Navigator Notes](docs/navigator/README.md): advanced reviewer documentation for the PACE Navigator.
 
 ## Model and Threshold Truth
 
