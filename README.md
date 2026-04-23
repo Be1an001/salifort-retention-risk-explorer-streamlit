@@ -49,7 +49,7 @@ If row-level artifacts are missing, selected app views can fall back to a simple
 ## Page Guide
 
 - **Overview:** Explains the project question, dataset, model, threshold, and suggested review path. Start here.
-- **PACE Navigator:** Gives a guided project map first, then optional advanced review tools for citations, retrieval evidence, workflow readiness, and plan preview.
+- **PACE Navigator:** Gives a guided project map first, then optional advanced review tools for fixed-question answers, citations, retrieval evidence, workflow readiness, and plan preview.
 - **Workforce Explorer:** Lets reviewers filter departments, salary bands, tenure bands, and risk flags to inspect workforce slices and department exposure.
 - **EDA & Patterns:** Shows stable visual evidence for workload, salary, department, tenure, and project-load patterns.
 - **Model & Threshold Lab:** Compares model metrics and explains how the selected threshold changes recall, precision, false positives, and review workload.
@@ -83,7 +83,7 @@ The PACE Navigator includes advanced review surfaces built from prepared project
 
 - **Retrieval pack:** selected project metadata and documentation are converted into traceable chunks.
 - **Embedding index:** those chunks can be embedded locally through the OpenAI API when the user supplies their own key.
-- **Answer viewer:** fixed review questions can retrieve relevant chunks and assemble structured, citation-backed answers.
+- **Answer viewer:** fixed review questions plus retrieval depth can retrieve relevant chunks and assemble structured, citation-backed answers.
 - **Source preview:** small eligible source files can be previewed safely from governed paths.
 - **Audit exports:** reviewer summaries can be exported as markdown, text, or JSON.
 

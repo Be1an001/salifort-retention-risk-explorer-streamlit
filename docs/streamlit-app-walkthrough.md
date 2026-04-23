@@ -146,8 +146,7 @@ Beginner-friendly areas:
 
 Advanced review tools:
 
-- Fixed-question answer viewer.
-- Retrieval depth slider for prepared evidence chunks.
+- Fixed-question answer viewer with retrieval depth control.
 - Citations, source detail, and retrieval inspector.
 - Source preview eligibility.
 - Multi-query audit export.
@@ -157,8 +156,8 @@ Advanced review tools:
 How to interpret retrieval features:
 
 - Retrieval uses prepared project chunks, not arbitrary web search.
-- API-backed embedding calls require a local user-provided key.
-- The answer viewer uses fixed questions and citation-backed assembly.
+- OpenAI embeddings support retrieval when the reviewer chooses a fixed question and retrieval depth.
+- The answer viewer assembles a structured answer with evidence, citations, caveats, and coverage notes.
 - It is not a chatbot and does not execute jobs.
 
 ## Short Interview Path
