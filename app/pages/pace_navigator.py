@@ -60,6 +60,27 @@ def _render_card(title: str, body: str, tone: str = "neutral") -> None:
     )
 
 
+def _render_summary_blocks(
+    items: list[dict[str, str]],
+    columns: int | None = None,
+) -> None:
+    if not items:
+        return
+
+    block_count = columns or len(items)
+    block_cols = st.columns(block_count)
+    for index, item in enumerate(items):
+        with block_cols[index % block_count]:
+            with st.container(border=True):
+                st.caption(str(item["label"]))
+                if item.get("style") == "code":
+                    st.code(str(item["value"]))
+                else:
+                    st.markdown(f"**{item['value']}**")
+                if item.get("note"):
+                    st.caption(str(item["note"]))
+
+
 def _render_source_table(source_records: list[dict[str, object]]) -> None:
     if not source_records:
         st.info("No source records are linked to the selected topic.")
@@ -252,11 +273,27 @@ def _render_orchestration_summary(orchestration: dict[str, object]) -> None:
     detail = build_orchestration_workflow_detail(workflow_labels[selected_label])
     detail_summary = detail["summary"]
     blockers = detail["blockers"]
-    detail_cols = st.columns(4)
-    detail_cols[0].metric("Runtime", str(detail_summary["runtime_mode"]))
-    detail_cols[1].metric("Scheduler Class", str(detail_summary["scheduler_eligibility"]))
-    detail_cols[2].metric("Human Review", "Yes" if detail_summary["human_review_required"] else "No")
-    detail_cols[3].metric("Writes Files", "Yes" if detail_summary["mutates_repo_files"] else "No")
+    _render_summary_blocks(
+        [
+            {
+                "label": "Runtime mode",
+                "value": str(detail_summary["runtime_mode"]).replace("_", " ").title(),
+            },
+            {
+                "label": "Scheduler support",
+                "value": str(detail_summary["scheduler_eligibility"]).replace("_", " ").title(),
+            },
+            {
+                "label": "Human review",
+                "value": "Yes" if detail_summary["human_review_required"] else "No",
+            },
+            {
+                "label": "Writes files",
+                "value": "Yes" if detail_summary["mutates_repo_files"] else "No",
+            },
+        ],
+        columns=4,
+    )
 
     st.markdown("**Execution order and task boundaries**")
     task_rows = [
@@ -1029,15 +1066,17 @@ def render() -> None:
     st.divider()
     st.markdown("## Advanced Review Tools")
     st.caption(
-        "The sections below are optional reviewer tools. They use fixed questions, prepared retrieval evidence, "
-        "source traces, workflow-readiness summaries, and plan previews. They are not a chatbot and they do not execute jobs."
+        "The sections below are optional technical review tools. Use them when you want to inspect evidence, citations, "
+        "source traces, workflow notes, or readiness details. They stay read-only, rely on fixed questions where retrieval "
+        "is involved, and do not run jobs."
     )
 
     st.subheader("Advanced Answer Viewer")
     st.caption(
-        "This reviewer tool runs fixed questions through the prepared retrieval and answer-assembly stack. "
-        "It shows answer text, caveats, citations, coverage, and retrieved evidence side by side. "
-        "When retrieval is used, the OpenAI API supplies embeddings from a local key; no key is stored in the repo."
+        "Choose a fixed review question and a retrieval depth to inspect how the project answers it. "
+        "The viewer searches prepared project content, uses OpenAI embeddings for retrieval when that step is needed, "
+        "and then assembles a structured answer with evidence, citations, caveats, and coverage notes. "
+        "This is a guided review surface, not a chatbot or a job runner."
     )
     control_cols = st.columns([1.3, 0.7], gap="large")
     with control_cols[0]:
@@ -1060,7 +1099,7 @@ def render() -> None:
             ),
         )
     st.caption(
-        f"This answer area will use the selected fixed question and retrieve up to {selected_top_k} prepared evidence chunks."
+        f"This answer area will use the selected fixed question and review up to {selected_top_k} prepared evidence chunks."
     )
     answer_view = build_governed_answer_view(selected_answer_query, top_k=selected_top_k)
 
@@ -1068,7 +1107,7 @@ def render() -> None:
         if answer_view["error_kind"] == "missing_api_key":
             st.warning(answer_view["message"])
             st.caption(
-                "Set `RAG_STREAMLIT_OPENAI_API_KEY` or `OPENAI_API_KEY` locally. No key is stored in this repo."
+                "Add `RAG_STREAMLIT_OPENAI_API_KEY` or `OPENAI_API_KEY` in your local environment to use retrieval-backed review."
             )
         elif answer_view["error_kind"] == "missing_index":
             st.warning(answer_view["message"])
@@ -1106,10 +1145,23 @@ def render() -> None:
         )
 
         with answer_tabs[0]:
-            metric_cols = st.columns(3)
-            metric_cols[0].metric("Assembly Status", str(answer["assembly_status"]).replace("_", " ").title())
-            metric_cols[1].metric("Coverage Status", str(answer["coverage_summary"]["status"]).capitalize())
-            metric_cols[2].metric("Retrieved Chunks", str(answer["coverage_summary"]["retrieved_result_count"]))
+            _render_summary_blocks(
+                [
+                    {
+                        "label": "Assembly",
+                        "value": str(answer["assembly_status"]).replace("_", " ").title(),
+                    },
+                    {
+                        "label": "Coverage",
+                        "value": str(answer["coverage_summary"]["status"]).capitalize(),
+                    },
+                    {
+                        "label": "Retrieved chunks",
+                        "value": str(answer["coverage_summary"]["retrieved_result_count"]),
+                    },
+                ],
+                columns=3,
+            )
             st.markdown(f"### {answer['answer_title']}")
             st.write(answer["direct_answer"])
             st.markdown("**Governance flags**")
@@ -1302,7 +1354,7 @@ def render() -> None:
 
     st.subheader("Advanced Multi-Query Audit")
     st.caption(
-        "Compare multiple fixed review questions in one workspace. This is controlled review, not free-form chat."
+        "Compare several fixed review questions in one workspace. This is a controlled review surface, not free-form chat."
     )
     default_workflow_queries = [
         "what is the public model truth",
@@ -1341,21 +1393,21 @@ def render() -> None:
 
     st.subheader("Advanced Workflow Contracts")
     st.caption(
-        "Inspect workflow and task boundaries, including local Airflow-readiness notes. "
-        "This area is informational only; it does not execute jobs."
+        "Inspect how the project groups review workflows, task boundaries, and local Airflow-readiness notes. "
+        "This section is descriptive only and does not execute jobs."
     )
     _render_orchestration_summary(orchestration_summary)
 
     st.subheader("Advanced Plan Preview")
     st.caption(
-        "Preview how a controlled request maps to intents, workflows, tasks, blockers, and review checkpoints. "
-        "This shell does not execute workflows, trigger Airflow, or accept free-form prompts."
+        "Preview how a fixed review request maps to intents, workflows, tasks, blockers, and review checkpoints. "
+        "This shell stays read-only, does not trigger Airflow, and does not accept free-form prompts."
     )
     _render_agent_shell(agent_shell_context)
 
     st.subheader("Advanced Demo Readiness")
     st.caption(
-        "Technical readiness status across registries, retrieval, reviewer surfaces, workflow contracts, "
-        "Airflow scaffold, and the plan-preview shell. This section is read-only and does not execute workflows."
+        "Check which advanced review layers are ready now, which need local setup, and which remain preview-only. "
+        "This section is read-only and does not execute workflows."
     )
     _render_final_system_readiness(final_readiness)
