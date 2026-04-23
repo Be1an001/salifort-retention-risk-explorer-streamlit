@@ -70,3 +70,9 @@ The Streamlit runtime requirements stay lightweight. The offline builder may als
 - `shap`
 
 If those packages are missing, the builder should stop with a clear dependency message instead of writing partial fake outputs.
+
+## Related Documents
+
+- [Root README](../../README.md)
+- [Technical Design and Architecture](../../docs/technical/technical-design-and-architecture.md)
+- [Environment Setup and Deployment Guide](../../docs/deployment/environment-setup-and-deployment-guide.md)

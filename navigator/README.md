@@ -24,3 +24,10 @@ Most visitors do not need to read these files directly. They are here so the app
 These files support review and demo transparency. They do not change the public model truth, retrain models, or make Streamlit execute workflows.
 
 This folder helps the app explain where its claims come from, what evidence supports them, and which advanced features are review-only.
+
+## Related Documents
+
+- [Documentation Guide](../docs/README.md)
+- [Technical Design and Architecture](../docs/technical/technical-design-and-architecture.md)
+- [User Manual](../docs/user-guide/user-manual.md)
+- [Navigator Notes](../docs/navigator/README.md)
