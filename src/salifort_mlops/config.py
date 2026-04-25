@@ -20,6 +20,8 @@ MLOPS_ROOT = PROJECT_ROOT / "mlops"
 PROCESSED_DATA_DIR = MLOPS_ROOT / "data" / "processed"
 LAB_MODELS_DIR = MLOPS_ROOT / "models"
 LAB_REPORTS_DIR = MLOPS_ROOT / "reports"
+MLFLOW_TRACKING_DIR = PROJECT_ROOT / "mlruns"
+MLFLOW_EXPERIMENT_NAME = "salifort-mlops-mini-lab"
 
 RAW_DATA_CANDIDATE_PATHS = (
     REFERENCES_SOURCE_WORKFLOW_DIR / "hr_capstone_dataset.csv",
@@ -73,4 +75,10 @@ OPERATIONAL_EXCLUDED_FEATURES = (
     "burnout_index",
     "effort_reward_gap",
     "low_satisfaction_high_eval",
+)
+
+LAB_MODEL_CANDIDATES = (
+    "logistic_regression_balanced",
+    "random_forest_balanced",
+    "xgb_weighted",
 )

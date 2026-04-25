@@ -26,5 +26,6 @@ mlops/data/processed/*.parquet
 mlops/models/*.joblib
 !mlops/models/.gitkeep
 mlops/reports/*.json
+mlops/reports/*.csv
 mlops/reports/*.md
 !mlops/reports/.gitkeep

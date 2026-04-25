@@ -11,3 +11,5 @@ It is separate from `artifacts/v2/` and does not replace the public Streamlit ap
 Future phases may write processed lab datasets, trained lab models, and report files here. Those outputs are for local development and portfolio demonstration only.
 
 The existing Streamlit pages should not depend on this folder to open, and Streamlit should not trigger training, Docker, Airflow, MLflow, or FastAPI workflows.
+
+Phase 3 adds local training and MLflow tracking for lab-only candidate models. Those runs write to `mlruns/`, `mlops/models/`, and `mlops/reports/`; they are intentionally ignored by git and do not update `artifacts/v2/` or the public weighted XGBoost threshold `0.29` story.

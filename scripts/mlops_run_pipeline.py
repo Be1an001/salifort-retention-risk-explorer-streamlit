@@ -11,12 +11,20 @@ for path in (SRC_ROOT, SCRIPTS_ROOT):
         sys.path.insert(0, str(path))
 
 from mlops_01_prepare_data import print_summary, run_prepare_data  # noqa: E402
+from mlops_02_train_model import print_summary as print_training_summary  # noqa: E402
+from mlops_02_train_model import run_training  # noqa: E402
+from mlops_03_evaluate_model import print_summary as print_evaluation_summary  # noqa: E402
+from mlops_03_evaluate_model import run_evaluation_summary  # noqa: E402
 
 
 def main() -> int:
-    report = run_prepare_data()
-    print_summary(report)
-    print("Later phases not implemented: training, MLflow, FastAPI, Docker, Airflow.")
+    prepare_report = run_prepare_data()
+    print_summary(prepare_report)
+    training_payload = run_training()
+    print_training_summary(training_payload)
+    evaluation_summary = run_evaluation_summary()
+    print_evaluation_summary(evaluation_summary)
+    print("Later phases not implemented: FastAPI, Docker, Airflow, Streamlit page registration.")
     return 0
 
 
