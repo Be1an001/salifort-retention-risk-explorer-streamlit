@@ -23,6 +23,9 @@ Use it when you want more detail than the root `README.md` provides.
 1. [Environment Setup and Deployment Guide](deployment/environment-setup-and-deployment-guide.md)
 2. [Technical Design and Architecture](technical/technical-design-and-architecture.md)
 3. [Scripts Folder Guide](../scripts/README.md)
+4. [MLOps Docker Local Runbook](mlops-docker-local-runbook.md)
+5. [MLOps Airflow Local Runbook](mlops-airflow-local-runbook.md)
+6. [MLOps CI Runbook](mlops-ci-runbook.md)
 
 ## Core Documents
 
@@ -37,11 +40,15 @@ Use it when you want more detail than the root `README.md` provides.
 ### Setup and deployment
 
 - [Environment Setup and Deployment Guide](deployment/environment-setup-and-deployment-guide.md): local setup, optional API configuration, runtime expectations, and Streamlit Community Cloud deployment.
+- [MLOps Docker Local Runbook](mlops-docker-local-runbook.md): optional local/dev Docker Compose demo for API, Streamlit, and MLflow services.
+- [MLOps Airflow Local Runbook](mlops-airflow-local-runbook.md): optional local/dev Airflow DAG scaffold for orchestrating lab CLI scripts.
+- [MLOps CI Runbook](mlops-ci-runbook.md): GitHub Actions checks for app runtime, MLOps tests, Airflow static validation, and Docker Compose config.
 
 ### User-facing guidance
 
 - [User Manual](user-guide/user-manual.md): how to use the app responsibly and what each page is for.
 - [Streamlit App Walkthrough](user-guide/streamlit-app-walkthrough.md): page-by-page review flow and what to look for.
+- MLOps Lab is covered in the walkthrough as an optional technical-review page for the local/dev extension.
 
 ## Advanced Navigator Documentation
 

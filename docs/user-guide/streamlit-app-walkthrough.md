@@ -12,6 +12,7 @@ Use this walkthrough when reviewing the **Salifort Motors Retention Risk Explore
 6. Manager Action View
 7. Methods & Limitations
 8. PACE Navigator for optional advanced review
+9. MLOps Lab for optional technical operations review
 
 ## 1. Overview
 
@@ -160,6 +161,25 @@ How to interpret retrieval features:
 - the answer viewer assembles a structured answer with evidence, citations, caveats, and coverage notes
 - it is not a chatbot and does not execute jobs
 
+## 9. MLOps Lab
+
+Use this page only if you want to review the optional MLOps Mini-Lab extension.
+
+What to inspect:
+
+- package and CLI pipeline status
+- generated local lab artifact availability
+- lab champion and MLflow tracking summary when local reports exist
+- optional FastAPI health and model-info status
+- Docker Compose, Airflow DAG, and CI validation surfaces
+
+How to interpret it:
+
+- the page is read-only and does not run training, Docker, MLflow, Airflow, git, or CI commands
+- generated lab artifacts are optional, local/dev, and gitignored
+- the lab model and lab threshold do not replace the public weighted XGBoost threshold `0.29` story
+- this is technical portfolio review support, not production HR infrastructure
+
 ## Static, Artifact-Backed, and Retrieval-Backed Outputs
 
 ### Static outputs
@@ -185,6 +205,7 @@ For a short interview walkthrough:
 5. Open Manager Action View to show practical review framing.
 6. Open Methods & Limitations to show architecture and boundaries.
 7. Open PACE Navigator only if the reviewer wants advanced audit and retrieval details.
+8. Open MLOps Lab only if the reviewer wants local/dev MLOps implementation details.
 
 ## Related Documents
 

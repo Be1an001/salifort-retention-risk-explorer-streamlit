@@ -1,0 +1,51 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      SALIFORT_MODEL_PATH: /app/mlops/models/champion_model.joblib
+      SALIFORT_MODEL_METADATA_PATH: /app/mlops/reports/evaluation_summary.json
+    volumes:
+      - ./mlops:/app/mlops:ro
+      - ./data:/app/data:ro
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.streamlit
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    environment:
+      SALIFORT_API_URL: http://api:8000
+    volumes:
+      - ./artifacts:/app/artifacts:ro
+      - ./data:/app/data:ro
+      - ./outputs:/app/outputs:ro
+      - ./navigator:/app/navigator:ro
+
+  mlflow:
+    profiles:
+      - mlflow
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/app/mlruns
+    command:
+      - python
+      - -m
+      - mlflow
+      - ui
+      - --backend-store-uri
+      - /app/mlruns
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5000"

@@ -22,6 +22,7 @@ How can Salifort Motors spot early retention risk, focus manager attention, and 
 - Shows department exposure to support manager review.
 - Explains limitations, runtime behavior, and responsible-use boundaries.
 - Provides optional advanced reviewer tools for citations, retrieval evidence, source previews, workflow readiness, and plan previews.
+- Presents a read-only MLOps Lab page for local/dev pipeline, API, Docker, Airflow, and CI review.
 
 ## Architecture Overview
 
@@ -35,6 +36,12 @@ The project has an offline build layer and a Streamlit app layer.
 - **Offline builders:** scripts in `scripts/` can rebuild artifacts or validate advanced Navigator assets outside Streamlit.
 
 For a page-by-page tour, see the [Streamlit app walkthrough](docs/user-guide/streamlit-app-walkthrough.md). For the full docs index, see [docs/README.md](docs/README.md).
+
+An optional local/dev Docker Compose demo for the MLOps Mini-Lab is documented in the [Docker local runbook](docs/mlops-docker-local-runbook.md). It does not change the public Streamlit model truth.
+
+An optional local/dev Airflow DAG scaffold for the MLOps Mini-Lab is documented in the [Airflow local runbook](docs/mlops-airflow-local-runbook.md). It orchestrates lab CLI scripts only and does not run from Streamlit.
+
+GitHub Actions CI checks for the app and MLOps Mini-Lab are documented in the [CI runbook](docs/mlops-ci-runbook.md). CI validates contracts and configuration without deploying or publishing generated artifacts.
 
 ## Documentation Map
 
@@ -68,6 +75,7 @@ If row-level artifacts are missing, selected app views can fall back to a simple
 - **Explainability:** Uses SHAP outputs to explain which features influence the model signal, while keeping causal claims off-limits.
 - **Manager Action View:** Turns exposure patterns into practical review priorities and responsible-use guidance.
 - **Methods & Limitations:** Explains the architecture, artifacts, fallback logic, PACE, retrieval, Airflow scaffold, agent shell, and production boundaries.
+- **MLOps Lab:** Shows the optional local/dev MLOps extension, including CLI pipeline outputs, MLflow tracking, FastAPI serving, Docker Compose, Airflow DAG, and CI checks.
 
 ## Suggested Reading Order
 
@@ -79,6 +87,7 @@ If row-level artifacts are missing, selected app views can fall back to a simple
 6. Manager Action View
 7. Methods & Limitations
 8. PACE Navigator if you want the advanced reviewer layer
+9. MLOps Lab if you want the local/dev MLOps extension and CI surface
 
 ## What PACE Means Here
 
@@ -115,6 +124,24 @@ streamlit run app/app.py
 ```
 
 Some advanced retrieval-backed reviewer features require a local OpenAI API key supplied through environment variables such as `RAG_STREAMLIT_OPENAI_API_KEY` or `OPENAI_API_KEY`. No API key or secret should be committed to this repository.
+
+Optional Docker demo:
+
+```bash
+docker compose up
+```
+
+See the [Docker local runbook](docs/mlops-docker-local-runbook.md) for API, Streamlit, and MLflow service details.
+
+Optional Airflow scaffold validation:
+
+```bash
+python scripts/validate_mlops_airflow_dag.py
+```
+
+See the [Airflow local runbook](docs/mlops-airflow-local-runbook.md) for DAG setup notes.
+
+CI details are available in the [CI runbook](docs/mlops-ci-runbook.md).
 
 ## Key Folders
 

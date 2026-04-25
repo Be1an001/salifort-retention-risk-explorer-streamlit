@@ -14,6 +14,7 @@ from app.pages import (  # noqa: E402
     explainability,
     manager_action_view,
     methods_limitations,
+    mlops_lab,
     model_threshold_lab,
     overview,
     pace_navigator,
@@ -114,6 +115,14 @@ navigation = st.navigation(
                 title="Methods & Limitations",
                 icon=":material/rule:",
                 url_path="methods-limitations",
+            ),
+        ],
+        "Governance & Ops": [
+            st.Page(
+                mlops_lab.render,
+                title="MLOps Lab",
+                icon=":material/science:",
+                url_path="mlops-lab",
             ),
         ],
     }
