@@ -23,3 +23,7 @@ Phase 6 adds an optional Airflow DAG scaffold under `orchestration/airflow/dags/
 Phase 7 adds GitHub Actions CI checks for app compile safety, MLOps contract tests, static Airflow DAG validation, and Docker Compose configuration. CI does not deploy, publish images, or require generated lab artifacts.
 
 Phase 8 adds a read-only Streamlit MLOps Lab page. The page displays local lab status and documentation context but does not execute training, Docker, MLflow, Airflow, git, CI, or background jobs.
+
+External FastAPI mode lets the hosted Streamlit app call a separately deployed backend through `SALIFORT_API_URL`. The backend may generate its lab champion model during deployment, for example with `pip install -r requirements-mlops.txt && python scripts/mlops_run_pipeline.py`, and then serve `uvicorn api.main:app --host 0.0.0.0 --port $PORT`. If `SALIFORT_API_TOKEN` is set on the backend, Streamlit should use the matching token for `/predict` and `/batch-predict`.
+
+Streamlit uploads are processed in memory. The MLOps Lab sends only normalized feature records to the external API, excludes the optional target column and identifier-like fields, and sends only compact aggregate summaries to OpenAI for optional briefings.

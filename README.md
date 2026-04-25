@@ -23,6 +23,7 @@ How can Salifort Motors spot early retention risk, focus manager attention, and 
 - Explains limitations, runtime behavior, and responsible-use boundaries.
 - Provides optional advanced reviewer tools for citations, retrieval evidence, source previews, workflow readiness, and plan previews.
 - Presents a read-only MLOps Lab page for local/dev pipeline, API, Docker, Airflow, and CI review.
+- Supports an optional external FastAPI scoring mode when `SALIFORT_API_URL` points to a separately deployed backend.
 
 ## Architecture Overview
 
@@ -76,6 +77,7 @@ If row-level artifacts are missing, selected app views can fall back to a simple
 - **Manager Action View:** Turns exposure patterns into practical review priorities and responsible-use guidance.
 - **Methods & Limitations:** Explains the architecture, artifacts, fallback logic, PACE, retrieval, Airflow scaffold, agent shell, and production boundaries.
 - **MLOps Lab:** Shows the optional local/dev MLOps extension, including CLI pipeline outputs, MLflow tracking, FastAPI serving, Docker Compose, Airflow DAG, and CI checks.
+- **MLOps Lab external mode:** In hosted Streamlit, reviewers can configure `SALIFORT_API_URL` to call a separately deployed FastAPI backend for batch CSV scoring. Uploaded rows are normalized in memory, identifier-like fields are excluded from the API payload, and optional AI briefings use compact aggregate summaries rather than raw CSV rows.
 
 ## Suggested Reading Order
 
@@ -124,6 +126,13 @@ streamlit run app/app.py
 ```
 
 Some advanced retrieval-backed reviewer features require a local OpenAI API key supplied through environment variables such as `RAG_STREAMLIT_OPENAI_API_KEY` or `OPENAI_API_KEY`. No API key or secret should be committed to this repository.
+
+The hosted MLOps Lab can also use these optional secrets:
+
+- `OPENAI_API_KEY` for aggregate-only AI briefings.
+- `OPENAI_SUMMARY_MODEL`, defaulting to `gpt-5.4-mini`.
+- `SALIFORT_API_URL` for a separately deployed FastAPI backend, without a trailing slash.
+- `SALIFORT_API_TOKEN` for optional bearer-token protection of prediction endpoints.
 
 Optional Docker demo:
 
