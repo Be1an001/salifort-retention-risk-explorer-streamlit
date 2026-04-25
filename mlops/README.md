@@ -17,3 +17,5 @@ Phase 3 adds local training and MLflow tracking for lab-only candidate models. T
 Phase 4 adds an optional FastAPI serving layer under `api/`. The service loads the lab champion model from `mlops/models/` when available, returns controlled missing-model messages when it is not available, and remains separate from the existing Streamlit runtime.
 
 Phase 5 adds optional Docker Compose infrastructure for local demos. Compose mounts generated lab artifacts from this folder instead of committing or baking them into images. The existing Streamlit app still runs independently with `streamlit run app/app.py`.
+
+Phase 6 adds an optional Airflow DAG scaffold under `orchestration/airflow/dags/`. It orchestrates the existing MLOps CLI scripts for local/dev review only; Streamlit does not trigger it, and it does not write to `artifacts/v2/`.

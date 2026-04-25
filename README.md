@@ -38,6 +38,8 @@ For a page-by-page tour, see the [Streamlit app walkthrough](docs/user-guide/str
 
 An optional local/dev Docker Compose demo for the MLOps Mini-Lab is documented in the [Docker local runbook](docs/mlops-docker-local-runbook.md). It does not change the public Streamlit model truth.
 
+An optional local/dev Airflow DAG scaffold for the MLOps Mini-Lab is documented in the [Airflow local runbook](docs/mlops-airflow-local-runbook.md). It orchestrates lab CLI scripts only and does not run from Streamlit.
+
 ## Documentation Map
 
 Use these documents when you want more detail than this README:
@@ -125,6 +127,14 @@ docker compose up
 ```
 
 See the [Docker local runbook](docs/mlops-docker-local-runbook.md) for API, Streamlit, and MLflow service details.
+
+Optional Airflow scaffold validation:
+
+```bash
+python scripts/validate_mlops_airflow_dag.py
+```
+
+See the [Airflow local runbook](docs/mlops-airflow-local-runbook.md) for DAG setup notes.
 
 ## Key Folders
 

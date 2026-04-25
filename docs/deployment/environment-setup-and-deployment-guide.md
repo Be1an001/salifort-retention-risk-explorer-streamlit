@@ -95,6 +95,12 @@ The MLOps Mini-Lab includes an optional Docker Compose demo for local developmen
 
 See the [Docker local runbook](../mlops-docker-local-runbook.md) for commands and service boundaries.
 
+## Optional Local Airflow DAG Scaffold
+
+The MLOps Mini-Lab also includes an optional Airflow DAG scaffold for local development. It orchestrates the lab CLI scripts outside Streamlit and does not update public app artifacts.
+
+See the [Airflow local runbook](../mlops-airflow-local-runbook.md) for setup and validation notes.
+
 ## Optional OpenAI API Setup for Advanced Reviewer Features
 
 Most of the app can run without an API key.

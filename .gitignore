@@ -29,3 +29,9 @@ mlops/reports/*.json
 mlops/reports/*.csv
 mlops/reports/*.md
 !mlops/reports/.gitkeep
+
+# Optional local Airflow runtime files
+airflow.db
+airflow.cfg
+webserver_config.py
+orchestration/airflow/logs/

@@ -23,6 +23,8 @@ Use it when you want more detail than the root `README.md` provides.
 1. [Environment Setup and Deployment Guide](deployment/environment-setup-and-deployment-guide.md)
 2. [Technical Design and Architecture](technical/technical-design-and-architecture.md)
 3. [Scripts Folder Guide](../scripts/README.md)
+4. [MLOps Docker Local Runbook](mlops-docker-local-runbook.md)
+5. [MLOps Airflow Local Runbook](mlops-airflow-local-runbook.md)
 
 ## Core Documents
 
@@ -37,6 +39,8 @@ Use it when you want more detail than the root `README.md` provides.
 ### Setup and deployment
 
 - [Environment Setup and Deployment Guide](deployment/environment-setup-and-deployment-guide.md): local setup, optional API configuration, runtime expectations, and Streamlit Community Cloud deployment.
+- [MLOps Docker Local Runbook](mlops-docker-local-runbook.md): optional local/dev Docker Compose demo for API, Streamlit, and MLflow services.
+- [MLOps Airflow Local Runbook](mlops-airflow-local-runbook.md): optional local/dev Airflow DAG scaffold for orchestrating lab CLI scripts.
 
 ### User-facing guidance
 
