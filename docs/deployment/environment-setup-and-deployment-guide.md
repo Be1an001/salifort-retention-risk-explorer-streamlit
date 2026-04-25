@@ -89,6 +89,12 @@ http://localhost:8501
 
 To stop the app, return to the terminal and press `Ctrl + C`.
 
+## Optional Local Docker Demo
+
+The MLOps Mini-Lab includes an optional Docker Compose demo for local development. It can run the FastAPI lab-serving service, the existing Streamlit app, and an optional MLflow UI without changing the public Streamlit artifact truth.
+
+See the [Docker local runbook](../mlops-docker-local-runbook.md) for commands and service boundaries.
+
 ## Optional OpenAI API Setup for Advanced Reviewer Features
 
 Most of the app can run without an API key.

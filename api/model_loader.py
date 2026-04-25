@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -40,7 +41,19 @@ def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _env_path(name: str) -> Path | None:
+    value = os.getenv(name)
+    return Path(value) if value else None
+
+
 def _lab_champion_metadata() -> dict[str, Any]:
+    env_metadata_path = _env_path("SALIFORT_MODEL_METADATA_PATH")
+    if env_metadata_path:
+        metadata = _read_json(env_metadata_path)
+        if metadata.get("lab_champion"):
+            return metadata["lab_champion"]
+        if metadata:
+            return metadata
     evaluation_summary = _read_json(EVALUATION_SUMMARY_PATH)
     if evaluation_summary.get("lab_champion"):
         return evaluation_summary["lab_champion"]
@@ -53,7 +66,11 @@ def _lab_champion_metadata() -> dict[str, Any]:
 def _candidate_model_paths() -> list[Path]:
     champion = _lab_champion_metadata()
     model_name = champion.get("model_name")
-    paths = [STABLE_CHAMPION_MODEL_PATH, LEGACY_LAB_CHAMPION_MODEL_PATH]
+    paths = []
+    env_model_path = _env_path("SALIFORT_MODEL_PATH")
+    if env_model_path:
+        paths.append(env_model_path)
+    paths.extend([STABLE_CHAMPION_MODEL_PATH, LEGACY_LAB_CHAMPION_MODEL_PATH])
     if model_name:
         paths.append(LAB_MODELS_DIR / f"{model_name}.joblib")
     return paths

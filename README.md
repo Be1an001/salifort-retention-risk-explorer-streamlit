@@ -36,6 +36,8 @@ The project has an offline build layer and a Streamlit app layer.
 
 For a page-by-page tour, see the [Streamlit app walkthrough](docs/user-guide/streamlit-app-walkthrough.md). For the full docs index, see [docs/README.md](docs/README.md).
 
+An optional local/dev Docker Compose demo for the MLOps Mini-Lab is documented in the [Docker local runbook](docs/mlops-docker-local-runbook.md). It does not change the public Streamlit model truth.
+
 ## Documentation Map
 
 Use these documents when you want more detail than this README:
@@ -115,6 +117,14 @@ streamlit run app/app.py
 ```
 
 Some advanced retrieval-backed reviewer features require a local OpenAI API key supplied through environment variables such as `RAG_STREAMLIT_OPENAI_API_KEY` or `OPENAI_API_KEY`. No API key or secret should be committed to this repository.
+
+Optional Docker demo:
+
+```bash
+docker compose up
+```
+
+See the [Docker local runbook](docs/mlops-docker-local-runbook.md) for API, Streamlit, and MLflow service details.
 
 ## Key Folders
 
