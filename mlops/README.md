@@ -24,6 +24,6 @@ Phase 7 adds GitHub Actions CI checks for app compile safety, MLOps contract tes
 
 Phase 8 adds a read-only Streamlit MLOps Lab page. The page displays local lab status and documentation context but does not execute training, Docker, MLflow, Airflow, git, CI, or background jobs.
 
-External FastAPI mode lets the hosted Streamlit app call a separately deployed backend through `SALIFORT_API_URL`. The backend may generate its lab champion model during deployment, for example with `pip install -r requirements-mlops.txt && python scripts/mlops_run_pipeline.py`, and then serve `uvicorn api.main:app --host 0.0.0.0 --port $PORT`. If `SALIFORT_API_TOKEN` is set on the backend, Streamlit should use the matching token for `/predict` and `/batch-predict`.
+Hosted Streamlit mode adds an Online CSV Insight sandbox inside the MLOps Lab page. It works without a deployed FastAPI backend: uploads are processed in memory, a transparent pandas heuristic creates a review-priority queue, identifier-like fields are excluded from summaries, and only compact aggregate statistics are sent to OpenAI for optional briefings.
 
-Streamlit uploads are processed in memory. The MLOps Lab sends only normalized feature records to the external API, excludes the optional target column and identifier-like fields, and sends only compact aggregate summaries to OpenAI for optional briefings.
+Local/dev FastAPI remains part of the MLOps showcase for technical review, but it is not required for the hosted Streamlit CSV Insight workflow.

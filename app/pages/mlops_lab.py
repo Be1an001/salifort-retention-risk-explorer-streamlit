@@ -19,7 +19,7 @@ PROCESSED_DIR = MLOPS_ROOT / "data" / "processed"
 
 PUBLIC_REFERENCE_NOTE = (
     "The public app remains artifact-backed with weighted XGBoost at threshold 0.29. "
-    "The MLOps Mini-Lab and external API mode do not replace that public model truth."
+    "The MLOps Mini-Lab and hosted CSV Insight sandbox do not replace that public model truth."
 )
 RESPONSIBLE_USE_NOTE = (
     "Portfolio demonstration and human review support only. This page is not an employment decision system."
@@ -27,13 +27,17 @@ RESPONSIBLE_USE_NOTE = (
 HOSTED_DEMO_NOTE = (
     "Hosted demo note: local FastAPI, MLflow, Docker Compose, Airflow, and generated lab model "
     "artifacts are local/dev components. They are not expected to be running inside the hosted "
-    "Streamlit app. External API scoring works only when `SALIFORT_API_URL` points to a "
-    "separately deployed backend. This page is a read-only overview and status inspector."
+    "Streamlit app. The Online CSV Insight sandbox runs directly in Streamlit Cloud without "
+    "FastAPI, Docker, MLflow, Airflow, or generated model artifacts."
 )
-EXTERNAL_MODE_NOTE = (
-    "External FastAPI mode lets Streamlit Cloud call a separately deployed MLOps API. "
-    "Uploaded CSVs are kept in memory, normalized to Salifort feature columns, stripped "
-    "of identifier-like fields, and sent only to the configured `/batch-predict` endpoint."
+ONLINE_SANDBOX_NOTE = (
+    "This online sandbox lets visitors upload a small Salifort-style CSV and receive a "
+    "review-priority summary directly in Streamlit Cloud. The optional OpenAI briefing is "
+    "generated from compact aggregate statistics only; the raw CSV is not sent to the model."
+)
+HEURISTIC_BOUNDARY_NOTE = (
+    "This sandbox score is a transparent review-priority heuristic, "
+    "not the public weighted XGBoost model probability and not an employment decision."
 )
 
 RAW_RENAME_MAP = {
@@ -42,7 +46,7 @@ RAW_RENAME_MAP = {
     "Work_accident": "work_accident",
     "Department": "department",
 }
-API_FEATURE_COLUMNS = [
+REQUIRED_FEATURE_COLUMNS = [
     "satisfaction_level",
     "last_evaluation",
     "number_project",
@@ -62,9 +66,32 @@ NUMERIC_FEATURE_COLUMNS = [
     "work_accident",
     "promotion_last_5years",
 ]
+DOWNLOAD_COLUMNS = REQUIRED_FEATURE_COLUMNS + [
+    "uploaded_row_id",
+    "project_intensity",
+    "review_score",
+    "review_band",
+    "review_reasons",
+    "scoring_mode",
+]
+ALLOWED_SALARY_VALUES = {"low", "medium", "high"}
+ALLOWED_DEPARTMENT_VALUES = {
+    "IT",
+    "RandD",
+    "accounting",
+    "hr",
+    "management",
+    "marketing",
+    "product_mng",
+    "sales",
+    "support",
+    "technical",
+}
 PII_COLUMN_HINTS = (
     "name",
     "email",
+    "employee_name",
+    "employee_id",
     "employee",
     "emp_id",
     "id",
@@ -73,6 +100,7 @@ PII_COLUMN_HINTS = (
     "street",
 )
 MAX_UPLOAD_ROWS = 2_000
+SCORING_MODE = "streamlit_heuristic"
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -159,37 +187,6 @@ def _api_get(base_url: str, path: str) -> tuple[bool, dict[str, Any] | str]:
         return False, str(exc)
 
 
-def _api_json_request(
-    base_url: str,
-    path: str,
-    *,
-    method: str = "GET",
-    payload: dict[str, Any] | None = None,
-    token: str = "",
-    timeout: int = 12,
-) -> tuple[bool, dict[str, Any] | str]:
-    """Call a JSON API endpoint without exposing connection details by default."""
-
-    url = base_url.rstrip("/") + path
-    headers = {"Accept": "application/json"}
-    data = None
-    if payload is not None:
-        headers["Content-Type"] = "application/json"
-        data = json.dumps(payload).encode("utf-8")
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    request = Request(url, data=data, headers=headers, method=method)
-    try:
-        with urlopen(request, timeout=timeout) as response:
-            body = response.read().decode("utf-8")
-            return True, json.loads(body) if body else {}
-    except HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        return False, f"HTTP {exc.code}: {exc.reason}. {detail}".strip()
-    except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
-        return False, str(exc)
-
-
 def _status_badge(label: str, present: bool) -> None:
     if present:
         st.success(f"{label}: present")
@@ -206,101 +203,194 @@ def _is_pii_like_column(column: str) -> bool:
     return any(hint in normalized for hint in PII_COLUMN_HINTS)
 
 
-def _prepare_external_api_records(upload_df: pd.DataFrame) -> tuple[list[dict[str, Any]], pd.DataFrame, list[str]]:
-    """Normalize uploaded rows and return API-safe records.
-
-    The target column and unexpected columns are intentionally excluded from the
-    API payload. Identifier-like columns are reported as removed, but never sent.
-    """
-
-    if upload_df.empty:
-        raise ValueError("Uploaded CSV does not contain any rows.")
-    if len(upload_df) > MAX_UPLOAD_ROWS:
-        raise ValueError(f"Upload has {len(upload_df):,} rows. Please limit external scoring to {MAX_UPLOAD_ROWS:,} rows.")
+def normalize_uploaded_columns(upload_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    """Normalize uploaded Salifort column names without mutating the input frame."""
 
     normalized = upload_df.rename(columns=RAW_RENAME_MAP).copy()
-    missing = [column for column in API_FEATURE_COLUMNS if column not in normalized.columns]
-    if missing:
-        raise ValueError("Missing required Salifort feature columns: " + ", ".join(missing))
-
     notes: list[str] = []
+    renamed = [f"{raw} -> {new}" for raw, new in RAW_RENAME_MAP.items() if raw in upload_df.columns]
+    if renamed:
+        notes.append("Normalized legacy columns: " + ", ".join(renamed))
     pii_like = [column for column in normalized.columns if _is_pii_like_column(column)]
     if pii_like:
-        notes.append("Identifier-like columns excluded from API payload: " + ", ".join(sorted(pii_like)))
+        notes.append("Identifier-like columns excluded from summaries: " + ", ".join(sorted(pii_like)))
     if "left" in normalized.columns:
-        notes.append("Target column `left` was excluded from API payload.")
+        notes.append("Target column `left` is used only for observed upload summaries, not scoring.")
+    return normalized, notes
+
+
+def _sample_csv() -> str:
+    sample_rows = [
+        [0.38, 0.86, 5, 230, 5, 0, 0, "sales", "low"],
+        [0.72, 0.77, 3, 172, 3, 0, 0, "technical", "medium"],
+        [0.29, 0.91, 6, 255, 5, 0, 0, "support", "low"],
+        [0.84, 0.62, 2, 145, 2, 1, 1, "management", "high"],
+        [0.45, 0.82, 5, 214, 4, 0, 0, "product_mng", "medium"],
+        [0.66, 0.74, 4, 188, 6, 0, 0, "RandD", "medium"],
+        [0.52, 0.88, 5, 222, 4, 0, 0, "IT", "low"],
+        [0.91, 0.57, 2, 132, 2, 0, 0, "marketing", "medium"],
+    ]
+    sample_df = pd.DataFrame(sample_rows, columns=REQUIRED_FEATURE_COLUMNS)
+    return sample_df.to_csv(index=False)
+
+
+def _validate_upload_frame(normalized: pd.DataFrame) -> tuple[bool, list[str], dict[str, Any]]:
+    missing = [column for column in REQUIRED_FEATURE_COLUMNS if column not in normalized.columns]
     unexpected = [
         column
         for column in normalized.columns
-        if column not in set(API_FEATURE_COLUMNS + ["left"]) and column not in pii_like
+        if column not in set(REQUIRED_FEATURE_COLUMNS + ["left"]) and not _is_pii_like_column(column)
     ]
-    if unexpected:
-        notes.append("Unexpected columns excluded from API payload: " + ", ".join(sorted(unexpected)))
+    missing_counts = {
+        column: int(normalized[column].isna().sum())
+        for column in normalized.columns
+        if column in set(REQUIRED_FEATURE_COLUMNS + ["left"]) and normalized[column].isna().sum() > 0
+    }
+    salary_issues: list[str] = []
+    department_issues: list[str] = []
+    if "salary" in normalized.columns:
+        observed_salary = set(normalized["salary"].astype(str).str.strip().str.lower().dropna())
+        salary_issues = sorted(value for value in observed_salary if value not in ALLOWED_SALARY_VALUES)
+    if "department" in normalized.columns:
+        observed_departments = set(normalized["department"].astype(str).str.strip().dropna())
+        department_issues = sorted(value for value in observed_departments if value not in ALLOWED_DEPARTMENT_VALUES)
+    quality = {
+        "uploaded_rows": int(len(normalized)),
+        "missing_required_columns": missing,
+        "unexpected_columns": unexpected,
+        "missing_value_counts": missing_counts,
+        "salary_category_issues": salary_issues,
+        "department_category_issues": department_issues,
+        "left_present": "left" in normalized.columns,
+    }
+    errors = []
+    if missing:
+        errors.append("Missing required columns: " + ", ".join(missing))
+    if salary_issues:
+        errors.append("Unexpected salary values: " + ", ".join(salary_issues))
+    if department_issues:
+        errors.append("Unexpected department values: " + ", ".join(department_issues))
+    if missing_counts:
+        errors.append("Required fields contain missing values.")
+    return not errors, errors, quality
 
-    payload_df = normalized[API_FEATURE_COLUMNS].copy()
+
+def build_review_queue(normalized: pd.DataFrame) -> pd.DataFrame:
+    """Build a transparent review-priority queue with pandas only."""
+
+    work = normalized[REQUIRED_FEATURE_COLUMNS].copy()
     for column in NUMERIC_FEATURE_COLUMNS:
-        payload_df[column] = pd.to_numeric(payload_df[column], errors="coerce")
-    payload_df["department"] = payload_df["department"].astype(str).str.strip()
-    payload_df["salary"] = payload_df["salary"].astype(str).str.strip().str.lower()
+        work[column] = pd.to_numeric(work[column], errors="coerce")
+    work["department"] = work["department"].astype(str).str.strip()
+    work["salary"] = work["salary"].astype(str).str.strip().str.lower()
+    if work[REQUIRED_FEATURE_COLUMNS].isna().any().any():
+        bad_columns = work.columns[work.isna().any()].tolist()
+        raise ValueError("Required feature values are missing or non-numeric: " + ", ".join(bad_columns))
 
-    if payload_df[API_FEATURE_COLUMNS].isna().any().any():
-        bad_columns = payload_df.columns[payload_df.isna().any()].tolist()
-        raise ValueError("Some required feature values are missing or non-numeric: " + ", ".join(bad_columns))
+    work.insert(0, "uploaded_row_id", range(1, len(work) + 1))
+    work["project_intensity"] = work["average_monthly_hours"] / work["number_project"].clip(lower=1)
 
-    records = json.loads(payload_df.to_json(orient="records"))
-    return records, payload_df, notes or ["No extra columns were included in the API payload."]
+    scored_rows: list[dict[str, Any]] = []
+    for row in work.to_dict(orient="records"):
+        score = 0
+        reasons: list[str] = []
+        if row["average_monthly_hours"] >= 220:
+            score += 20
+            reasons.append("monthly hours at or above 220")
+        if row["number_project"] >= 5:
+            score += 15
+            reasons.append("five or more projects")
+        if row["tenure"] >= 4 and row["promotion_last_5years"] == 0:
+            score += 15
+            reasons.append("longer tenure without recent promotion")
+        if row["last_evaluation"] >= 0.80 and row["number_project"] >= 5:
+            score += 15
+            reasons.append("high evaluation with heavy project load")
+        if row["salary"] == "low" and row["average_monthly_hours"] >= 200:
+            score += 15
+            reasons.append("low salary with elevated hours")
+        if row["satisfaction_level"] < 0.45:
+            score += 20
+            reasons.append("lower satisfaction signal")
+        if row["project_intensity"] >= 45:
+            score += 10
+            reasons.append("high hours per project")
+
+        review_score = min(score, 100)
+        if review_score >= 70:
+            band = "High"
+        elif review_score >= 40:
+            band = "Medium"
+        else:
+            band = "Low"
+        row["review_score"] = int(review_score)
+        row["review_band"] = band
+        row["review_reasons"] = "; ".join(reasons) if reasons else "No elevated heuristic signal"
+        row["scoring_mode"] = SCORING_MODE
+        scored_rows.append(row)
+    return pd.DataFrame(scored_rows).sort_values("review_score", ascending=False)
 
 
-def _build_external_scoring_summary(
-    payload_df: pd.DataFrame,
-    api_response: dict[str, Any],
-    data_quality_notes: list[str],
-) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]]:
-    predictions = api_response.get("predictions", [])
-    if len(predictions) != len(payload_df):
-        raise ValueError("API response row count did not match the uploaded valid row count.")
+def build_compact_openai_summary(
+    review_df: pd.DataFrame,
+    quality: dict[str, Any],
+    notes: list[str],
+) -> dict[str, Any]:
+    """Return aggregate-only, identifier-free JSON for optional OpenAI briefing."""
 
-    rows: list[dict[str, Any]] = []
-    for index, (record, prediction) in enumerate(zip(payload_df.to_dict(orient="records"), predictions), start=1):
-        rows.append(
-            {
-                "row_number": index,
-                "department": record["department"],
-                "salary": record["salary"],
-                "attrition_probability": float(prediction.get("attrition_probability", 0.0)),
-                "review_band": prediction.get("review_band", "unknown"),
-                "high_risk_flag": bool(prediction.get("high_risk_flag", False)),
-                "threshold": prediction.get("threshold"),
-            }
-        )
-    results_df = pd.DataFrame(rows).sort_values("attrition_probability", ascending=False)
-    department_summary = (
-        results_df.groupby("department", dropna=False)
+    band_counts = review_df["review_band"].value_counts().to_dict()
+    high_by_department = (
+        review_df.assign(is_high=review_df["review_band"].eq("High"))
+        .groupby("department", dropna=False)
         .agg(
-            row_count=("row_number", "count"),
-            high_risk_count=("high_risk_flag", "sum"),
-            average_probability=("attrition_probability", "mean"),
+            row_count=("uploaded_row_id", "count"),
+            high_count=("is_high", "sum"),
+            average_score=("review_score", "mean"),
         )
         .reset_index()
-        .sort_values(["high_risk_count", "average_probability"], ascending=[False, False])
+        .sort_values(["high_count", "average_score"], ascending=[False, False])
     )
-    band_counts = results_df["review_band"].value_counts().to_dict()
-    aggregate = {
-        "row_count": int(api_response.get("row_count", len(results_df))),
-        "valid_row_count": int(len(results_df)),
-        "scoring_mode": "external_fastapi",
-        "high_count": int(band_counts.get("high", 0)),
-        "medium_count": int(band_counts.get("medium", 0)),
-        "low_count": int(band_counts.get("low", 0)),
-        "average_probability": float(api_response.get("average_probability", results_df["attrition_probability"].mean())),
-        "top_departments": department_summary.head(5).to_dict(orient="records"),
-        "top_review_rows": results_df.head(10)[
-            ["row_number", "department", "salary", "attrition_probability", "review_band"]
-        ].to_dict(orient="records"),
-        "data_quality_notes": data_quality_notes,
+    reason_counts: dict[str, int] = {}
+    for reasons in review_df["review_reasons"].astype(str):
+        for reason in reasons.split("; "):
+            if reason and reason != "No elevated heuristic signal":
+                reason_counts[reason] = reason_counts.get(reason, 0) + 1
+    top_reasons = [
+        {"reason": reason, "count": count}
+        for reason, count in sorted(reason_counts.items(), key=lambda item: item[1], reverse=True)[:8]
+    ]
+    top_rows = review_df.head(10)[
+        [
+            "uploaded_row_id",
+            "review_score",
+            "department",
+            "salary",
+            "tenure",
+            "number_project",
+            "average_monthly_hours",
+            "review_reasons",
+        ]
+    ].to_dict(orient="records")
+    safe_notes = [
+        "Identifier-like columns were excluded from the deterministic summary."
+        if note.startswith("Identifier-like columns excluded")
+        else note
+        for note in notes
+    ]
+    return {
+        "row_count": int(quality.get("uploaded_rows", len(review_df))),
+        "valid_row_count": int(len(review_df)),
+        "invalid_row_count": int(max(quality.get("uploaded_rows", len(review_df)) - len(review_df), 0)),
+        "scoring_mode": SCORING_MODE,
+        "high_count": int(band_counts.get("High", 0)),
+        "medium_count": int(band_counts.get("Medium", 0)),
+        "low_count": int(band_counts.get("Low", 0)),
+        "top_departments": high_by_department.head(5).to_dict(orient="records"),
+        "top_review_reasons": top_reasons,
+        "top_review_rows": top_rows,
+        "data_quality_notes": safe_notes,
         "responsible_use_boundary": RESPONSIBLE_USE_NOTE,
     }
-    return results_df, department_summary, aggregate
 
 
 def _generate_ai_briefing(aggregate: dict[str, Any]) -> tuple[bool, str]:
@@ -341,6 +431,24 @@ def _generate_ai_briefing(aggregate: dict[str, Any]) -> tuple[bool, str]:
         return False, str(exc)
 
 
+def _render_quality_report(quality: dict[str, Any]) -> None:
+    cols = st.columns(4)
+    cols[0].metric("Uploaded rows", quality["uploaded_rows"])
+    cols[1].metric("Missing required columns", len(quality["missing_required_columns"]))
+    cols[2].metric("Unexpected columns", len(quality["unexpected_columns"]))
+    cols[3].metric("Target `left` present", "Yes" if quality["left_present"] else "No")
+    if quality["missing_required_columns"]:
+        st.warning("Missing required columns: " + ", ".join(quality["missing_required_columns"]))
+    if quality["missing_value_counts"]:
+        st.warning("Missing value counts: " + json.dumps(quality["missing_value_counts"]))
+    if quality["salary_category_issues"]:
+        st.warning("Unexpected salary values: " + ", ".join(quality["salary_category_issues"]))
+    if quality["department_category_issues"]:
+        st.warning("Unexpected department values: " + ", ".join(quality["department_category_issues"]))
+    if quality["unexpected_columns"]:
+        st.caption("Unexpected non-PII columns were excluded: " + ", ".join(quality["unexpected_columns"]))
+
+
 def _render_overview() -> None:
     st.subheader("What This Lab Shows")
     st.markdown(
@@ -351,9 +459,10 @@ def _render_overview() -> None:
     st.info(PUBLIC_REFERENCE_NOTE)
     st.markdown(
         "- **Package foundation:** reusable data prep, feature engineering, evaluation, training, and prediction helpers.\n"
+        "- **Hosted CSV Insight:** Streamlit-only CSV upload, heuristic review scoring, and optional aggregate AI briefing.\n"
         "- **CLI pipeline:** prepare data, train candidates, evaluate the lab champion, and write local reports.\n"
         "- **MLflow tracking:** local experiment runs under ignored `mlruns/`.\n"
-        "- **FastAPI serving:** optional local or separately deployed service for the lab champion model.\n"
+        "- **FastAPI serving:** optional local/dev service for the lab champion model.\n"
         "- **Docker Compose:** optional local stack for API, Streamlit, and MLflow UI.\n"
         "- **Airflow scaffold:** local/dev DAG contract that orchestrates the CLI scripts outside Streamlit.\n"
         "- **GitHub Actions CI:** compile checks, contract tests, static DAG validation, and Compose config validation."
@@ -419,16 +528,16 @@ def _render_training_mlflow() -> None:
 
 def _render_fastapi() -> None:
     st.subheader("FastAPI Serving")
-    api_url = os.getenv("SALIFORT_API_URL", "http://127.0.0.1:8000")
+    api_url = "http://127.0.0.1:8000"
     st.markdown(f"Configured local API URL: `{api_url}`")
     st.caption(
-        "This page only checks read-only API metadata endpoints after you click the button. "
+        "This page only checks read-only local API metadata endpoints after you click the button. "
         "It does not submit prediction payloads."
     )
     st.info(
         "`127.0.0.1` / `localhost` only works when FastAPI is running in the same local "
         "environment as Streamlit. In hosted Streamlit, it points to the hosted app container, "
-        "not the viewer's laptop."
+        "not the viewer's laptop. Hosted CSV Insight does not require FastAPI."
     )
 
     if st.button("Check local API status"):
@@ -449,14 +558,12 @@ def _render_fastapi() -> None:
             with st.expander("Technical connection details"):
                 st.code(str(model_payload), language="text")
     else:
-        st.info(
-            "If the API is offline, start it locally with one of these commands outside Streamlit."
-        )
+        st.info("If the local API is offline, start it with one of these commands outside Streamlit.")
 
     _code_block("python -m uvicorn api.main:app --reload")
     _code_block("docker compose up api")
 
-    with st.expander("Example /predict payload for manual API testing"):
+    with st.expander("Example /predict payload for manual local API testing"):
         st.json(
             {
                 "satisfaction_level": 0.38,
@@ -472,45 +579,19 @@ def _render_fastapi() -> None:
         )
 
 
-def _render_online_api_scoring() -> None:
-    st.subheader("Online API Scoring")
-    st.markdown(EXTERNAL_MODE_NOTE)
-
-    external_api_url = _config_value("SALIFORT_API_URL")
-    external_api_token = _config_value("SALIFORT_API_TOKEN")
-    if not external_api_url:
-        st.info(
-            "No external FastAPI endpoint is configured. Deploy the FastAPI service separately "
-            "and add `SALIFORT_API_URL` in Streamlit secrets."
-        )
-        return
-
-    st.markdown(f"Configured external endpoint: `{external_api_url.rstrip('/')}`")
-    if external_api_token:
-        st.caption("Bearer-token authentication is configured for scoring requests.")
-    else:
-        st.caption("No API token is configured. This is acceptable for open demos but not recommended for shared services.")
-
-    if st.button("Check external API status"):
-        health_ok, health_payload = _api_json_request(external_api_url, "/health")
-        model_ok, model_payload = _api_json_request(external_api_url, "/model-info")
-        if health_ok:
-            st.success("External /health is reachable")
-            st.json(health_payload)
-        else:
-            st.info("External API status is not available right now.")
-            with st.expander("Technical API error details"):
-                st.code(str(health_payload), language="text")
-        if model_ok:
-            st.success("External /model-info is reachable")
-            st.json(model_payload)
-        else:
-            st.info("External API model metadata is not available right now.")
-            with st.expander("Technical API error details"):
-                st.code(str(model_payload), language="text")
+def _render_online_csv_insight() -> None:
+    st.subheader("Online CSV Insight")
+    st.markdown(ONLINE_SANDBOX_NOTE)
+    st.info(HEURISTIC_BOUNDARY_NOTE)
+    st.download_button(
+        "Download sample CSV template",
+        data=_sample_csv().encode("utf-8"),
+        file_name="salifort_csv_insight_template.csv",
+        mime="text/csv",
+    )
 
     uploaded_file = st.file_uploader(
-        "Upload Salifort CSV for external API scoring",
+        "Upload a Salifort-style CSV",
         type=["csv"],
         help="Limit 2,000 rows. Files are read in memory and are not written to disk.",
     )
@@ -520,75 +601,63 @@ def _render_online_api_scoring() -> None:
 
     try:
         upload_df = pd.read_csv(uploaded_file)
-        records, payload_df, notes = _prepare_external_api_records(upload_df)
     except Exception as exc:
-        st.warning("The uploaded CSV could not be prepared for external scoring.")
-        with st.expander("CSV validation details"):
+        st.warning("The uploaded CSV could not be read.")
+        with st.expander("CSV read details"):
             st.code(str(exc), language="text")
         return
 
-    st.success(f"Prepared {len(records):,} feature records for external API scoring.")
-    for note in notes:
-        st.caption(note)
-
-    if st.button("Run external API batch scoring"):
-        ok, response_payload = _api_json_request(
-            external_api_url,
-            "/batch-predict",
-            method="POST",
-            payload={"records": records},
-            token=external_api_token,
-            timeout=30,
-        )
-        if not ok:
-            st.warning("External API scoring is not available right now.")
-            with st.expander("Technical API error details"):
-                st.code(str(response_payload), language="text")
-            return
-        try:
-            results_df, department_summary, aggregate = _build_external_scoring_summary(
-                payload_df,
-                response_payload if isinstance(response_payload, dict) else {},
-                notes,
-            )
-        except Exception as exc:
-            st.warning("External API returned an unexpected scoring response.")
-            with st.expander("Technical API error details"):
-                st.code(str(exc), language="text")
-            return
-
-        st.session_state["external_api_scoring_results"] = results_df
-        st.session_state["external_api_department_summary"] = department_summary
-        st.session_state["external_api_aggregate"] = aggregate
-
-    results_df = st.session_state.get("external_api_scoring_results")
-    department_summary = st.session_state.get("external_api_department_summary")
-    aggregate = st.session_state.get("external_api_aggregate")
-    if results_df is None or aggregate is None:
+    if len(upload_df) > MAX_UPLOAD_ROWS:
+        st.warning(f"Upload has {len(upload_df):,} rows. Please limit this sandbox to {MAX_UPLOAD_ROWS:,} rows.")
         return
 
-    cols = st.columns(4)
-    cols[0].metric("Scored rows", aggregate["valid_row_count"])
-    cols[1].metric("High review band", aggregate["high_count"])
-    cols[2].metric("Average probability", _format_number(aggregate["average_probability"]))
-    cols[3].metric("Scoring mode", aggregate["scoring_mode"])
+    normalized, notes = normalize_uploaded_columns(upload_df)
+    valid, errors, quality = _validate_upload_frame(normalized)
+    _render_quality_report(quality)
+    for note in notes:
+        st.caption(note)
+    if errors:
+        st.warning("Resolve the validation issue before generating a review summary.")
+        with st.expander("Validation details"):
+            st.code("\n".join(errors), language="text")
+        return
 
-    st.markdown("**Top review rows**")
-    st.dataframe(results_df.head(20), use_container_width=True, hide_index=True)
+    try:
+        review_df = build_review_queue(normalized)
+    except Exception as exc:
+        st.warning("The review queue could not be created from the uploaded CSV.")
+        with st.expander("Review scoring details"):
+            st.code(str(exc), language="text")
+        return
 
-    if department_summary is not None and not department_summary.empty:
-        st.markdown("**Department summary**")
-        st.dataframe(department_summary, use_container_width=True, hide_index=True)
+    aggregate = build_compact_openai_summary(review_df, quality, notes)
+    st.session_state["online_csv_insight_aggregate"] = aggregate
+
+    cols = st.columns(5)
+    cols[0].metric("Rows analyzed", aggregate["valid_row_count"])
+    cols[1].metric("High", aggregate["high_count"])
+    cols[2].metric("Medium", aggregate["medium_count"])
+    cols[3].metric("Low", aggregate["low_count"])
+    cols[4].metric("Scoring mode", SCORING_MODE)
+
+    st.markdown("**Top departments by high review count**")
+    st.dataframe(pd.DataFrame(aggregate["top_departments"]), use_container_width=True, hide_index=True)
+    st.markdown("**Top review reasons**")
+    st.dataframe(pd.DataFrame(aggregate["top_review_reasons"]), use_container_width=True, hide_index=True)
+    st.markdown("**Top 5 review rows**")
+    st.dataframe(review_df.head(5), use_container_width=True, hide_index=True)
 
     st.download_button(
         "Download review summary CSV",
-        data=results_df.to_csv(index=False).encode("utf-8"),
-        file_name="salifort_external_api_review_summary.csv",
+        data=review_df[DOWNLOAD_COLUMNS].to_csv(index=False).encode("utf-8"),
+        file_name="salifort_streamlit_review_summary.csv",
         mime="text/csv",
     )
 
     st.markdown("**Optional AI briefing**")
     st.caption("OpenAI receives only compact aggregate JSON, not raw CSV rows or identifier fields.")
+    if not _config_value("OPENAI_API_KEY"):
+        st.info("Add `OPENAI_API_KEY` in Streamlit secrets to enable the optional AI briefing.")
     if st.button("Generate AI briefing"):
         ok, briefing = _generate_ai_briefing(aggregate)
         if ok:
@@ -673,10 +742,11 @@ def _render_boundaries() -> None:
     st.markdown(
         "- This is a portfolio demonstration, not production HR infrastructure.\n"
         "- Outputs support human review only and are not employment decisions.\n"
+        "- The hosted CSV Insight score is a transparent heuristic, not a model probability.\n"
         "- The lab model and public app model are intentionally separate.\n"
         "- The public app remains weighted XGBoost at threshold `0.29`.\n"
         "- The original eight app pages remain artifact-backed and do not depend on the MLOps lab.\n"
-        "- Streamlit does not run training, Docker, MLflow, Airflow, git, CI, or background jobs."
+        "- Streamlit does not run training, Docker, MLflow, Airflow, git, CI, shell commands, or background jobs."
     )
     st.caption(f"Last page render: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
@@ -684,7 +754,7 @@ def _render_boundaries() -> None:
 def render() -> None:
     st.title("MLOps Lab")
     st.caption(
-        "Local/dev serving, tracking, orchestration, and CI extension for the Salifort portfolio app."
+        "Hosted CSV insight plus local/dev serving, tracking, orchestration, and CI extension."
     )
     st.warning(
         "Read-only page: this documents and inspects the MLOps Mini-Lab extension. "
@@ -696,10 +766,10 @@ def render() -> None:
     tabs = st.tabs(
         [
             "Overview",
+            "Online CSV Insight",
             "Pipeline Artifacts",
             "Training & MLflow",
             "FastAPI Serving",
-            "Online API Scoring",
             "Docker Compose",
             "Airflow DAG",
             "CI & Validation",
@@ -709,13 +779,13 @@ def render() -> None:
     with tabs[0]:
         _render_overview()
     with tabs[1]:
-        _render_pipeline_artifacts()
+        _render_online_csv_insight()
     with tabs[2]:
-        _render_training_mlflow()
+        _render_pipeline_artifacts()
     with tabs[3]:
-        _render_fastapi()
+        _render_training_mlflow()
     with tabs[4]:
-        _render_online_api_scoring()
+        _render_fastapi()
     with tabs[5]:
         _render_docker()
     with tabs[6]:

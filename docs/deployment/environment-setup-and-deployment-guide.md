@@ -189,16 +189,14 @@ Example secret:
 RAG_STREAMLIT_OPENAI_API_KEY = "your_api_key_here"
 ```
 
-If the hosted MLOps Lab should call a separately deployed FastAPI service and generate optional aggregate briefings, add:
+If the hosted MLOps Lab should generate optional aggregate briefings for the Online CSV Insight sandbox, add:
 
 ```toml
 OPENAI_API_KEY = "your_openai_api_key_here"
 OPENAI_SUMMARY_MODEL = "gpt-5.4-mini"
-SALIFORT_API_URL = "https://your-fastapi-service.onrender.com"
-SALIFORT_API_TOKEN = "same-token-as-api-service"
 ```
 
-`SALIFORT_API_URL` should not have a trailing slash. Streamlit Community Cloud does not run the FastAPI backend itself; the FastAPI service must be deployed separately. The MLOps Lab sends only normalized Salifort feature records to `/batch-predict`, and sends only compact aggregate JSON to OpenAI for optional briefings.
+The hosted Online CSV Insight sandbox runs directly in Streamlit Cloud. It does not require `SALIFORT_API_URL`, `SALIFORT_API_TOKEN`, FastAPI, Docker, MLflow, Airflow, or generated joblib model artifacts. It sends only compact aggregate JSON to OpenAI for optional briefings; raw uploaded CSV rows and identifier-like fields are not sent.
 
 ### 4. Deploy and smoke-test
 
@@ -226,25 +224,11 @@ The accurate posture is:
 - with optional advanced reviewer features
 - and explicit runtime boundaries around model training, retrieval, workflow review, and secrets handling
 
-## Optional Render Deployment for the MLOps FastAPI Service
+## Hosted MLOps Lab CSV Insight
 
-The FastAPI service can be deployed separately, for example on Render, so Streamlit Cloud can call it through `SALIFORT_API_URL`.
+The MLOps Lab includes a hosted Streamlit-only CSV Insight sandbox. Visitors can upload a small Salifort-style CSV, validate the schema, run a transparent review-priority heuristic in pandas, download a review summary CSV, and optionally generate an OpenAI-assisted briefing from compact aggregate statistics.
 
-Example Render settings:
-
-- **Build Command:** `pip install -r requirements-mlops.txt && python scripts/mlops_run_pipeline.py`
-- **Start Command:** `uvicorn api.main:app --host 0.0.0.0 --port $PORT`
-
-Example Render environment variables:
-
-```text
-PYTHON_VERSION = 3.12.10
-SALIFORT_API_TOKEN = "same-token-as-streamlit"
-SALIFORT_MODEL_PATH = mlops/models/champion_model.joblib
-SALIFORT_MODEL_METADATA_PATH = mlops/reports/evaluation_summary.json
-```
-
-The build command generates the lab champion model inside the backend service filesystem. Those generated outputs are not committed to the repository and do not update `artifacts/v2`. Docker, MLflow, and Airflow remain useful MLOps components, but they are not run inside Streamlit Cloud.
+This hosted path does not deploy or call FastAPI. Local/dev FastAPI, Docker Compose, MLflow, and Airflow remain valid technical review components, but they are not required for Streamlit Community Cloud and are not run inside visitor sessions.
 
 ## Troubleshooting
 

@@ -167,6 +167,8 @@ Use this page only if you want to review the optional MLOps Mini-Lab extension.
 
 What to inspect:
 
+- hosted Online CSV Insight sandbox for small Salifort-style uploads
+- transparent review-priority heuristic summary and optional aggregate AI briefing
 - package and CLI pipeline status
 - generated local lab artifact availability
 - lab champion and MLflow tracking summary when local reports exist
@@ -176,6 +178,8 @@ What to inspect:
 How to interpret it:
 
 - the page is read-only and does not run training, Docker, MLflow, Airflow, git, or CI commands
+- the hosted Online CSV Insight sandbox runs directly in Streamlit and does not require FastAPI, Docker, MLflow, Airflow, or generated model artifacts
+- the sandbox score is a transparent heuristic, not the public weighted XGBoost model probability
 - generated lab artifacts are optional, local/dev, and gitignored
 - the lab model and lab threshold do not replace the public weighted XGBoost threshold `0.29` story
 - this is technical portfolio review support, not production HR infrastructure
