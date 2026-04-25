@@ -19,3 +19,5 @@ Phase 4 adds an optional FastAPI serving layer under `api/`. The service loads t
 Phase 5 adds optional Docker Compose infrastructure for local demos. Compose mounts generated lab artifacts from this folder instead of committing or baking them into images. The existing Streamlit app still runs independently with `streamlit run app/app.py`.
 
 Phase 6 adds an optional Airflow DAG scaffold under `orchestration/airflow/dags/`. It orchestrates the existing MLOps CLI scripts for local/dev review only; Streamlit does not trigger it, and it does not write to `artifacts/v2/`.
+
+Phase 7 adds GitHub Actions CI checks for app compile safety, MLOps contract tests, static Airflow DAG validation, and Docker Compose configuration. CI does not deploy, publish images, or require generated lab artifacts.

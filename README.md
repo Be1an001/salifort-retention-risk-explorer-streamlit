@@ -40,6 +40,8 @@ An optional local/dev Docker Compose demo for the MLOps Mini-Lab is documented i
 
 An optional local/dev Airflow DAG scaffold for the MLOps Mini-Lab is documented in the [Airflow local runbook](docs/mlops-airflow-local-runbook.md). It orchestrates lab CLI scripts only and does not run from Streamlit.
 
+GitHub Actions CI checks for the app and MLOps Mini-Lab are documented in the [CI runbook](docs/mlops-ci-runbook.md). CI validates contracts and configuration without deploying or publishing generated artifacts.
+
 ## Documentation Map
 
 Use these documents when you want more detail than this README:
@@ -135,6 +137,8 @@ python scripts/validate_mlops_airflow_dag.py
 ```
 
 See the [Airflow local runbook](docs/mlops-airflow-local-runbook.md) for DAG setup notes.
+
+CI details are available in the [CI runbook](docs/mlops-ci-runbook.md).
 
 ## Key Folders
 
