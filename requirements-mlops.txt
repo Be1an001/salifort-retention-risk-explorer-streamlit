@@ -1,0 +1,14 @@
+# Separate local/dev dependencies for the future MLOps Mini-Lab.
+# The Streamlit app runtime remains governed by requirements.txt.
+
+pandas>=2.0,<3
+
+# Future phases may add, only when implemented:
+# scikit-learn
+# xgboost
+# imbalanced-learn
+# shap
+# mlflow
+# fastapi
+# uvicorn
+# joblib

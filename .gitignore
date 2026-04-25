@@ -17,3 +17,13 @@ Thumbs.db
 
 # Temporary exports
 *.log
+
+# MLOps Mini-Lab generated outputs
+mlruns/
+mlops/data/processed/*.parquet
+!mlops/data/processed/.gitkeep
+mlops/models/*.joblib
+!mlops/models/.gitkeep
+mlops/reports/*.json
+mlops/reports/*.md
+!mlops/reports/.gitkeep
