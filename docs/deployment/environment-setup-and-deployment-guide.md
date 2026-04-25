@@ -73,6 +73,8 @@ pip install -r requirements.txt
 
 Current runtime dependencies are defined in `requirements.txt` and support the app itself. They are not meant to reproduce every offline modeling dependency used by the builders.
 
+The optional MLOps Mini-Lab dependencies live in `requirements-mlops.txt`. They are for local/dev data prep, training, FastAPI serving, MLflow tracking, and tests. They are not required for the standard Streamlit app runtime.
+
 ## Running the App Locally
 
 Start the Streamlit app from the repo root:
@@ -100,6 +102,10 @@ See the [Docker local runbook](../mlops-docker-local-runbook.md) for commands an
 The MLOps Mini-Lab also includes an optional Airflow DAG scaffold for local development. It orchestrates the lab CLI scripts outside Streamlit and does not update public app artifacts.
 
 See the [Airflow local runbook](../mlops-airflow-local-runbook.md) for setup and validation notes.
+
+## MLOps Lab Page Boundary
+
+The Streamlit MLOps Lab page is a read-only reviewer surface. It can show local file status, report summaries, command examples, and optional FastAPI health/model-info checks. It does not run training, start Docker, trigger Airflow, run MLflow, or change public model artifacts.
 
 ## Optional OpenAI API Setup for Advanced Reviewer Features
 
@@ -170,6 +176,8 @@ In Streamlit Community Cloud:
 ```text
 app/app.py
 ```
+
+Streamlit Community Cloud deployment still uses `requirements.txt` and `app/app.py`. Docker Compose, FastAPI, MLflow, Airflow, and `requirements-mlops.txt` are local/dev extension tools and are not required for the public app to open.
 
 ### 3. Configure secrets only if needed
 

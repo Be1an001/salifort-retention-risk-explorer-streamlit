@@ -15,6 +15,7 @@ The design separates:
 - **offline build and validation work**
 - **Streamlit runtime presentation**
 - **advanced reviewer metadata and retrieval support**
+- **optional local/dev MLOps Mini-Lab tooling**
 
 That separation is one of the main technical truths of the repo.
 
@@ -80,6 +81,26 @@ Responsibilities:
 - build retrieval assets
 - validate contracts and advanced reviewer surfaces
 - keep those responsibilities outside the Streamlit session
+
+### 5. Optional MLOps Mini-Lab layer
+
+Located mainly in:
+
+- `src/salifort_mlops/`
+- `scripts/mlops_*.py`
+- `api/`
+- `mlops/`
+- `docker/`
+- `orchestration/airflow/dags/salifort_mlops_pipeline.py`
+- `.github/workflows/ci.yml`
+
+Responsibilities:
+
+- refactor the original workflow into reusable local/dev modules
+- prepare lab data splits, train lab-only candidates, and write local reports
+- serve the lab champion through an optional FastAPI service when local model artifacts exist
+- provide Docker Compose, Airflow DAG, and CI validation surfaces for technical review
+- keep lab outputs separate from the public `artifacts/v2/` app truth
 
 ## Repository Flow
 
@@ -166,6 +187,19 @@ The app also uses stable PNG figures under `outputs/figures/` for EDA, validatio
 ### Advanced reviewer page
 
 - `pace_navigator.py`: guided project map plus optional advanced review tools
+- `mlops_lab.py`: read-only local/dev MLOps extension dashboard for pipeline artifacts, API status, Docker, Airflow, and CI
+
+## MLOps Mini-Lab Extension
+
+The MLOps Mini-Lab is a technical portfolio extension. It demonstrates data-prep modularization, training/evaluation scripts, MLflow tracking, FastAPI serving, Docker Compose, Airflow DAG scaffolding, and GitHub Actions checks.
+
+The MLOps lab is intentionally separate from the artifact-backed public app:
+
+- Streamlit does not trigger lab training or orchestration.
+- FastAPI, Docker, MLflow, and Airflow are optional local/dev tools.
+- Generated lab outputs live under `mlops/` and `mlruns/` and are gitignored.
+- The lab champion and lab threshold may differ from the public model story.
+- The public app truth remains weighted XGBoost at threshold `0.29` unless a separate governed artifact update changes it.
 
 ## PACE Navigator Technical Design
 

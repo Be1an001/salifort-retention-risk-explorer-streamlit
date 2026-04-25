@@ -48,6 +48,7 @@ Use it when you want more detail than the root `README.md` provides.
 
 - [User Manual](user-guide/user-manual.md): how to use the app responsibly and what each page is for.
 - [Streamlit App Walkthrough](user-guide/streamlit-app-walkthrough.md): page-by-page review flow and what to look for.
+- MLOps Lab is covered in the walkthrough as an optional technical-review page for the local/dev extension.
 
 ## Advanced Navigator Documentation
 

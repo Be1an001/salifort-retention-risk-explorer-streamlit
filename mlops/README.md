@@ -21,3 +21,5 @@ Phase 5 adds optional Docker Compose infrastructure for local demos. Compose mou
 Phase 6 adds an optional Airflow DAG scaffold under `orchestration/airflow/dags/`. It orchestrates the existing MLOps CLI scripts for local/dev review only; Streamlit does not trigger it, and it does not write to `artifacts/v2/`.
 
 Phase 7 adds GitHub Actions CI checks for app compile safety, MLOps contract tests, static Airflow DAG validation, and Docker Compose configuration. CI does not deploy, publish images, or require generated lab artifacts.
+
+Phase 8 adds a read-only Streamlit MLOps Lab page. The page displays local lab status and documentation context but does not execute training, Docker, MLflow, Airflow, git, CI, or background jobs.
