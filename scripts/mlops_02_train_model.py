@@ -10,7 +10,11 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from salifort_mlops.config import LAB_MODELS_DIR, PROCESSED_DATA_DIR  # noqa: E402
+from salifort_mlops.config import (  # noqa: E402
+    LEGACY_LAB_CHAMPION_MODEL_PATH,
+    PROCESSED_DATA_DIR,
+    STABLE_CHAMPION_MODEL_PATH,
+)
 from salifort_mlops.train import (  # noqa: E402
     log_training_to_mlflow,
     save_candidate_models,
@@ -42,7 +46,11 @@ def run_training() -> dict[str, object]:
     champion_name = str(training_result["champion"]["model_name"])
     save_model_artifact(
         training_result["fitted_models"][champion_name],
-        LAB_MODELS_DIR / "lab_champion.joblib",
+        LEGACY_LAB_CHAMPION_MODEL_PATH,
+    )
+    save_model_artifact(
+        training_result["fitted_models"][champion_name],
+        STABLE_CHAMPION_MODEL_PATH,
     )
     report_paths = save_training_reports(training_result=training_result)
     mlflow_summary = log_training_to_mlflow(

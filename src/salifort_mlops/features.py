@@ -52,7 +52,18 @@ def build_hr_features(df: pd.DataFrame, mode: str = "operational") -> pd.DataFra
 
     mode = _validate_mode(mode)
     data = clean_salifort_data(df)
+    return add_engineered_features(data, mode=mode)
 
+
+def add_engineered_features(df: pd.DataFrame, mode: str = "operational") -> pd.DataFrame:
+    """Add deterministic lab features to a standardized Salifort frame.
+
+    This helper assumes column names are already normalized. It does not drop
+    duplicates, which keeps inference batches aligned with request rows.
+    """
+
+    mode = _validate_mode(mode)
+    data = df.copy()
     salary_text = data["salary"].astype(str)
     data["salary_level"] = salary_text.map(SALARY_LEVEL_MAP)
     data["overworked"] = (data["average_monthly_hours"] > 175).astype(int)

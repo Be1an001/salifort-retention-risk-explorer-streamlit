@@ -22,6 +22,8 @@ LAB_MODELS_DIR = MLOPS_ROOT / "models"
 LAB_REPORTS_DIR = MLOPS_ROOT / "reports"
 MLFLOW_TRACKING_DIR = PROJECT_ROOT / "mlruns"
 MLFLOW_EXPERIMENT_NAME = "salifort-mlops-mini-lab"
+STABLE_CHAMPION_MODEL_PATH = LAB_MODELS_DIR / "champion_model.joblib"
+LEGACY_LAB_CHAMPION_MODEL_PATH = LAB_MODELS_DIR / "lab_champion.joblib"
 
 RAW_DATA_CANDIDATE_PATHS = (
     REFERENCES_SOURCE_WORKFLOW_DIR / "hr_capstone_dataset.csv",
