@@ -106,9 +106,19 @@ def split_train_test(
     if not 0 < test_size < 1:
         raise ValueError("test_size must be between 0 and 1.")
 
+    class_counts = df[TARGET_COLUMN].value_counts(dropna=False)
+    if len(class_counts) < 2:
+        raise ValueError("Stratified split requires at least two target classes.")
+    if (class_counts < 2).any():
+        raise ValueError("Stratified split requires at least two rows per target class.")
+
     test_parts = []
     for _, group in df.groupby(TARGET_COLUMN, sort=False):
         test_count = max(1, round(len(group) * test_size))
+        if test_count >= len(group):
+            raise ValueError(
+                "test_size leaves no training rows for at least one target class."
+            )
         test_parts.append(group.sample(n=test_count, random_state=random_state))
     test_df = pd.concat(test_parts).sort_index()
     train_df = df.drop(index=test_df.index)

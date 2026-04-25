@@ -56,10 +56,8 @@ def build_hr_features(df: pd.DataFrame, mode: str = "operational") -> pd.DataFra
     salary_text = data["salary"].astype(str)
     data["salary_level"] = salary_text.map(SALARY_LEVEL_MAP)
     data["overworked"] = (data["average_monthly_hours"] > 175).astype(int)
-    data["project_intensity"] = (
-        data["average_monthly_hours"]
-        / data["number_project"].replace({0: pd.NA})
-    ).fillna(0)
+    project_count = data["number_project"].where(data["number_project"] != 0)
+    data["project_intensity"] = (data["average_monthly_hours"] / project_count).fillna(0)
     data["career_stall_flag"] = (
         (data["tenure"] >= 4) & (data["promotion_last_5years"] == 0)
     ).astype(int)
