@@ -23,6 +23,11 @@ PUBLIC_REFERENCE_NOTE = (
 RESPONSIBLE_USE_NOTE = (
     "Portfolio demonstration and human review support only. This page is not an employment decision system."
 )
+HOSTED_DEMO_NOTE = (
+    "Hosted demo note: FastAPI, MLflow, Docker Compose, Airflow, and generated lab model "
+    "artifacts are local/dev components. They are not expected to be running in the hosted "
+    "Streamlit app. This page is a read-only overview and status inspector."
+)
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -133,7 +138,11 @@ def _render_pipeline_artifacts() -> None:
     rows = _file_status_rows()
     st.dataframe(rows, use_container_width=True, hide_index=True)
     if any(row["Status"] == "Missing" for row in rows):
-        st.info("To generate local lab outputs, run this outside Streamlit:")
+        st.info(
+            "Local lab artifacts have not been generated in this environment. This is expected "
+            "in hosted demos because generated models, reports, and MLflow runs are gitignored."
+        )
+        st.markdown("Run locally from the repo root:")
         _code_block("python scripts/mlops_run_pipeline.py")
 
     data_profile = _read_json(REPORTS_DIR / "data_profile.json")
@@ -165,37 +174,51 @@ def _render_training_mlflow() -> None:
         metric_cols[4].metric("F2", _format_number(champion.get("best_f2")))
         st.caption("The lab threshold may differ from the public app threshold. That is expected and local/dev only.")
     else:
-        st.warning("No lab champion report is available yet.")
+        st.info(
+            "No local lab champion report is available in this environment. This is expected "
+            "unless you have run the MLOps pipeline locally."
+        )
+        st.markdown("Run locally from the repo root:")
         _code_block("python scripts/mlops_run_pipeline.py")
 
     _status_badge("MLflow run directory", (PROJECT_ROOT / "mlruns").exists())
     st.markdown("Run the local MLflow UI outside Streamlit:")
     _code_block("mlflow ui")
-    st.markdown("Local MLflow URL: http://localhost:5000")
+    st.markdown("Local-only MLflow URL, when started on your machine: http://localhost:5000")
     st.info("MLflow runs are gitignored and do not update `artifacts/v2/`.")
 
 
 def _render_fastapi() -> None:
     st.subheader("FastAPI Serving")
-    api_url = os.getenv("SALIFORT_API_URL", "http://localhost:8000")
-    st.markdown(f"Current API URL: `{api_url}`")
-    st.caption("This page only checks read-only API metadata endpoints. It does not submit prediction payloads.")
+    api_url = os.getenv("SALIFORT_API_URL", "http://127.0.0.1:8000")
+    st.markdown(f"Configured local API URL: `{api_url}`")
+    st.caption(
+        "This page only checks read-only API metadata endpoints after you click the button. "
+        "It does not submit prediction payloads."
+    )
+    st.info(
+        "`127.0.0.1` / `localhost` only works when FastAPI is running in the same local "
+        "environment as Streamlit. In hosted Streamlit, it points to the hosted app container, "
+        "not the viewer's laptop."
+    )
 
-    if st.button("Check API health and model info"):
+    if st.button("Check local API status"):
         health_ok, health_payload = _api_get(api_url, "/health")
         model_ok, model_payload = _api_get(api_url, "/model-info")
         if health_ok:
             st.success("/health is reachable")
             st.json(health_payload)
         else:
-            st.warning("API service is not connected.")
-            st.code(str(health_payload), language="text")
+            st.info("Optional local API is not connected. This is expected unless you started FastAPI locally.")
+            with st.expander("Technical connection details"):
+                st.code(str(health_payload), language="text")
         if model_ok:
             st.success("/model-info is reachable")
             st.json(model_payload)
         else:
-            st.warning("/model-info is not connected.")
-            st.code(str(model_payload), language="text")
+            st.info("Optional local API metadata is not connected. This is expected unless you started FastAPI locally.")
+            with st.expander("Technical connection details"):
+                st.code(str(model_payload), language="text")
     else:
         st.info(
             "If the API is offline, start it locally with one of these commands outside Streamlit."
@@ -237,11 +260,15 @@ def _render_docker() -> None:
         )
     )
     st.markdown(
-        "- FastAPI docs: http://localhost:8000/docs\n"
-        "- Streamlit: http://localhost:8501\n"
-        "- MLflow UI: http://localhost:5000"
+        "- Local-only FastAPI docs: http://localhost:8000/docs\n"
+        "- Local-only Streamlit: http://localhost:8501\n"
+        "- Local-only MLflow UI: http://localhost:5000"
     )
-    st.info("The API container mounts local `mlops/` artifacts; generated models are not baked into the image.")
+    st.info(
+        "These URLs are for local Docker Desktop usage only. They are not expected to work from "
+        "the hosted Streamlit app. The API container mounts local `mlops/` artifacts; generated "
+        "models are not baked into the image."
+    )
 
 
 def _render_airflow() -> None:
@@ -252,8 +279,9 @@ def _render_airflow() -> None:
     st.markdown("Static validation command:")
     _code_block("python scripts/validate_mlops_airflow_dag.py")
     st.info(
-        "Airflow is optional and local/dev only. Streamlit does not trigger DAG runs, "
-        "and the DAG does not write to public app artifacts."
+        "No Airflow service is expected to be running in the hosted app. The DAG is included as "
+        "a local/dev orchestration scaffold and validated statically. Streamlit does not trigger "
+        "DAG runs, and the DAG does not write to public app artifacts."
     )
 
 
@@ -278,7 +306,10 @@ def _render_ci() -> None:
             ]
         )
     )
-    st.info("CI does not deploy, publish images, install Airflow, or require generated lab artifacts.")
+    st.info(
+        "CI validates code and configuration; it does not generate or publish lab model artifacts. "
+        "It also does not deploy, publish images, install Airflow, or require generated lab artifacts."
+    )
 
 
 def _render_boundaries() -> None:
@@ -304,6 +335,7 @@ def render() -> None:
         "It does not run training, trigger Airflow, start Docker containers, run MLflow, "
         "or replace the public artifact-backed model used by the main app."
     )
+    st.info(HOSTED_DEMO_NOTE)
 
     tabs = st.tabs(
         [
