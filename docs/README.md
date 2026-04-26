@@ -45,6 +45,7 @@ Use it when you want more detail than the root `README.md` provides.
 - [MLOps Airflow Local Runbook](mlops-airflow-local-runbook.md): optional local/dev Airflow DAG scaffold for orchestrating lab CLI scripts.
 - [MLOps CI Runbook](mlops-ci-runbook.md): GitHub Actions checks for app runtime, MLOps tests, Airflow static validation, and Docker Compose config.
 - [MLOps Mini-Lab Demo Guide](mlops-demo-guide.md): hosted CSV Insight walkthrough plus local/dev pipeline, API, Docker, MLflow, Airflow, and CI evidence path.
+- [MLOps Evidence Pack](demo-assets/mlops-evidence/README.md): committed, sanitized proof snapshots for online reviewers.
 
 ### User-facing guidance
 

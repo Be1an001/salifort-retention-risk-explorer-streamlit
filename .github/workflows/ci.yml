@@ -99,6 +99,7 @@ jobs:
           tests/test_prediction_service.py
           tests/test_airflow_dag_contract.py
           tests/test_online_csv_insight_contract.py
+          tests/test_mlops_evidence_pack_contract.py
 
   docker-config-check:
     name: Docker Compose config check

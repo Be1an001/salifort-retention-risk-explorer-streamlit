@@ -171,6 +171,7 @@ What to inspect:
 - in-memory minimal schema template and 100-row synthetic demo CSV download
 - transparent review-priority heuristic summary and optional aggregate AI briefing
 - deterministic priority rows, department review summary, and review-driver summaries without requiring OpenAI
+- MLOps Evidence tab with committed, sanitized proof snapshots for reviewers who cannot run local services
 - package and CLI pipeline status
 - generated local lab artifact availability
 - lab champion and MLflow tracking summary when local reports exist
@@ -181,6 +182,7 @@ How to interpret it:
 
 - the page is read-only and does not run training, Docker, MLflow, Airflow, git, or CI commands
 - the hosted Online CSV Insight sandbox runs directly in Streamlit and does not require FastAPI, Docker, MLflow, Airflow, or generated model artifacts
+- the MLOps Evidence tab is static evidence, not live production infrastructure
 - the sandbox score is a transparent heuristic, not the public weighted XGBoost model probability
 - generated lab artifacts are optional, local/dev, and gitignored
 - the lab model and lab threshold do not replace the public weighted XGBoost threshold `0.29` story

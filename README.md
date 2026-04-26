@@ -24,6 +24,7 @@ How can Salifort Motors spot early retention risk, focus manager attention, and 
 - Provides optional advanced reviewer tools for citations, retrieval evidence, source previews, workflow readiness, and plan previews.
 - Presents a read-only MLOps Lab page for local/dev pipeline, API, Docker, Airflow, and CI review.
 - Supports a hosted Streamlit CSV Insight sandbox for small Salifort-style uploads, heuristic review scoring, and optional aggregate-only AI briefings.
+- Includes a sanitized MLOps Evidence Pack so online reviewers can inspect local/dev pipeline, serving, orchestration, Docker, MLflow, and CI proof without running the user's machine.
 
 ## Architecture Overview
 
@@ -80,6 +81,7 @@ If row-level artifacts are missing, selected app views can fall back to a simple
 - **Manager Action View:** Turns exposure patterns into practical review priorities and responsible-use guidance.
 - **Methods & Limitations:** Explains the architecture, artifacts, fallback logic, PACE, retrieval, Airflow scaffold, agent shell, and production boundaries.
 - **MLOps Lab:** Shows the optional local/dev MLOps extension, including CLI pipeline outputs, MLflow tracking, FastAPI serving, Docker Compose, Airflow DAG, and CI checks.
+- **MLOps Evidence:** Shows committed, sanitized evidence snapshots for pipeline runs, training/evaluation, FastAPI examples, Docker Compose validation, Airflow validation, and GitHub Actions checks.
 - **MLOps Lab Online CSV Insight:** In hosted Streamlit, reviewers can upload a small Salifort-style CSV and receive a transparent review-priority heuristic summary without FastAPI, Docker, MLflow, Airflow, or generated joblib artifacts. Optional AI briefings use compact aggregate summaries rather than raw CSV rows.
 
 ## Suggested Reading Order

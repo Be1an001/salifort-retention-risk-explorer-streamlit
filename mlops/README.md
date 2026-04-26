@@ -27,3 +27,5 @@ Phase 8 adds a read-only Streamlit MLOps Lab page. The page displays local lab s
 Hosted Streamlit mode adds an Online CSV Insight sandbox inside the MLOps Lab page. It works without a deployed FastAPI backend: uploads are processed in memory, a transparent pandas heuristic creates a review-priority queue, identifier-like fields are excluded from summaries, and only compact aggregate statistics are sent to OpenAI for optional briefings.
 
 Local/dev FastAPI remains part of the MLOps showcase for technical review, but it is not required for the hosted Streamlit CSV Insight workflow.
+
+The committed MLOps Evidence Pack under `docs/demo-assets/mlops-evidence/` summarizes selected local/dev outputs for online reviewers. It is sanitized, lightweight, and excludes joblib model files, `mlruns/`, uploaded CSVs, secrets, and local absolute paths.

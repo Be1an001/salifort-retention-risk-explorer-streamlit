@@ -16,6 +16,8 @@ MLOPS_ROOT = PROJECT_ROOT / "mlops"
 REPORTS_DIR = MLOPS_ROOT / "reports"
 MODELS_DIR = MLOPS_ROOT / "models"
 PROCESSED_DIR = MLOPS_ROOT / "data" / "processed"
+EVIDENCE_DIR = PROJECT_ROOT / "docs" / "demo-assets" / "mlops-evidence"
+DEMO_GUIDE_PATH = PROJECT_ROOT / "docs" / "mlops-demo-guide.md"
 
 PUBLIC_REFERENCE_NOTE = (
     "The public app remains artifact-backed with weighted XGBoost at threshold 0.29. "
@@ -124,6 +126,14 @@ def _read_text(path: Path, *, limit: int = 5000) -> str:
         return path.read_text(encoding="utf-8")[:limit]
     except OSError:
         return ""
+
+
+def _evidence_json(name: str) -> dict[str, Any]:
+    return _read_json(EVIDENCE_DIR / name)
+
+
+def _evidence_text(name: str) -> str:
+    return _read_text(EVIDENCE_DIR / name, limit=8000)
 
 
 def _config_value(name: str, default: str = "") -> str:
@@ -602,6 +612,110 @@ def _render_pipeline_artifacts() -> None:
             st.markdown(model_card)
 
 
+def _render_evidence_pack() -> None:
+    st.subheader("MLOps Evidence")
+    st.markdown(
+        "This tab reads committed, sanitized evidence snapshots from "
+        "`docs/demo-assets/mlops-evidence/`. It is static reviewer evidence, not live "
+        "production infrastructure."
+    )
+    st.info(
+        "Evidence snapshots do not include joblib model files, `mlruns/`, secrets, uploaded CSVs, "
+        "or local absolute paths. They do not change the public weighted XGBoost threshold `0.29` app truth."
+    )
+
+    evidence_files = [
+        "pipeline_run_summary.json",
+        "training_evaluation_summary.json",
+        "fastapi_health_example.json",
+        "fastapi_model_info_example.json",
+        "docker_compose_validation.md",
+        "airflow_validation_summary.md",
+        "github_actions_summary.md",
+    ]
+    status_rows = [
+        {
+            "Evidence file": name,
+            "Status": "Present" if (EVIDENCE_DIR / name).exists() else "Missing",
+            "Path": str((EVIDENCE_DIR / name).relative_to(PROJECT_ROOT)),
+        }
+        for name in evidence_files
+    ]
+    st.dataframe(status_rows, use_container_width=True, hide_index=True)
+    if DEMO_GUIDE_PATH.exists():
+        st.markdown("Demo guide: `docs/mlops-demo-guide.md`")
+    else:
+        st.caption("Demo guide is missing from the current checkout.")
+
+    pipeline = _evidence_json("pipeline_run_summary.json")
+    if pipeline:
+        st.markdown("**Pipeline Run Summary**")
+        cols = st.columns(5)
+        cols[0].metric("Raw rows", pipeline.get("raw_rows", "N/A"))
+        cols[1].metric("Clean rows", pipeline.get("clean_rows", "N/A"))
+        cols[2].metric("Duplicates removed", pipeline.get("duplicates_removed", "N/A"))
+        cols[3].metric("Train rows", pipeline.get("train_rows", "N/A"))
+        cols[4].metric("Test rows", pipeline.get("test_rows", "N/A"))
+        with st.expander("Pipeline evidence JSON"):
+            st.json(pipeline)
+
+    training = _evidence_json("training_evaluation_summary.json")
+    if training:
+        st.markdown("**Training, Evaluation, and MLflow Evidence**")
+        metric_cols = st.columns(5)
+        metric_cols[0].metric("Lab champion", str(training.get("lab_champion", "N/A")))
+        metric_cols[1].metric("Lab threshold", _format_number(training.get("lab_threshold"), 2))
+        metrics = training.get("metrics", {})
+        metric_cols[2].metric("Recall", _format_number(metrics.get("recall")))
+        metric_cols[3].metric("Precision", _format_number(metrics.get("precision")))
+        metric_cols[4].metric("F2", _format_number(metrics.get("f2")))
+        st.caption("MLflow evidence is summarized from local tracking metadata; `mlruns/` is not committed.")
+        with st.expander("Training evidence JSON"):
+            st.json(training)
+
+    fastapi_health = _evidence_json("fastapi_health_example.json")
+    fastapi_info = _evidence_json("fastapi_model_info_example.json")
+    if fastapi_health or fastapi_info:
+        st.markdown("**FastAPI Serving Evidence**")
+        if fastapi_health:
+            status_cols = st.columns(4)
+            status_cols[0].metric("Artifact available", "Yes" if fastapi_health.get("model_artifact_available") else "No")
+            status_cols[1].metric("Metadata available", "Yes" if fastapi_health.get("model_metadata_available") else "No")
+            status_cols[2].metric("Loaded in memory", "Yes" if fastapi_health.get("model_loaded_in_memory") else "No")
+            status_cols[3].metric("Ready", "Yes" if fastapi_health.get("model_ready") else "No")
+        with st.expander("FastAPI evidence JSON"):
+            if fastapi_health:
+                st.markdown("`/health` example")
+                st.json(fastapi_health)
+            if fastapi_info:
+                st.markdown("`/model-info` example")
+                st.json(fastapi_info)
+
+    markdown_sections = [
+        ("Docker Compose Evidence", "docker_compose_validation.md"),
+        ("Airflow DAG Evidence", "airflow_validation_summary.md"),
+        ("GitHub Actions CI Evidence", "github_actions_summary.md"),
+    ]
+    for label, name in markdown_sections:
+        content = _evidence_text(name)
+        if content:
+            with st.expander(label):
+                st.markdown(content)
+
+    st.markdown("**Reproduce locally**")
+    _code_block(
+        "\n".join(
+            [
+                "python scripts/mlops_run_pipeline.py",
+                "python scripts/export_mlops_evidence_pack.py",
+                "python -m uvicorn api.main:app --reload",
+                "docker compose config",
+                "python scripts/validate_mlops_airflow_dag.py",
+            ]
+        )
+    )
+
+
 def _render_training_mlflow() -> None:
     st.subheader("Training & MLflow")
     champion = _lab_champion()
@@ -921,6 +1035,7 @@ def render() -> None:
         [
             "Overview",
             "Online CSV Insight",
+            "MLOps Evidence",
             "Pipeline Artifacts",
             "Training & MLflow",
             "FastAPI Serving",
@@ -935,16 +1050,18 @@ def render() -> None:
     with tabs[1]:
         _render_online_csv_insight()
     with tabs[2]:
-        _render_pipeline_artifacts()
+        _render_evidence_pack()
     with tabs[3]:
-        _render_training_mlflow()
+        _render_pipeline_artifacts()
     with tabs[4]:
-        _render_fastapi()
+        _render_training_mlflow()
     with tabs[5]:
-        _render_docker()
+        _render_fastapi()
     with tabs[6]:
-        _render_airflow()
+        _render_docker()
     with tabs[7]:
-        _render_ci()
+        _render_airflow()
     with tabs[8]:
+        _render_ci()
+    with tabs[9]:
         _render_boundaries()
