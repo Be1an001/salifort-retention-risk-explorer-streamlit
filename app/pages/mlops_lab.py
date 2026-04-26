@@ -87,18 +87,20 @@ ALLOWED_DEPARTMENT_VALUES = {
     "support",
     "technical",
 }
-PII_COLUMN_HINTS = (
-    "name",
-    "email",
-    "employee_name",
-    "employee_id",
-    "employee",
-    "emp_id",
+PII_COLUMN_NAMES = {
     "id",
+    "employee_id",
+    "emp_id",
+    "user_id",
+    "staff_id",
+    "row_id",
+    "name",
+    "employee_name",
+    "full_name",
+    "email",
     "phone",
     "address",
-    "street",
-)
+}
 MAX_UPLOAD_ROWS = 2_000
 SCORING_MODE = "streamlit_heuristic"
 
@@ -200,7 +202,7 @@ def _code_block(command: str) -> None:
 
 def _is_pii_like_column(column: str) -> bool:
     normalized = column.lower().replace("-", "_").replace(" ", "_")
-    return any(hint in normalized for hint in PII_COLUMN_HINTS)
+    return normalized in PII_COLUMN_NAMES
 
 
 def normalize_uploaded_columns(upload_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
@@ -229,6 +231,22 @@ def _sample_csv() -> str:
         [0.66, 0.74, 4, 188, 6, 0, 0, "RandD", "medium"],
         [0.52, 0.88, 5, 222, 4, 0, 0, "IT", "low"],
         [0.91, 0.57, 2, 132, 2, 0, 0, "marketing", "medium"],
+        [0.41, 0.83, 5, 224, 4, 0, 0, "accounting", "low"],
+        [0.58, 0.79, 4, 192, 3, 0, 0, "hr", "medium"],
+        [0.33, 0.89, 6, 242, 5, 0, 0, "technical", "low"],
+        [0.76, 0.64, 3, 160, 2, 1, 0, "sales", "medium"],
+        [0.49, 0.84, 5, 218, 5, 0, 0, "support", "medium"],
+        [0.69, 0.72, 4, 181, 4, 0, 1, "IT", "medium"],
+        [0.36, 0.87, 5, 238, 6, 0, 0, "product_mng", "low"],
+        [0.82, 0.69, 3, 156, 3, 0, 0, "management", "high"],
+        [0.44, 0.81, 5, 205, 4, 0, 0, "marketing", "low"],
+        [0.73, 0.75, 4, 190, 5, 0, 0, "RandD", "high"],
+        [0.57, 0.85, 5, 221, 4, 1, 0, "accounting", "medium"],
+        [0.88, 0.61, 2, 138, 2, 0, 0, "hr", "low"],
+        [0.31, 0.93, 6, 260, 5, 0, 0, "sales", "low"],
+        [0.64, 0.78, 4, 199, 4, 0, 0, "technical", "medium"],
+        [0.47, 0.82, 5, 210, 6, 0, 0, "support", "low"],
+        [0.79, 0.70, 3, 170, 3, 0, 1, "IT", "high"],
     ]
     sample_df = pd.DataFrame(sample_rows, columns=REQUIRED_FEATURE_COLUMNS)
     return sample_df.to_csv(index=False)
@@ -350,6 +368,7 @@ def build_compact_openai_summary(
         .reset_index()
         .sort_values(["high_count", "average_score"], ascending=[False, False])
     )
+    high_by_department = high_by_department[high_by_department["high_count"] > 0]
     reason_counts: dict[str, int] = {}
     for reasons in review_df["review_reasons"].astype(str):
         for reason in reasons.split("; "):
@@ -641,7 +660,11 @@ def _render_online_csv_insight() -> None:
     cols[4].metric("Scoring mode", SCORING_MODE)
 
     st.markdown("**Top departments by high review count**")
-    st.dataframe(pd.DataFrame(aggregate["top_departments"]), use_container_width=True, hide_index=True)
+    top_departments = pd.DataFrame(aggregate["top_departments"])
+    if top_departments.empty:
+        st.info("No departments have High review-band rows in this upload.")
+    else:
+        st.dataframe(top_departments, use_container_width=True, hide_index=True)
     st.markdown("**Top review reasons**")
     st.dataframe(pd.DataFrame(aggregate["top_review_reasons"]), use_container_width=True, hide_index=True)
     st.markdown("**Top 5 review rows**")

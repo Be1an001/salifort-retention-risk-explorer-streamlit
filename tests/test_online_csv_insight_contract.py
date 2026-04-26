@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import sys
+from io import StringIO
 from pathlib import Path
 
 import pandas as pd
@@ -128,6 +129,34 @@ def test_review_queue_excludes_pii_and_scores_heuristically() -> None:
     assert set(review_df["scoring_mode"]) == {"streamlit_heuristic"}
 
 
+def test_sample_template_is_realistic_and_identifier_free() -> None:
+    sample_df = pd.read_csv(StringIO(mlops_lab._sample_csv()))
+
+    assert len(sample_df) >= 20
+    assert set(mlops_lab.REQUIRED_FEATURE_COLUMNS).issubset(sample_df.columns)
+    assert "left" not in sample_df.columns
+    assert not any(mlops_lab._is_pii_like_column(column) for column in sample_df.columns)
+    assert set(sample_df["department"]).issuperset(
+        {"sales", "technical", "support", "IT", "RandD", "accounting", "hr", "management", "marketing", "product_mng"}
+    )
+    assert set(sample_df["salary"]) == {"low", "medium", "high"}
+
+    review_df = mlops_lab.build_review_queue(sample_df)
+    assert {"High", "Medium", "Low"}.issubset(set(review_df["review_band"]))
+
+
+def test_identifier_detection_uses_strict_column_matching() -> None:
+    assert mlops_lab._is_pii_like_column("work_accident") is False
+    assert mlops_lab._is_pii_like_column("uploaded_row_id") is False
+    assert mlops_lab._is_pii_like_column("satisfaction_level") is False
+    assert mlops_lab._is_pii_like_column("employee_id") is True
+    assert mlops_lab._is_pii_like_column("email") is True
+    assert mlops_lab._is_pii_like_column("name") is True
+    assert mlops_lab._is_pii_like_column("phone") is True
+    assert mlops_lab._is_pii_like_column("address") is True
+    assert mlops_lab._is_pii_like_column("row_id") is True
+
+
 def test_compact_openai_summary_excludes_raw_rows_and_pii() -> None:
     normalized, notes = mlops_lab.normalize_uploaded_columns(_sample_frame())
     _, _, quality = mlops_lab._validate_upload_frame(normalized)
@@ -141,6 +170,15 @@ def test_compact_openai_summary_excludes_raw_rows_and_pii() -> None:
     assert "email" not in serialized
     assert "top_review_rows" in compact
     assert len(compact["top_review_rows"]) <= 10
+
+
+def test_top_departments_exclude_zero_high_counts() -> None:
+    sample_df = pd.read_csv(StringIO(mlops_lab._sample_csv()))
+    review_df = mlops_lab.build_review_queue(sample_df)
+    compact = mlops_lab.build_compact_openai_summary(review_df, {"uploaded_rows": len(review_df)}, [])
+
+    assert compact["top_departments"]
+    assert all(item["high_count"] > 0 for item in compact["top_departments"])
 
 
 def test_requirements_define_openai_only_for_streamlit_runtime() -> None:
