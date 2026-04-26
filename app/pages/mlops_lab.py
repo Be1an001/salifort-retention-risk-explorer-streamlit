@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -12,12 +13,16 @@ import pandas as pd
 import streamlit as st
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SRC_ROOT = PROJECT_ROOT / "src"
 MLOPS_ROOT = PROJECT_ROOT / "mlops"
 REPORTS_DIR = MLOPS_ROOT / "reports"
 MODELS_DIR = MLOPS_ROOT / "models"
 PROCESSED_DIR = MLOPS_ROOT / "data" / "processed"
 EVIDENCE_DIR = PROJECT_ROOT / "docs" / "demo-assets" / "mlops-evidence"
 DEMO_GUIDE_PATH = PROJECT_ROOT / "docs" / "mlops-demo-guide.md"
+ONLINE_MODEL_DIR = PROJECT_ROOT / "artifacts" / "mlops_lab_online"
+ONLINE_MODEL_PATH = ONLINE_MODEL_DIR / "champion_model.joblib"
+ONLINE_MODEL_METADATA_PATH = ONLINE_MODEL_DIR / "model_metadata.json"
 
 PUBLIC_REFERENCE_NOTE = (
     "The public app remains artifact-backed with weighted XGBoost at threshold 0.29. "
@@ -76,6 +81,17 @@ DOWNLOAD_COLUMNS = REQUIRED_FEATURE_COLUMNS + [
     "review_reasons",
     "scoring_mode",
 ]
+MODEL_DOWNLOAD_COLUMNS = REQUIRED_FEATURE_COLUMNS + [
+    "uploaded_row_id",
+    "attrition_probability",
+    "model_threshold",
+    "high_risk_flag",
+    "review_band",
+    "model_name",
+    "model_scope",
+    "scoring_mode",
+    "model_reasons",
+]
 ALLOWED_SALARY_VALUES = {"low", "medium", "high"}
 ALLOWED_DEPARTMENT_VALUES = {
     "IT",
@@ -108,6 +124,7 @@ PII_COLUMN_NAMES = {
 }
 MAX_UPLOAD_ROWS = 2_000
 SCORING_MODE = "streamlit_heuristic"
+PACKAGED_MODEL_SCORING_MODE = "streamlit_packaged_model"
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -200,6 +217,86 @@ def _api_get(base_url: str, path: str) -> tuple[bool, dict[str, Any] | str]:
         return False, f"HTTP {exc.code}: {exc.reason}"
     except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
         return False, str(exc)
+
+
+def _ensure_src_path() -> None:
+    if str(SRC_ROOT) not in sys.path:
+        sys.path.insert(0, str(SRC_ROOT))
+
+
+@st.cache_resource(show_spinner=False)
+def _load_packaged_demo_model() -> Any:
+    """Load the committed MLOps Lab online demo model artifact."""
+
+    if not ONLINE_MODEL_PATH.exists():
+        raise FileNotFoundError("Packaged demo model artifact is missing.")
+    import joblib
+
+    return joblib.load(ONLINE_MODEL_PATH)
+
+
+@st.cache_data(show_spinner=False)
+def _load_packaged_model_metadata() -> dict[str, Any]:
+    return _read_json(ONLINE_MODEL_METADATA_PATH)
+
+
+def _prepare_packaged_model_features(normalized: pd.DataFrame, metadata: dict[str, Any]) -> pd.DataFrame:
+    """Return the feature matrix expected by the packaged model pipeline."""
+
+    _ensure_src_path()
+    from salifort_mlops.predict import prepare_inference_frame
+
+    records = normalized[REQUIRED_FEATURE_COLUMNS].to_dict(orient="records")
+    features = prepare_inference_frame(records, mode=str(metadata.get("mode", "operational")))
+    expected = list(metadata.get("normalized_feature_columns") or [])
+    if expected and list(features.columns) != expected:
+        raise ValueError(
+            "Packaged model feature schema mismatch. Expected "
+            + ", ".join(expected)
+            + "; got "
+            + ", ".join(features.columns)
+        )
+    return features
+
+
+def _model_review_band(probability: float, threshold: float) -> str:
+    if probability >= threshold:
+        return "High"
+    if probability >= max(threshold - 0.15, 0):
+        return "Medium"
+    return "Low"
+
+
+def build_packaged_model_review_queue(normalized: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Score uploaded rows with the committed hosted MLOps Lab demo model."""
+
+    metadata = _load_packaged_model_metadata()
+    if not metadata:
+        raise FileNotFoundError("Packaged demo model metadata is missing.")
+    missing = [column for column in REQUIRED_FEATURE_COLUMNS if column not in normalized.columns]
+    if missing:
+        raise ValueError("Missing required model input columns: " + ", ".join(missing))
+
+    model = _load_packaged_demo_model()
+    features = _prepare_packaged_model_features(normalized, metadata)
+    if not hasattr(model, "predict_proba"):
+        raise ValueError("Packaged demo model does not support predict_proba.")
+    probabilities = model.predict_proba(features)[:, 1]
+    threshold = float(metadata.get("threshold", 0.6))
+
+    output = normalized[REQUIRED_FEATURE_COLUMNS].copy()
+    output.insert(0, "uploaded_row_id", range(1, len(output) + 1))
+    output["attrition_probability"] = [float(probability) for probability in probabilities]
+    output["model_threshold"] = threshold
+    output["high_risk_flag"] = output["attrition_probability"] >= threshold
+    output["review_band"] = [
+        _model_review_band(float(probability), threshold) for probability in output["attrition_probability"]
+    ]
+    output["model_name"] = str(metadata.get("model_name", "packaged_demo_model"))
+    output["model_scope"] = str(metadata.get("model_scope", "mlops-lab-online-demo"))
+    output["scoring_mode"] = PACKAGED_MODEL_SCORING_MODE
+    output["model_reasons"] = "Packaged MLOps Lab demo model score; SHAP explanations are not generated in hosted mode."
+    return output.sort_values("attrition_probability", ascending=False), metadata
 
 
 def _status_badge(label: str, present: bool) -> None:
@@ -502,6 +599,75 @@ def build_compact_openai_summary(
     }
 
 
+def _model_department_summary(model_df: pd.DataFrame) -> pd.DataFrame:
+    summary = (
+        model_df.assign(is_high=model_df["review_band"].eq("High"))
+        .groupby("department", dropna=False)
+        .agg(
+            row_count=("uploaded_row_id", "count"),
+            high_count=("is_high", "sum"),
+            average_probability=("attrition_probability", "mean"),
+        )
+        .reset_index()
+    )
+    summary["high_rate"] = (summary["high_count"] / summary["row_count"]).round(3)
+    summary["average_probability"] = summary["average_probability"].round(3)
+    return summary.sort_values(["high_count", "high_rate", "average_probability"], ascending=[False, False, False])
+
+
+def build_packaged_model_openai_summary(
+    model_df: pd.DataFrame,
+    quality: dict[str, Any],
+    notes: list[str],
+    metadata: dict[str, Any],
+) -> dict[str, Any]:
+    """Return compact aggregate JSON for packaged model scoring briefings."""
+
+    band_counts = model_df["review_band"].value_counts().to_dict()
+    department_summary = _model_department_summary(model_df)
+    top_high_count = department_summary[department_summary["high_count"] > 0].head(5)
+    top_high_rate = department_summary[department_summary["row_count"] >= 3].sort_values(
+        ["high_rate", "high_count", "average_probability"],
+        ascending=[False, False, False],
+    ).head(5)
+    safe_notes = [
+        "Identifier-like columns were excluded from the deterministic summary."
+        if note.startswith("Identifier-like columns")
+        else note
+        for note in notes
+    ]
+    top_rows = model_df.head(10)[
+        [
+            "uploaded_row_id",
+            "attrition_probability",
+            "review_band",
+            "department",
+            "salary",
+            "tenure",
+            "number_project",
+            "average_monthly_hours",
+        ]
+    ]
+    return {
+        "row_count": int(quality.get("uploaded_rows", len(model_df))),
+        "valid_row_count": int(len(model_df)),
+        "scoring_mode": PACKAGED_MODEL_SCORING_MODE,
+        "model_name": metadata.get("model_name"),
+        "model_scope": metadata.get("model_scope"),
+        "model_threshold": float(metadata.get("threshold", 0.6)),
+        "high_count": int(band_counts.get("High", 0)),
+        "medium_count": int(band_counts.get("Medium", 0)),
+        "low_count": int(band_counts.get("Low", 0)),
+        "average_probability": float(model_df["attrition_probability"].mean()),
+        "top_departments_by_high_count": top_high_count.to_dict(orient="records"),
+        "top_departments_by_high_rate": top_high_rate.to_dict(orient="records"),
+        "top_priority_rows": top_rows.to_dict(orient="records"),
+        "responsible_use_boundary": RESPONSIBLE_USE_NOTE,
+        "public_app_boundary": PUBLIC_REFERENCE_NOTE,
+        "data_quality_notes": safe_notes,
+    }
+
+
 def _generate_ai_briefing(aggregate: dict[str, Any]) -> tuple[bool, str]:
     api_key = _config_value("OPENAI_API_KEY")
     if not api_key:
@@ -509,6 +675,35 @@ def _generate_ai_briefing(aggregate: dict[str, Any]) -> tuple[bool, str]:
 
     model = _config_value("OPENAI_SUMMARY_MODEL", "gpt-5.4-mini")
     safe_payload = json.dumps(aggregate, indent=2, default=str)
+    scoring_mode = aggregate.get("scoring_mode", SCORING_MODE)
+    if scoring_mode == PACKAGED_MODEL_SCORING_MODE:
+        system_message = (
+            "Write a concrete HR analytics reviewer briefing from aggregate, anonymized data only. "
+            "This is a packaged MLOps Lab demo model, not the public weighted XGBoost threshold 0.29 "
+            "Streamlit app model. Probabilities are review-support signals, not employment decisions. "
+            "Do not infer certainty of leaving, do not recommend firing, discipline, or employment decisions, "
+            "and do not expose identifiers."
+        )
+        user_message = (
+            "Create: 1) an executive summary, 2) rows to review first using uploaded_row_id only, "
+            "3) departments to review first, 4) main model-scoring patterns, 5) a data quality or model "
+            "boundary caveat, and 6) a responsible-use note. Use this compact aggregate JSON only:\n"
+            f"{safe_payload}"
+        )
+    else:
+        system_message = (
+            "Write a concrete HR analytics reviewer briefing from aggregate, anonymized data only. "
+            "Do not claim causal proof, do not say anyone will definitely leave, do not recommend "
+            "firing, discipline, or employment decisions, do not expose identifiers, and do not "
+            "describe the heuristic review score as a machine-learning probability."
+        )
+        user_message = (
+            "Create: 1) a 3 to 5 sentence executive summary, 2) rows to review first using "
+            "uploaded_row_id only, 3) departments to review first while distinguishing high_count "
+            "and high_rate, 4) main review drivers, 5) a data quality or sample-size caveat, "
+            "and 6) a responsible-use note. Use this compact aggregate JSON only:\n"
+            f"{safe_payload}"
+        )
     try:
         from openai import OpenAI
 
@@ -518,22 +713,11 @@ def _generate_ai_briefing(aggregate: dict[str, Any]) -> tuple[bool, str]:
             input=[
                 {
                     "role": "system",
-                    "content": (
-                        "Write a concrete HR analytics reviewer briefing from aggregate, anonymized data only. "
-                        "Do not claim causal proof, do not say anyone will definitely leave, do not recommend "
-                        "firing, discipline, or employment decisions, do not expose identifiers, and do not "
-                        "describe the heuristic review score as a machine-learning probability."
-                    ),
+                    "content": system_message,
                 },
                 {
                     "role": "user",
-                    "content": (
-                        "Create: 1) a 3 to 5 sentence executive summary, 2) rows to review first using "
-                        "uploaded_row_id only, 3) departments to review first while distinguishing high_count "
-                        "and high_rate, 4) main review drivers, 5) a data quality or sample-size caveat, "
-                        "and 6) a responsible-use note. Use this compact aggregate JSON only:\n"
-                        f"{safe_payload}"
-                    ),
+                    "content": user_message,
                 },
             ],
         )
@@ -916,18 +1100,94 @@ def _render_online_csv_insight() -> None:
     st.dataframe(review_df.head(5), use_container_width=True, hide_index=True)
 
     st.download_button(
-        "Download review summary CSV",
+        "Download heuristic review summary CSV",
         data=review_df[DOWNLOAD_COLUMNS].to_csv(index=False).encode("utf-8"),
         file_name="salifort_streamlit_review_summary.csv",
         mime="text/csv",
     )
 
+    st.markdown("**Packaged demo model scoring**")
+    st.caption(
+        "Optional hosted model inference uses a committed MLOps Lab demo model artifact. "
+        "It does not call FastAPI and does not replace the public weighted XGBoost threshold 0.29 app truth."
+    )
+    model_aggregate: dict[str, Any] | None = None
+    model_available = ONLINE_MODEL_PATH.exists() and ONLINE_MODEL_METADATA_PATH.exists()
+    if not model_available:
+        st.info(
+            "Packaged demo model artifact is not available in this deployment. "
+            "Heuristic mode remains available."
+        )
+    elif st.button("Run packaged demo model scoring"):
+        try:
+            model_df, model_metadata = build_packaged_model_review_queue(normalized)
+            model_aggregate = build_packaged_model_openai_summary(model_df, quality, notes, model_metadata)
+            st.session_state["online_csv_model_aggregate"] = model_aggregate
+            st.session_state["online_csv_model_summary_csv"] = model_df[MODEL_DOWNLOAD_COLUMNS].to_csv(index=False)
+
+            model_cols = st.columns(5)
+            model_cols[0].metric("Rows scored", len(model_df))
+            model_cols[1].metric("High", model_aggregate["high_count"])
+            model_cols[2].metric("Medium", model_aggregate["medium_count"])
+            model_cols[3].metric("Low", model_aggregate["low_count"])
+            model_cols[4].metric("Avg probability", _format_number(model_aggregate["average_probability"]))
+            st.metric("Model threshold", _format_number(model_aggregate["model_threshold"], 2))
+            st.info(
+                "Model scoring and heuristic scoring may differ because the model uses learned patterns "
+                "from the lab training pipeline, while the heuristic uses transparent rules."
+            )
+            st.markdown("**Top rows by packaged model probability**")
+            st.dataframe(model_df.head(10), use_container_width=True, hide_index=True)
+            dept_summary = _model_department_summary(model_df)
+            st.markdown("**Top departments by packaged model high-risk count**")
+            high_depts = dept_summary[dept_summary["high_count"] > 0]
+            if high_depts.empty:
+                st.info("No departments have High review-band rows in this packaged model scoring run.")
+            else:
+                st.dataframe(high_depts.head(5), use_container_width=True, hide_index=True)
+            st.markdown("**Top departments by packaged model high-risk rate**")
+            st.dataframe(
+                dept_summary[dept_summary["row_count"] >= 3]
+                .sort_values(["high_rate", "high_count", "average_probability"], ascending=[False, False, False])
+                .head(5),
+                use_container_width=True,
+                hide_index=True,
+            )
+            st.download_button(
+                "Download packaged model review summary CSV",
+                data=st.session_state["online_csv_model_summary_csv"].encode("utf-8"),
+                file_name="salifort_packaged_model_review_summary.csv",
+                mime="text/csv",
+            )
+        except Exception as exc:
+            st.info("Packaged demo model scoring is not available right now. Heuristic mode remains available.")
+            with st.expander("Packaged model scoring details"):
+                st.code(str(exc), language="text")
+    elif st.session_state.get("online_csv_model_aggregate"):
+        st.caption("Packaged model results are available from the latest scoring run in this session.")
+        st.download_button(
+            "Download latest packaged model review summary CSV",
+            data=str(st.session_state.get("online_csv_model_summary_csv", "")).encode("utf-8"),
+            file_name="salifort_packaged_model_review_summary.csv",
+            mime="text/csv",
+        )
+
     st.markdown("**Optional AI briefing**")
     st.caption("OpenAI receives only compact aggregate JSON, not raw CSV rows or identifier fields.")
+    briefing_source = "Heuristic"
+    briefing_aggregate = aggregate
+    if model_aggregate is not None or st.session_state.get("online_csv_model_aggregate"):
+        briefing_source = st.radio(
+            "Briefing source",
+            ["Packaged demo model", "Heuristic"],
+            horizontal=True,
+        )
+        if briefing_source == "Packaged demo model":
+            briefing_aggregate = st.session_state.get("online_csv_model_aggregate") or model_aggregate or aggregate
     if not _config_value("OPENAI_API_KEY"):
         st.info("Add `OPENAI_API_KEY` in Streamlit secrets to enable the optional AI briefing.")
     if st.button("Generate AI briefing"):
-        ok, briefing = _generate_ai_briefing(aggregate)
+        ok, briefing = _generate_ai_briefing(briefing_aggregate)
         if ok:
             st.markdown(briefing)
         else:

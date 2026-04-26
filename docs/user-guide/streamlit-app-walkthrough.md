@@ -170,6 +170,7 @@ What to inspect:
 - hosted Online CSV Insight sandbox for small Salifort-style uploads
 - in-memory minimal schema template and 100-row synthetic demo CSV download
 - transparent review-priority heuristic summary and optional aggregate AI briefing
+- Streamlit-native packaged demo model scoring without external FastAPI hosting
 - deterministic priority rows, department review summary, and review-driver summaries without requiring OpenAI
 - MLOps Evidence tab with committed, sanitized proof snapshots for reviewers who cannot run local services
 - package and CLI pipeline status
@@ -182,8 +183,10 @@ How to interpret it:
 
 - the page is read-only and does not run training, Docker, MLflow, Airflow, git, or CI commands
 - the hosted Online CSV Insight sandbox runs directly in Streamlit and does not require FastAPI, Docker, MLflow, Airflow, or generated model artifacts
+- packaged demo model scoring runs in Streamlit from `artifacts/mlops_lab_online/` and does not require Render or `SALIFORT_API_URL`
 - the MLOps Evidence tab is static evidence, not live production infrastructure
 - the sandbox score is a transparent heuristic, not the public weighted XGBoost model probability
+- the packaged demo model is an MLOps Lab online demo artifact, not the public app model
 - generated lab artifacts are optional, local/dev, and gitignored
 - the lab model and lab threshold do not replace the public weighted XGBoost threshold `0.29` story
 - this is technical portfolio review support, not production HR infrastructure

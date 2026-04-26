@@ -90,6 +90,7 @@ Located mainly in:
 - `scripts/mlops_*.py`
 - `api/`
 - `mlops/`
+- `artifacts/mlops_lab_online/`
 - `docker/`
 - `orchestration/airflow/dags/salifort_mlops_pipeline.py`
 - `.github/workflows/ci.yml`
@@ -99,8 +100,9 @@ Responsibilities:
 - refactor the original workflow into reusable local/dev modules
 - prepare lab data splits, train lab-only candidates, and write local reports
 - serve the lab champion through an optional FastAPI service when local model artifacts exist
+- support hosted Streamlit inference with a committed, packaged MLOps Lab demo model artifact
 - provide Docker Compose, Airflow DAG, and CI validation surfaces for technical review
-- keep lab outputs separate from the public `artifacts/v2/` app truth
+- keep lab outputs and packaged demo artifacts separate from the public `artifacts/v2/` app truth
 
 ## Repository Flow
 

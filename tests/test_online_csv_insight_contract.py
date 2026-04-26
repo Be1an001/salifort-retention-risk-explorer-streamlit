@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import json
 import sys
 from io import StringIO
 from pathlib import Path
@@ -19,6 +20,9 @@ from app.pages import mlops_lab
 MLOPS_LAB_PAGE = REPO_ROOT / "app" / "pages" / "mlops_lab.py"
 REQUIREMENTS = REPO_ROOT / "requirements.txt"
 MLOPS_REQUIREMENTS = REPO_ROOT / "requirements-mlops.txt"
+ONLINE_MODEL_DIR = REPO_ROOT / "artifacts" / "mlops_lab_online"
+ONLINE_MODEL_PATH = ONLINE_MODEL_DIR / "champion_model.joblib"
+ONLINE_MODEL_METADATA = ONLINE_MODEL_DIR / "model_metadata.json"
 
 
 def _page_text() -> str:
@@ -110,6 +114,22 @@ def test_mode_a_does_not_require_external_fastapi_secrets() -> None:
     assert "Online API Scoring" not in text
 
 
+def test_packaged_model_artifact_metadata_is_hosted_safe() -> None:
+    assert ONLINE_MODEL_METADATA.exists()
+    assert (ONLINE_MODEL_DIR / "README.md").exists()
+    assert ONLINE_MODEL_PATH.exists()
+    assert "mlops/models" not in str(ONLINE_MODEL_PATH.relative_to(REPO_ROOT)).replace("\\", "/")
+
+    metadata = json.loads(ONLINE_MODEL_METADATA.read_text(encoding="utf-8"))
+    serialized = str(metadata)
+    assert "C:\\Users\\" not in serialized
+    assert metadata["model_scope"] == "mlops-lab-online-demo"
+    assert metadata["threshold"] > 0
+    assert set(mlops_lab.REQUIRED_FEATURE_COLUMNS).issubset(metadata["required_input_columns"])
+    assert "weighted XGBoost" in metadata["public_app_boundary"]
+    assert "0.29" in metadata["public_app_boundary"]
+
+
 def test_review_queue_excludes_pii_and_scores_heuristically() -> None:
     normalized, notes = mlops_lab.normalize_uploaded_columns(_sample_frame())
     valid, errors, quality = mlops_lab._validate_upload_frame(normalized)
@@ -190,6 +210,26 @@ def test_compact_openai_summary_excludes_raw_rows_and_pii() -> None:
     assert len(compact["top_priority_rows"]) <= 10
 
 
+def test_packaged_model_scoring_returns_probabilities_without_target_column() -> None:
+    sample_df = pd.read_csv(StringIO(mlops_lab._minimal_template_csv()))
+    normalized, notes = mlops_lab.normalize_uploaded_columns(sample_df.assign(left=[0] * len(sample_df)))
+    valid, errors, quality = mlops_lab._validate_upload_frame(normalized)
+    assert valid is True
+    assert errors == []
+    assert quality["left_present"] is True
+
+    model_df, metadata = mlops_lab.build_packaged_model_review_queue(normalized)
+    compact = mlops_lab.build_packaged_model_openai_summary(model_df, quality, notes, metadata)
+
+    assert {"attrition_probability", "high_risk_flag", "review_band", "scoring_mode"}.issubset(model_df.columns)
+    assert "left" not in model_df.columns
+    assert model_df["attrition_probability"].between(0, 1).all()
+    assert set(model_df["scoring_mode"]) == {"streamlit_packaged_model"}
+    assert compact["scoring_mode"] == "streamlit_packaged_model"
+    assert "top_priority_rows" in compact
+    assert "public_app_boundary" in compact
+
+
 def test_top_departments_exclude_zero_high_counts() -> None:
     sample_df = pd.read_csv(StringIO(mlops_lab._synthetic_demo_csv()))
     review_df = mlops_lab.build_review_queue(sample_df)
@@ -211,9 +251,25 @@ def test_deterministic_insight_pack_includes_row_and_department_recommendations(
     assert all(item["high_count"] > 0 for item in insights["top_departments_by_high_count"])
 
 
-def test_requirements_define_openai_only_for_streamlit_runtime() -> None:
+def test_requirements_define_streamlit_inference_dependencies_without_heavy_services() -> None:
     runtime_requirements = REQUIREMENTS.read_text(encoding="utf-8")
     mlops_requirements = MLOPS_REQUIREMENTS.read_text(encoding="utf-8")
 
     assert "openai>=2,<3" in runtime_requirements
+    assert "scikit-learn" in runtime_requirements
+    assert "xgboost" in runtime_requirements
+    assert "joblib" in runtime_requirements
+    assert "mlflow" not in runtime_requirements.lower()
+    assert "fastapi" not in runtime_requirements.lower()
+    assert "uvicorn" not in runtime_requirements.lower()
+    assert "apache-airflow" not in runtime_requirements.lower()
     assert "openai" not in mlops_requirements.lower()
+
+
+def test_packaged_model_ui_does_not_restore_external_fastapi_mode() -> None:
+    text = _page_text()
+
+    assert "Run packaged demo model scoring" in text
+    assert "streamlit_packaged_model" in text
+    assert "Packaged MLOps Lab demo model" in text
+    assert "/batch-predict" not in text
