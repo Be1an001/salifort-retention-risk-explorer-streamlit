@@ -37,8 +37,15 @@ def test_api_app_imports_and_health_responds() -> None:
     assert app.title == "Salifort MLOps Mini-Lab API"
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json()["status"] == "ok"
-    assert "model_loaded" in response.json()
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert "model_loaded" in payload
+    assert "model_artifact_available" in payload
+    assert "model_metadata_available" in payload
+    assert "model_loaded_in_memory" in payload
+    assert "model_ready" in payload
+    assert payload["model_loaded"] == payload["model_loaded_in_memory"]
+    assert isinstance(payload["message"], str)
 
 
 def test_model_info_responds_even_without_asserting_model_presence() -> None:

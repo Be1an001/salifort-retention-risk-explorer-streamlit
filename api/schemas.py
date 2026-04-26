@@ -98,6 +98,10 @@ class ModelInfoResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: Literal["ok"]
     model_loaded: bool
+    model_artifact_available: bool = False
+    model_metadata_available: bool = False
+    model_loaded_in_memory: bool = False
+    model_ready: bool = False
     message: str
 
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException
 
 from api.model_loader import (
-    MISSING_MODEL_MESSAGE,
     ModelUnavailableError,
     get_model_info,
     get_model_state,
@@ -27,10 +26,20 @@ app = FastAPI(title="Salifort MLOps Mini-Lab API", version="0.1.0")
 @app.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     state = get_model_state()
+    if state["model_ready"] and not state["model_loaded_in_memory"]:
+        message = "Service is healthy. Model artifacts are available and the model will load on first prediction."
+    elif state["model_ready"]:
+        message = "Service is healthy. Model is loaded in memory and ready for prediction."
+    else:
+        message = "Service is healthy, but lab model artifacts are missing. Run python scripts/mlops_run_pipeline.py."
     return HealthResponse(
         status="ok",
         model_loaded=bool(state["model_loaded"]),
-        message="Service is healthy." if state["model_available"] else MISSING_MODEL_MESSAGE,
+        model_artifact_available=bool(state["model_artifact_available"]),
+        model_metadata_available=bool(state["model_metadata_available"]),
+        model_loaded_in_memory=bool(state["model_loaded_in_memory"]),
+        model_ready=bool(state["model_ready"]),
+        message=message,
     )
 
 

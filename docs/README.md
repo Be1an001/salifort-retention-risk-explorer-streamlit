@@ -26,6 +26,7 @@ Use it when you want more detail than the root `README.md` provides.
 4. [MLOps Docker Local Runbook](mlops-docker-local-runbook.md)
 5. [MLOps Airflow Local Runbook](mlops-airflow-local-runbook.md)
 6. [MLOps CI Runbook](mlops-ci-runbook.md)
+7. [MLOps Mini-Lab Demo Guide](mlops-demo-guide.md)
 
 ## Core Documents
 
@@ -43,12 +44,14 @@ Use it when you want more detail than the root `README.md` provides.
 - [MLOps Docker Local Runbook](mlops-docker-local-runbook.md): optional local/dev Docker Compose demo for API, Streamlit, and MLflow services.
 - [MLOps Airflow Local Runbook](mlops-airflow-local-runbook.md): optional local/dev Airflow DAG scaffold for orchestrating lab CLI scripts.
 - [MLOps CI Runbook](mlops-ci-runbook.md): GitHub Actions checks for app runtime, MLOps tests, Airflow static validation, and Docker Compose config.
+- [MLOps Mini-Lab Demo Guide](mlops-demo-guide.md): hosted CSV Insight walkthrough plus local/dev pipeline, API, Docker, MLflow, Airflow, and CI evidence path.
 
 ### User-facing guidance
 
 - [User Manual](user-guide/user-manual.md): how to use the app responsibly and what each page is for.
 - [Streamlit App Walkthrough](user-guide/streamlit-app-walkthrough.md): page-by-page review flow and what to look for.
 - MLOps Lab is covered in the walkthrough as an optional technical-review page for the local/dev extension.
+- The [MLOps Mini-Lab Demo Guide](mlops-demo-guide.md) gives a concise reviewer script for the hosted Online CSV Insight sandbox and local/dev evidence.
 
 ## Advanced Navigator Documentation
 

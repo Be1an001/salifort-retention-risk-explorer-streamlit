@@ -87,9 +87,16 @@ def get_model_state() -> dict[str, Any]:
     """Return current lazy-loading state without failing when files are absent."""
 
     path = _resolve_model_path()
+    metadata_available = bool(_lab_champion_metadata())
+    artifact_available = path is not None
+    loaded_in_memory = _MODEL_CACHE is not None
     return {
-        "model_available": path is not None,
-        "model_loaded": _MODEL_CACHE is not None,
+        "model_available": artifact_available,
+        "model_loaded": loaded_in_memory,
+        "model_artifact_available": artifact_available,
+        "model_metadata_available": metadata_available,
+        "model_loaded_in_memory": loaded_in_memory,
+        "model_ready": artifact_available,
         "model_path": str(path) if path else None,
     }
 
