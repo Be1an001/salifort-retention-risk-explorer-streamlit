@@ -168,7 +168,9 @@ Use this page only if you want to review the optional MLOps Mini-Lab extension.
 What to inspect:
 
 - hosted Online CSV Insight sandbox for small Salifort-style uploads
+- in-memory minimal schema template and 100-row synthetic demo CSV download
 - transparent review-priority heuristic summary and optional aggregate AI briefing
+- deterministic priority rows, department review summary, and review-driver summaries without requiring OpenAI
 - package and CLI pipeline status
 - generated local lab artifact availability
 - lab champion and MLflow tracking summary when local reports exist
@@ -216,4 +218,5 @@ For a short interview walkthrough:
 - [User Manual](user-manual.md)
 - [Technical Design and Architecture](../technical/technical-design-and-architecture.md)
 - [Environment Setup and Deployment Guide](../deployment/environment-setup-and-deployment-guide.md)
+- [MLOps Mini-Lab Demo Guide](../mlops-demo-guide.md)
 - [Navigator Notes](../navigator/README.md)

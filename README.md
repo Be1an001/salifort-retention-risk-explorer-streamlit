@@ -44,6 +44,8 @@ An optional local/dev Airflow DAG scaffold for the MLOps Mini-Lab is documented 
 
 GitHub Actions CI checks for the app and MLOps Mini-Lab are documented in the [CI runbook](docs/mlops-ci-runbook.md). CI validates contracts and configuration without deploying or publishing generated artifacts.
 
+For a reviewer-friendly path through the hosted CSV sandbox, local pipeline, FastAPI, Docker, MLflow, Airflow, and CI evidence, see the [MLOps Mini-Lab demo guide](docs/mlops-demo-guide.md).
+
 ## Documentation Map
 
 Use these documents when you want more detail than this README:
@@ -55,6 +57,7 @@ Use these documents when you want more detail than this README:
 - [User Manual](docs/user-guide/user-manual.md): how to use the app responsibly and what each page is for.
 - [Streamlit App Walkthrough](docs/user-guide/streamlit-app-walkthrough.md): page-by-page review order and guidance.
 - [Navigator Notes](docs/navigator/README.md): advanced reviewer documentation for the PACE Navigator.
+- [MLOps Mini-Lab Demo Guide](docs/mlops-demo-guide.md): hosted and local/dev demonstration paths for the MLOps extension.
 
 ## Model and Threshold Truth
 

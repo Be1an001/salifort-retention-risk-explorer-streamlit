@@ -118,7 +118,7 @@ def test_review_queue_excludes_pii_and_scores_heuristically() -> None:
     assert valid is True
     assert errors == []
     assert quality["left_present"] is True
-    assert any("Identifier-like columns excluded" in note for note in notes)
+    assert any("Identifier-like columns were excluded" in note for note in notes)
     assert "employee_name" not in review_df.columns
     assert "email" not in review_df.columns
     assert "left" not in review_df.columns
@@ -130,9 +130,9 @@ def test_review_queue_excludes_pii_and_scores_heuristically() -> None:
 
 
 def test_sample_template_is_realistic_and_identifier_free() -> None:
-    sample_df = pd.read_csv(StringIO(mlops_lab._sample_csv()))
+    sample_df = pd.read_csv(StringIO(mlops_lab._synthetic_demo_csv()))
 
-    assert len(sample_df) >= 20
+    assert len(sample_df) == 100
     assert set(mlops_lab.REQUIRED_FEATURE_COLUMNS).issubset(sample_df.columns)
     assert "left" not in sample_df.columns
     assert not any(mlops_lab._is_pii_like_column(column) for column in sample_df.columns)
@@ -142,7 +142,20 @@ def test_sample_template_is_realistic_and_identifier_free() -> None:
     assert set(sample_df["salary"]) == {"low", "medium", "high"}
 
     review_df = mlops_lab.build_review_queue(sample_df)
+    band_counts = review_df["review_band"].value_counts().to_dict()
     assert {"High", "Medium", "Low"}.issubset(set(review_df["review_band"]))
+    assert band_counts["High"] >= 20
+    assert band_counts["Medium"] >= 20
+    assert band_counts["Low"] >= 20
+
+
+def test_minimal_schema_template_is_small_and_identifier_free() -> None:
+    template_df = pd.read_csv(StringIO(mlops_lab._minimal_template_csv()))
+
+    assert 8 <= len(template_df) <= 12
+    assert set(mlops_lab.REQUIRED_FEATURE_COLUMNS).issubset(template_df.columns)
+    assert "left" not in template_df.columns
+    assert not any(mlops_lab._is_pii_like_column(column) for column in template_df.columns)
 
 
 def test_identifier_detection_uses_strict_column_matching() -> None:
@@ -154,6 +167,9 @@ def test_identifier_detection_uses_strict_column_matching() -> None:
     assert mlops_lab._is_pii_like_column("name") is True
     assert mlops_lab._is_pii_like_column("phone") is True
     assert mlops_lab._is_pii_like_column("address") is True
+    assert mlops_lab._is_pii_like_column("personal_email") is True
+    assert mlops_lab._is_pii_like_column("mobile") is True
+    assert mlops_lab._is_pii_like_column("national_id") is True
     assert mlops_lab._is_pii_like_column("row_id") is True
 
 
@@ -168,17 +184,31 @@ def test_compact_openai_summary_excludes_raw_rows_and_pii() -> None:
     assert "employee_name" not in serialized
     assert "person@example.com" not in serialized
     assert "email" not in serialized
-    assert "top_review_rows" in compact
-    assert len(compact["top_review_rows"]) <= 10
+    assert "top_priority_rows" in compact
+    assert "department_review_summary" in compact
+    assert "recommended_review_queue" in compact
+    assert len(compact["top_priority_rows"]) <= 10
 
 
 def test_top_departments_exclude_zero_high_counts() -> None:
-    sample_df = pd.read_csv(StringIO(mlops_lab._sample_csv()))
+    sample_df = pd.read_csv(StringIO(mlops_lab._synthetic_demo_csv()))
     review_df = mlops_lab.build_review_queue(sample_df)
     compact = mlops_lab.build_compact_openai_summary(review_df, {"uploaded_rows": len(review_df)}, [])
 
-    assert compact["top_departments"]
-    assert all(item["high_count"] > 0 for item in compact["top_departments"])
+    assert compact["top_departments_by_high_count"]
+    assert all(item["high_count"] > 0 for item in compact["top_departments_by_high_count"])
+
+
+def test_deterministic_insight_pack_includes_row_and_department_recommendations() -> None:
+    sample_df = pd.read_csv(StringIO(mlops_lab._synthetic_demo_csv()))
+    review_df = mlops_lab.build_review_queue(sample_df)
+    insights = mlops_lab.build_deterministic_insight_pack(review_df)
+
+    assert insights["top_priority_rows"]
+    assert insights["department_review_summary"]
+    assert insights["recommended_review_queue"]["first_priority_row_ids"]
+    assert insights["recommended_review_queue"]["departments_to_review"]
+    assert all(item["high_count"] > 0 for item in insights["top_departments_by_high_count"])
 
 
 def test_requirements_define_openai_only_for_streamlit_runtime() -> None:

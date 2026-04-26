@@ -98,8 +98,11 @@ PII_COLUMN_NAMES = {
     "employee_name",
     "full_name",
     "email",
+    "personal_email",
     "phone",
     "address",
+    "mobile",
+    "national_id",
 }
 MAX_UPLOAD_ROWS = 2_000
 SCORING_MODE = "streamlit_heuristic"
@@ -215,13 +218,17 @@ def normalize_uploaded_columns(upload_df: pd.DataFrame) -> tuple[pd.DataFrame, l
         notes.append("Normalized legacy columns: " + ", ".join(renamed))
     pii_like = [column for column in normalized.columns if _is_pii_like_column(column)]
     if pii_like:
-        notes.append("Identifier-like columns excluded from summaries: " + ", ".join(sorted(pii_like)))
+        notes.append(
+            "Identifier-like columns were excluded from displayed/downloaded review summaries "
+            "and from the OpenAI briefing payload: "
+            + ", ".join(sorted(pii_like))
+        )
     if "left" in normalized.columns:
         notes.append("Target column `left` is used only for observed upload summaries, not scoring.")
     return normalized, notes
 
 
-def _sample_csv() -> str:
+def _minimal_template_csv() -> str:
     sample_rows = [
         [0.38, 0.86, 5, 230, 5, 0, 0, "sales", "low"],
         [0.72, 0.77, 3, 172, 3, 0, 0, "technical", "medium"],
@@ -231,25 +238,38 @@ def _sample_csv() -> str:
         [0.66, 0.74, 4, 188, 6, 0, 0, "RandD", "medium"],
         [0.52, 0.88, 5, 222, 4, 0, 0, "IT", "low"],
         [0.91, 0.57, 2, 132, 2, 0, 0, "marketing", "medium"],
-        [0.41, 0.83, 5, 224, 4, 0, 0, "accounting", "low"],
-        [0.58, 0.79, 4, 192, 3, 0, 0, "hr", "medium"],
-        [0.33, 0.89, 6, 242, 5, 0, 0, "technical", "low"],
-        [0.76, 0.64, 3, 160, 2, 1, 0, "sales", "medium"],
-        [0.49, 0.84, 5, 218, 5, 0, 0, "support", "medium"],
-        [0.69, 0.72, 4, 181, 4, 0, 1, "IT", "medium"],
-        [0.36, 0.87, 5, 238, 6, 0, 0, "product_mng", "low"],
-        [0.82, 0.69, 3, 156, 3, 0, 0, "management", "high"],
-        [0.44, 0.81, 5, 205, 4, 0, 0, "marketing", "low"],
-        [0.73, 0.75, 4, 190, 5, 0, 0, "RandD", "high"],
-        [0.57, 0.85, 5, 221, 4, 1, 0, "accounting", "medium"],
-        [0.88, 0.61, 2, 138, 2, 0, 0, "hr", "low"],
-        [0.31, 0.93, 6, 260, 5, 0, 0, "sales", "low"],
-        [0.64, 0.78, 4, 199, 4, 0, 0, "technical", "medium"],
-        [0.47, 0.82, 5, 210, 6, 0, 0, "support", "low"],
-        [0.79, 0.70, 3, 170, 3, 0, 1, "IT", "high"],
     ]
     sample_df = pd.DataFrame(sample_rows, columns=REQUIRED_FEATURE_COLUMNS)
     return sample_df.to_csv(index=False)
+
+
+def _synthetic_demo_csv() -> str:
+    """Return a deterministic 100-row, PII-free scenario demo CSV."""
+
+    departments = ["sales", "technical", "support", "IT", "RandD", "accounting", "hr", "management", "marketing", "product_mng"]
+    scenario_rows: list[list[Any]] = []
+    for index in range(100):
+        department = departments[index % len(departments)]
+        scenario = index % 5
+        if scenario == 0:  # stable low-review
+            row = [0.82 - (index % 3) * 0.03, 0.64 + (index % 4) * 0.03, 3, 158 + (index % 5) * 4, 2 + (index % 3), index % 2, 1 if index % 10 == 0 else 0, department, "medium" if index % 4 else "high"]
+        elif scenario == 1:  # workload-heavy
+            row = [0.50 - (index % 4) * 0.03, 0.82 + (index % 3) * 0.03, 5 + (index % 2), 222 + (index % 6) * 5, 4 + (index % 3), 0, 0, department, "low" if index % 3 else "medium"]
+        elif scenario == 2:  # longer tenure no promotion
+            row = [0.58 - (index % 3) * 0.02, 0.73 + (index % 3) * 0.02, 5, 220 + (index % 4) * 3, 5 + (index % 3), 0, 0, department, "medium"]
+        elif scenario == 3:  # high-evaluation overloaded
+            row = [0.42 - (index % 3) * 0.04, 0.88 + (index % 3) * 0.03, 6, 238 + (index % 5) * 4, 4 + (index % 3), 0, 0, department, "low"]
+        else:  # mixed medium-review
+            row = [0.64 - (index % 2) * 0.03, 0.74 + (index % 3) * 0.02, 4, 220 + (index % 4) * 2, 4 + (index % 2), 0, 0, department, "high" if index % 3 == 0 else "medium"]
+        scenario_rows.append(row)
+    demo_df = pd.DataFrame(scenario_rows, columns=REQUIRED_FEATURE_COLUMNS)
+    return demo_df.to_csv(index=False)
+
+
+def _sample_csv() -> str:
+    """Backward-compatible alias for the richer synthetic demo CSV."""
+
+    return _synthetic_demo_csv()
 
 
 def _validate_upload_frame(normalized: pd.DataFrame) -> tuple[bool, list[str], dict[str, Any]]:
@@ -349,15 +369,25 @@ def build_review_queue(normalized: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(scored_rows).sort_values("review_score", ascending=False)
 
 
-def build_compact_openai_summary(
-    review_df: pd.DataFrame,
-    quality: dict[str, Any],
-    notes: list[str],
-) -> dict[str, Any]:
-    """Return aggregate-only, identifier-free JSON for optional OpenAI briefing."""
+def _reason_counts(review_df: pd.DataFrame, *, high_only: bool = False, limit: int = 8) -> list[dict[str, Any]]:
+    source = review_df[review_df["review_band"].eq("High")] if high_only else review_df
+    counts: dict[str, int] = {}
+    for reasons in source["review_reasons"].astype(str):
+        for reason in reasons.split("; "):
+            if reason and reason != "No elevated heuristic signal":
+                counts[reason] = counts.get(reason, 0) + 1
+    return [
+        {"reason": reason, "count": count}
+        for reason, count in sorted(counts.items(), key=lambda item: item[1], reverse=True)[:limit]
+    ]
 
-    band_counts = review_df["review_band"].value_counts().to_dict()
-    high_by_department = (
+
+def _department_review_summary(review_df: pd.DataFrame) -> pd.DataFrame:
+    reason_lookup: dict[str, str] = {}
+    for department, group in review_df.groupby("department", dropna=False):
+        reasons = _reason_counts(group, limit=1)
+        reason_lookup[department] = reasons[0]["reason"] if reasons else "No elevated heuristic signal"
+    summary = (
         review_df.assign(is_high=review_df["review_band"].eq("High"))
         .groupby("department", dropna=False)
         .agg(
@@ -366,36 +396,76 @@ def build_compact_openai_summary(
             average_score=("review_score", "mean"),
         )
         .reset_index()
-        .sort_values(["high_count", "average_score"], ascending=[False, False])
     )
-    high_by_department = high_by_department[high_by_department["high_count"] > 0]
-    reason_counts: dict[str, int] = {}
-    for reasons in review_df["review_reasons"].astype(str):
-        for reason in reasons.split("; "):
-            if reason and reason != "No elevated heuristic signal":
-                reason_counts[reason] = reason_counts.get(reason, 0) + 1
-    top_reasons = [
-        {"reason": reason, "count": count}
-        for reason, count in sorted(reason_counts.items(), key=lambda item: item[1], reverse=True)[:8]
-    ]
-    top_rows = review_df.head(10)[
-        [
-            "uploaded_row_id",
-            "review_score",
-            "department",
-            "salary",
-            "tenure",
-            "number_project",
-            "average_monthly_hours",
-            "review_reasons",
-        ]
-    ].to_dict(orient="records")
+    summary["high_rate"] = (summary["high_count"] / summary["row_count"]).round(3)
+    summary["average_score"] = summary["average_score"].round(1)
+    summary["top_reason"] = summary["department"].map(reason_lookup)
+    return summary.sort_values(["high_count", "high_rate", "average_score"], ascending=[False, False, False])
+
+
+def build_deterministic_insight_pack(review_df: pd.DataFrame) -> dict[str, Any]:
+    """Build concrete deterministic insights before any optional AI briefing."""
+
+    department_summary = _department_review_summary(review_df)
+    high_departments = department_summary[department_summary["high_count"] > 0]
+    rate_candidates = department_summary[department_summary["row_count"] >= 3].sort_values(
+        ["high_rate", "high_count", "average_score"],
+        ascending=[False, False, False],
+    )
+    top_reasons_overall = _reason_counts(review_df, high_only=False)
+    top_reasons_high = _reason_counts(review_df, high_only=True)
+    priority_rows = review_df.head(10)
+    main_themes = [item["reason"] for item in top_reasons_high[:3]] or [item["reason"] for item in top_reasons_overall[:3]]
+
+    return {
+        "department_review_summary": department_summary.to_dict(orient="records"),
+        "top_departments_by_high_count": high_departments.head(5).to_dict(orient="records"),
+        "top_departments_by_high_rate": rate_candidates.head(5).to_dict(orient="records"),
+        "top_review_reasons_overall": top_reasons_overall,
+        "top_review_reasons_high_band": top_reasons_high,
+        "top_priority_rows": priority_rows[
+            [
+                "uploaded_row_id",
+                "review_score",
+                "review_band",
+                "department",
+                "salary",
+                "tenure",
+                "number_project",
+                "average_monthly_hours",
+                "review_reasons",
+            ]
+        ].to_dict(orient="records"),
+        "recommended_review_queue": {
+            "first_priority_row_ids": priority_rows.head(5)["uploaded_row_id"].astype(int).tolist(),
+            "departments_to_review": high_departments.head(5)["department"].tolist(),
+            "main_review_themes": main_themes,
+        },
+        "largest_high_count_department": high_departments.head(1).to_dict(orient="records"),
+        "highest_high_rate_department": rate_candidates.head(1).to_dict(orient="records"),
+    }
+
+
+def build_compact_openai_summary(
+    review_df: pd.DataFrame,
+    quality: dict[str, Any],
+    notes: list[str],
+) -> dict[str, Any]:
+    """Return aggregate-only, identifier-free JSON for optional OpenAI briefing."""
+
+    band_counts = review_df["review_band"].value_counts().to_dict()
+    insights = build_deterministic_insight_pack(review_df)
     safe_notes = [
         "Identifier-like columns were excluded from the deterministic summary."
-        if note.startswith("Identifier-like columns excluded")
+        if note.startswith("Identifier-like columns")
         else note
         for note in notes
     ]
+    demo_data_note = ""
+    if len(review_df) == 100 and set(review_df["department"]) == ALLOWED_DEPARTMENT_VALUES:
+        demo_data_note = "This appears to be the built-in 100-row synthetic demo upload."
+    elif len(review_df) < 30:
+        demo_data_note = "This is a small upload; treat patterns as a lightweight demonstration."
     return {
         "row_count": int(quality.get("uploaded_rows", len(review_df))),
         "valid_row_count": int(len(review_df)),
@@ -404,11 +474,21 @@ def build_compact_openai_summary(
         "high_count": int(band_counts.get("High", 0)),
         "medium_count": int(band_counts.get("Medium", 0)),
         "low_count": int(band_counts.get("Low", 0)),
-        "top_departments": high_by_department.head(5).to_dict(orient="records"),
-        "top_review_reasons": top_reasons,
-        "top_review_rows": top_rows,
+        "band_distribution": {
+            "High": int(band_counts.get("High", 0)),
+            "Medium": int(band_counts.get("Medium", 0)),
+            "Low": int(band_counts.get("Low", 0)),
+        },
+        "department_review_summary": insights["department_review_summary"],
+        "top_departments_by_high_count": insights["top_departments_by_high_count"],
+        "top_departments_by_high_rate": insights["top_departments_by_high_rate"],
+        "top_review_reasons_overall": insights["top_review_reasons_overall"],
+        "top_review_reasons_high_band": insights["top_review_reasons_high_band"],
+        "top_priority_rows": insights["top_priority_rows"],
+        "recommended_review_queue": insights["recommended_review_queue"],
         "data_quality_notes": safe_notes,
         "responsible_use_boundary": RESPONSIBLE_USE_NOTE,
+        "demo_data_note": demo_data_note,
     }
 
 
@@ -429,16 +509,19 @@ def _generate_ai_briefing(aggregate: dict[str, Any]) -> tuple[bool, str]:
                 {
                     "role": "system",
                     "content": (
-                        "Write a concise HR analytics reviewer briefing from aggregate, anonymized data only. "
+                        "Write a concrete HR analytics reviewer briefing from aggregate, anonymized data only. "
                         "Do not claim causal proof, do not say anyone will definitely leave, do not recommend "
-                        "firing, and preserve the responsible-use boundary."
+                        "firing, discipline, or employment decisions, do not expose identifiers, and do not "
+                        "describe the heuristic review score as a machine-learning probability."
                     ),
                 },
                 {
                     "role": "user",
                     "content": (
-                        "Create a 3 to 5 sentence summary, 3 review-focus bullets, a data quality caveat "
-                        "if needed, and a responsible-use note from this compact aggregate JSON:\n"
+                        "Create: 1) a 3 to 5 sentence executive summary, 2) rows to review first using "
+                        "uploaded_row_id only, 3) departments to review first while distinguishing high_count "
+                        "and high_rate, 4) main review drivers, 5) a data quality or sample-size caveat, "
+                        "and 6) a responsible-use note. Use this compact aggregate JSON only:\n"
                         f"{safe_payload}"
                     ),
                 },
@@ -564,6 +647,15 @@ def _render_fastapi() -> None:
         model_ok, model_payload = _api_get(api_url, "/model-info")
         if health_ok:
             st.success("/health is reachable")
+            status_cols = st.columns(4)
+            status_cols[0].metric("Artifact available", "Yes" if health_payload.get("model_artifact_available") else "No")
+            status_cols[1].metric("Metadata available", "Yes" if health_payload.get("model_metadata_available") else "No")
+            status_cols[2].metric("Loaded in memory", "Yes" if health_payload.get("model_loaded_in_memory") else "No")
+            status_cols[3].metric("Ready for prediction", "Yes" if health_payload.get("model_ready") else "No")
+            st.caption(
+                "FastAPI uses lazy loading, so `Loaded in memory` can be No while artifacts are available "
+                "and the model is ready to load on first prediction."
+            )
             st.json(health_payload)
         else:
             st.info("Optional local API is not connected. This is expected unless you started FastAPI locally.")
@@ -602,12 +694,21 @@ def _render_online_csv_insight() -> None:
     st.subheader("Online CSV Insight")
     st.markdown(ONLINE_SANDBOX_NOTE)
     st.info(HEURISTIC_BOUNDARY_NOTE)
-    st.download_button(
-        "Download sample CSV template",
-        data=_sample_csv().encode("utf-8"),
-        file_name="salifort_csv_insight_template.csv",
-        mime="text/csv",
-    )
+    template_cols = st.columns(2)
+    with template_cols[0]:
+        st.download_button(
+            "Download minimal schema template",
+            data=_minimal_template_csv().encode("utf-8"),
+            file_name="salifort_csv_insight_schema_template.csv",
+            mime="text/csv",
+        )
+    with template_cols[1]:
+        st.download_button(
+            "Download 100-row synthetic demo CSV",
+            data=_synthetic_demo_csv().encode("utf-8"),
+            file_name="salifort_csv_insight_100_row_demo.csv",
+            mime="text/csv",
+        )
 
     uploaded_file = st.file_uploader(
         "Upload a Salifort-style CSV",
@@ -659,15 +760,45 @@ def _render_online_csv_insight() -> None:
     cols[3].metric("Low", aggregate["low_count"])
     cols[4].metric("Scoring mode", SCORING_MODE)
 
+    insights = build_deterministic_insight_pack(review_df)
+    priority_ids = insights["recommended_review_queue"]["first_priority_row_ids"]
+    largest_high = insights["largest_high_count_department"]
+    highest_rate = insights["highest_high_rate_department"]
+    top_reason = (insights["top_review_reasons_overall"] or [{"reason": "No elevated heuristic signal"}])[0]["reason"]
+    top_high_reason = (insights["top_review_reasons_high_band"] or [{"reason": "No High-band rows"}])[0]["reason"]
+
+    st.markdown("**Deterministic insight pack**")
+    st.markdown(f"- Priority rows to review first: uploaded_row_id {', '.join(str(item) for item in priority_ids)}")
+    if largest_high:
+        item = largest_high[0]
+        st.markdown(f"- Largest high-review count: {item['department']} with {int(item['high_count'])} High rows")
+    else:
+        st.markdown("- Largest high-review count: no High review-band rows in this upload")
+    if highest_rate:
+        item = highest_rate[0]
+        st.markdown(
+            f"- Highest high-review rate among departments with at least 3 rows: "
+            f"{item['department']} at {item['high_rate']:.0%}"
+        )
+    else:
+        st.markdown("- Highest high-review rate: no department has at least 3 rows")
+    st.markdown(f"- Most common review reason overall: {top_reason}")
+    st.markdown(f"- Most common review reason among High rows: {top_high_reason}")
+
+    st.markdown("**Department review summary**")
+    st.dataframe(pd.DataFrame(insights["department_review_summary"]), use_container_width=True, hide_index=True)
+
     st.markdown("**Top departments by high review count**")
-    top_departments = pd.DataFrame(aggregate["top_departments"])
+    top_departments = pd.DataFrame(insights["top_departments_by_high_count"])
     if top_departments.empty:
         st.info("No departments have High review-band rows in this upload.")
     else:
         st.dataframe(top_departments, use_container_width=True, hide_index=True)
-    st.markdown("**Top review reasons**")
-    st.dataframe(pd.DataFrame(aggregate["top_review_reasons"]), use_container_width=True, hide_index=True)
-    st.markdown("**Top 5 review rows**")
+    st.markdown("**Top review reasons overall**")
+    st.dataframe(pd.DataFrame(insights["top_review_reasons_overall"]), use_container_width=True, hide_index=True)
+    st.markdown("**Top review reasons among High rows**")
+    st.dataframe(pd.DataFrame(insights["top_review_reasons_high_band"]), use_container_width=True, hide_index=True)
+    st.markdown("**Recommended first-pass review queue**")
     st.dataframe(review_df.head(5), use_container_width=True, hide_index=True)
 
     st.download_button(
