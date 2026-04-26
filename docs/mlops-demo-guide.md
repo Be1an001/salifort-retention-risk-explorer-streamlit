@@ -28,6 +28,20 @@ Use this path for the fastest portfolio review.
 
 The hosted sandbox uses a transparent pandas heuristic. It does not call FastAPI, Docker, MLflow, Airflow, joblib model artifacts, or training scripts.
 
+## Hosted Packaged Model Inference
+
+The MLOps Lab can also run Streamlit-native packaged model inference in hosted demos.
+
+- The committed demo artifact lives under `artifacts/mlops_lab_online/`.
+- It is exported from the local/dev MLOps Mini-Lab champion with `python scripts/export_streamlit_model_artifact.py`.
+- Streamlit Cloud loads the artifact directly and does not require Render, Railway, Fly.io, `SALIFORT_API_URL`, or `SALIFORT_API_TOKEN`.
+- The artifact is a packaged MLOps Lab demo model, not the public artifact-backed app model.
+- The public app story remains weighted XGBoost at threshold `0.29`.
+- Inference dependencies for this hosted mode live in `requirements.txt`; local/dev MLOps tooling remains in `requirements-mlops.txt`.
+- FastAPI remains useful as local/dev API evidence, but it is not required for hosted scoring.
+
+Use the hosted page by uploading a Salifort-style CSV, reviewing the heuristic output, then clicking **Run packaged demo model scoring**.
+
 ## Local MLOps Pipeline Demo
 
 From the repository root:

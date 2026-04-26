@@ -24,6 +24,7 @@ How can Salifort Motors spot early retention risk, focus manager attention, and 
 - Provides optional advanced reviewer tools for citations, retrieval evidence, source previews, workflow readiness, and plan previews.
 - Presents a read-only MLOps Lab page for local/dev pipeline, API, Docker, Airflow, and CI review.
 - Supports a hosted Streamlit CSV Insight sandbox for small Salifort-style uploads, heuristic review scoring, and optional aggregate-only AI briefings.
+- Supports Streamlit-native packaged demo model scoring in the MLOps Lab without an external FastAPI backend.
 - Includes a sanitized MLOps Evidence Pack so online reviewers can inspect local/dev pipeline, serving, orchestration, Docker, MLflow, and CI proof without running the user's machine.
 
 ## Architecture Overview
@@ -83,6 +84,7 @@ If row-level artifacts are missing, selected app views can fall back to a simple
 - **MLOps Lab:** Shows the optional local/dev MLOps extension, including CLI pipeline outputs, MLflow tracking, FastAPI serving, Docker Compose, Airflow DAG, and CI checks.
 - **MLOps Evidence:** Shows committed, sanitized evidence snapshots for pipeline runs, training/evaluation, FastAPI examples, Docker Compose validation, Airflow validation, and GitHub Actions checks.
 - **MLOps Lab Online CSV Insight:** In hosted Streamlit, reviewers can upload a small Salifort-style CSV and receive a transparent review-priority heuristic summary without FastAPI, Docker, MLflow, Airflow, or generated joblib artifacts. Optional AI briefings use compact aggregate summaries rather than raw CSV rows.
+- **MLOps Lab Packaged Model Scoring:** Uses a committed MLOps Lab demo model artifact under `artifacts/mlops_lab_online/` for hosted Streamlit inference. It is separate from the public weighted XGBoost threshold `0.29` app truth.
 
 ## Suggested Reading Order
 
@@ -138,6 +140,8 @@ The hosted MLOps Lab can also use these optional secrets:
 - `OPENAI_SUMMARY_MODEL`, defaulting to `gpt-5.4-mini`.
 
 The hosted MLOps Lab no longer requires `SALIFORT_API_URL` or `SALIFORT_API_TOKEN`. Local/dev FastAPI remains available for technical review, but it is not required for the hosted CSV Insight sandbox.
+
+The hosted packaged model scoring path uses `scikit-learn`, `xgboost`, and `joblib` in `requirements.txt`. Local/dev MLOps tooling such as MLflow, FastAPI, and pytest remains in `requirements-mlops.txt`.
 
 Optional Docker demo:
 

@@ -29,3 +29,5 @@ Hosted Streamlit mode adds an Online CSV Insight sandbox inside the MLOps Lab pa
 Local/dev FastAPI remains part of the MLOps showcase for technical review, but it is not required for the hosted Streamlit CSV Insight workflow.
 
 The committed MLOps Evidence Pack under `docs/demo-assets/mlops-evidence/` summarizes selected local/dev outputs for online reviewers. It is sanitized, lightweight, and excludes joblib model files, `mlruns/`, uploaded CSVs, secrets, and local absolute paths.
+
+Hosted Streamlit packaged model inference uses a separate exported artifact under `artifacts/mlops_lab_online/`. That artifact is created from the local/dev lab champion for online demonstration only and still does not replace the public weighted XGBoost threshold `0.29` app truth.

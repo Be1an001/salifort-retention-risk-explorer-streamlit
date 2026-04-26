@@ -1,0 +1,52 @@
+{
+  "artifact_path": "artifacts/mlops_lab_online/champion_model.joblib",
+  "exported_at": "2026-04-26T04:50:51+00:00",
+  "metrics": {
+    "accuracy": 0.9674728940783986,
+    "cost": 309.0,
+    "f1": 0.9034653465346536,
+    "f2": 0.9115884115884116,
+    "fn": 33.0,
+    "fp": 45.0,
+    "pr_auc": 0.9384629613316712,
+    "precision": 0.8902439024390244,
+    "recall": 0.9170854271356784,
+    "roc_auc": 0.9733863065326632,
+    "tn": 1955.0,
+    "tp": 365.0
+  },
+  "mode": "operational",
+  "model_name": "xgb_weighted",
+  "model_scope": "mlops-lab-online-demo",
+  "model_version": "mlops_lab_online_v1",
+  "normalized_feature_columns": [
+    "last_evaluation",
+    "number_project",
+    "average_monthly_hours",
+    "tenure",
+    "work_accident",
+    "promotion_last_5years",
+    "department",
+    "salary_level",
+    "overworked",
+    "project_intensity",
+    "career_stall_flag",
+    "undervalued_flag",
+    "tenure_x_projects"
+  ],
+  "public_app_boundary": "The public Streamlit app remains artifact-backed with weighted XGBoost at threshold 0.29. This packaged artifact is only for the hosted MLOps Lab online demo.",
+  "required_input_columns": [
+    "satisfaction_level",
+    "last_evaluation",
+    "number_project",
+    "average_monthly_hours",
+    "tenure",
+    "work_accident",
+    "promotion_last_5years",
+    "department",
+    "salary"
+  ],
+  "responsible_use_note": "Portfolio demonstration and human review support only. This artifact is not an employment decision system.",
+  "source": "local/dev MLOps Mini-Lab champion export",
+  "threshold": 0.6
+}
