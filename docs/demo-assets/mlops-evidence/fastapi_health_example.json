@@ -1,0 +1,12 @@
+{
+  "boundary": "Local/dev MLOps Mini-Lab evidence only; not production HR and not an employment decision system.",
+  "evidence_generated_at": "2026-04-26T01:26:18+00:00",
+  "message": "Service is healthy. Model artifacts are available and the model will load on first prediction.",
+  "model_artifact_available": true,
+  "model_loaded_in_memory": false,
+  "model_metadata_available": true,
+  "model_ready": true,
+  "public_app_truth": "Public app truth remains weighted XGBoost at threshold 0.29.",
+  "source": "local/dev MLOps Mini-Lab run",
+  "status": "ok"
+}

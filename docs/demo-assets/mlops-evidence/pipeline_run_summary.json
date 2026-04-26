@@ -1,0 +1,28 @@
+{
+  "boundary": "Local/dev MLOps Mini-Lab evidence only; not production HR and not an employment decision system.",
+  "clean_rows": 11991,
+  "duplicates_removed": 3008,
+  "evidence_generated_at": "2026-04-26T01:26:18+00:00",
+  "generated_artifacts": [
+    "mlops/data/processed/train.parquet",
+    "mlops/data/processed/test.parquet",
+    "mlops/reports/data_profile.json",
+    "mlops/reports/training_results.json",
+    "mlops/reports/evaluation_summary.json",
+    "mlops/reports/model_card.md",
+    "mlops/models/champion_model.joblib"
+  ],
+  "mode": "operational",
+  "note": "Generated outputs remain local and gitignored; this file is a sanitized evidence snapshot.",
+  "pipeline": "mlops_01_prepare_data",
+  "public_app_truth": "Public app truth remains weighted XGBoost at threshold 0.29.",
+  "raw_rows": 14999,
+  "source": "local/dev MLOps Mini-Lab run",
+  "status": "generated",
+  "target_counts": {
+    "0": 10000,
+    "1": 1991
+  },
+  "test_rows": 2398,
+  "train_rows": 9593
+}

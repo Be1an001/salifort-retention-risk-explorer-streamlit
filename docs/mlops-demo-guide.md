@@ -48,6 +48,16 @@ This local/dev command prepares data, trains lab candidate models, evaluates the
 
 These files are local lab artifacts. They are intentionally not committed and do not replace `artifacts/v2`.
 
+## Export Evidence Pack
+
+After running the local pipeline, export a sanitized, lightweight evidence snapshot:
+
+```bash
+python scripts/export_mlops_evidence_pack.py
+```
+
+The evidence pack is written to `docs/demo-assets/mlops-evidence/` and can be inspected in the hosted **MLOps Evidence** tab. It includes pipeline, training/evaluation, FastAPI, Docker Compose, Airflow, and GitHub Actions summaries without copying model binaries, `mlruns/`, secrets, uploaded CSVs, or local absolute paths.
+
 ## FastAPI Local Demo
 
 After running the local pipeline, start the optional API:
