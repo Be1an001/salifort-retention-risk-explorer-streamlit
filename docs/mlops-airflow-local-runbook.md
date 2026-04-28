@@ -40,6 +40,14 @@ Dependency order:
 prepare_data >> train_model >> evaluate_model >> validate_api_contract
 ```
 
+Review-only PACE mapping:
+
+- Analyze: `prepare_data`
+- Construct: `train_model` and `evaluate_model`
+- Execute: `validate_api_contract` and package reviewer evidence outside the DAG
+
+This mapping is an explanatory portfolio frame, not an official Google PACE automation product.
+
 ## Environment Variable
 
 Set `SALIFORT_PROJECT_ROOT` to the repository root in your local Airflow environment:

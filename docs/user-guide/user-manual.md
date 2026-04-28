@@ -23,6 +23,7 @@ The app helps you:
 - inspect feature-level explanation through SHAP outputs
 - review department exposure and manager-oriented priorities
 - understand technical and responsible-use boundaries
+- inspect the MLOps Lab for hosted CSV insight, packaged demo model inference, and local/dev MLOps evidence
 
 It also includes optional advanced review tooling in the PACE Navigator for visitors who want to inspect evidence, citations, workflow structure, and readiness details.
 
@@ -38,6 +39,7 @@ For most first-time visitors, this order works best:
 6. Manager Action View
 7. Methods & Limitations
 8. PACE Navigator if you want the advanced reviewer layer
+9. MLOps Lab if you want hosted CSV insight and MLOps evidence
 
 ## Page-by-Page Guide
 
@@ -165,6 +167,26 @@ What it does not do:
 - it is not a chatbot
 - it does not run Airflow jobs
 - it does not execute workflows or act autonomously
+
+### MLOps Lab
+
+Use this page if you want to review the technical portfolio extension.
+
+What it offers:
+
+- hosted Online CSV Insight for small Salifort-style uploads
+- transparent heuristic review scoring
+- packaged demo model inference from `artifacts/mlops_lab_online/`
+- optional OpenAI briefing from compact aggregate JSON only
+- committed MLOps Evidence Pack snapshots
+- local/dev CLI, MLflow, FastAPI, Docker, Airflow, and CI guidance
+
+What it does not do:
+
+- it does not replace the public weighted XGBoost threshold `0.29` model truth
+- it does not require FastAPI, Docker, MLflow, Airflow, Render, or external scoring APIs for hosted use
+- it does not run training, workflows, shell commands, Docker, Airflow, MLflow, git, or CI from Streamlit
+- it does not send raw uploaded CSV rows or identifier-like fields to OpenAI
 
 ## How to Interpret Key Ideas
 

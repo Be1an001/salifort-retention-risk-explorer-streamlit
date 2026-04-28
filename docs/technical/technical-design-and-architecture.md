@@ -127,7 +127,7 @@ Responsibilities:
 
 The public reference model remains:
 
-- **weighted XGBoost**
+- **Weighted XGBoost**
 - **selected threshold: `0.29`**
 
 This truth is preserved in the generated metadata and supporting docs even though local reruns may produce a different metric leader.
@@ -188,12 +188,16 @@ The app also uses stable PNG figures under `outputs/figures/` for EDA, validatio
 
 ### Advanced reviewer page
 
-- `pace_navigator.py`: guided project map plus optional advanced review tools
-- `mlops_lab.py`: read-only local/dev MLOps extension dashboard for pipeline artifacts, API status, Docker, Airflow, and CI
+- `pace_navigator.py`: guided project map plus optional advanced governed review tools
+- `mlops_lab.py`: hosted Online CSV Insight, packaged demo model inference, MLOps Evidence Pack, and read-only local/dev MLOps status for pipeline artifacts, API status, Docker, Airflow, and CI
 
 ## MLOps Mini-Lab Extension
 
-The MLOps Mini-Lab is a technical portfolio extension. It demonstrates data-prep modularization, training/evaluation scripts, MLflow tracking, FastAPI serving, Docker Compose, Airflow DAG scaffolding, and GitHub Actions checks.
+The MLOps Mini-Lab is a technical portfolio extension. It has three complementary surfaces:
+
+- **Hosted Streamlit demo:** Online CSV Insight supports CSV upload, transparent heuristic review scoring, packaged demo model inference from `artifacts/mlops_lab_online/`, and optional aggregate-only OpenAI briefings.
+- **MLOps Evidence Pack:** committed, sanitized snapshots under `docs/demo-assets/mlops-evidence/` let online reviewers inspect local/dev implementation proof without running the user's computer.
+- **Local/dev implementation:** CLI data prep and training, MLflow tracking, FastAPI serving, Docker Compose, Airflow DAG scaffolding, and GitHub Actions checks demonstrate MLOps/DevOps mechanics outside Streamlit runtime.
 
 The MLOps lab is intentionally separate from the artifact-backed public app:
 
@@ -201,7 +205,7 @@ The MLOps lab is intentionally separate from the artifact-backed public app:
 - FastAPI, Docker, MLflow, and Airflow are optional local/dev tools.
 - Generated lab outputs live under `mlops/` and `mlruns/` and are gitignored.
 - The lab champion and lab threshold may differ from the public model story.
-- The public app truth remains weighted XGBoost at threshold `0.29` unless a separate governed artifact update changes it.
+- The public app truth remains Weighted XGBoost at threshold `0.29` unless a separate governed artifact update changes it.
 
 ## PACE Navigator Technical Design
 

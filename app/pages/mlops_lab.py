@@ -32,15 +32,16 @@ RESPONSIBLE_USE_NOTE = (
     "Portfolio demonstration and human review support only. This page is not an employment decision system."
 )
 HOSTED_DEMO_NOTE = (
-    "Hosted demo note: local FastAPI, MLflow, Docker Compose, Airflow, and generated lab model "
-    "artifacts are local/dev components. They are not expected to be running inside the hosted "
-    "Streamlit app. The Online CSV Insight sandbox runs directly in Streamlit Cloud without "
-    "FastAPI, Docker, MLflow, Airflow, or generated model artifacts."
+    "Hosted demo note: Online CSV Insight runs directly in Streamlit Cloud. It supports "
+    "transparent heuristic scoring and, when available, packaged demo model inference from "
+    "`artifacts/mlops_lab_online/`. Local FastAPI, MLflow, Docker Compose, Airflow, and "
+    "generated lab pipeline outputs remain local/dev components and are not required for hosted use."
 )
 ONLINE_SANDBOX_NOTE = (
     "This online sandbox lets visitors upload a small Salifort-style CSV and receive a "
-    "review-priority summary directly in Streamlit Cloud. The optional OpenAI briefing is "
-    "generated from compact aggregate statistics only; the raw CSV is not sent to the model."
+    "review-priority summary directly in Streamlit Cloud. It can use transparent heuristic "
+    "scoring or packaged demo model inference without an external API. The optional OpenAI "
+    "briefing is generated from compact aggregate statistics only; the raw CSV is not sent to the model."
 )
 HEURISTIC_BOUNDARY_NOTE = (
     "This sandbox score is a transparent review-priority heuristic, "
@@ -748,14 +749,16 @@ def _render_quality_report(quality: dict[str, Any]) -> None:
 def _render_overview() -> None:
     st.subheader("What This Lab Shows")
     st.markdown(
-        "The MLOps Mini-Lab is a local/dev extension that demonstrates how the original "
-        "notebook-style workflow can be organized into reusable modules, CLI scripts, "
-        "tracking, serving, orchestration, container configuration, and CI checks."
+        "The MLOps Lab has three review paths: a hosted Streamlit CSV sandbox, a committed "
+        "MLOps Evidence Pack, and a local/dev MLOps Mini-Lab. Together they show how the "
+        "original notebook-style workflow can be presented online while still documenting "
+        "the reusable modules, CLI scripts, tracking, serving, orchestration, containers, and CI checks."
     )
     st.info(PUBLIC_REFERENCE_NOTE)
     st.markdown(
         "- **Package foundation:** reusable data prep, feature engineering, evaluation, training, and prediction helpers.\n"
-        "- **Hosted CSV Insight:** Streamlit-only CSV upload, heuristic review scoring, and optional aggregate AI briefing.\n"
+        "- **Hosted CSV Insight:** Streamlit-only CSV upload, heuristic review scoring, packaged demo model inference, and optional aggregate AI briefing.\n"
+        "- **MLOps Evidence Pack:** committed, sanitized snapshots for reviewers who cannot run local services.\n"
         "- **CLI pipeline:** prepare data, train candidates, evaluate the lab champion, and write local reports.\n"
         "- **MLflow tracking:** local experiment runs under ignored `mlruns/`.\n"
         "- **FastAPI serving:** optional local/dev service for the lab champion model.\n"
@@ -768,13 +771,16 @@ def _render_overview() -> None:
 
 def _render_pipeline_artifacts() -> None:
     st.subheader("Pipeline Artifact Status")
-    st.caption("This section checks local lab outputs without requiring them to be committed.")
+    st.caption(
+        "This section checks the current runtime for gitignored local lab outputs. Hosted deployments "
+        "often show these as missing; the MLOps Evidence tab provides committed snapshots for online review."
+    )
     rows = _file_status_rows()
     st.dataframe(rows, use_container_width=True, hide_index=True)
     if any(row["Status"] == "Missing" for row in rows):
         st.info(
             "Local lab artifacts have not been generated in this environment. This is expected "
-            "in hosted demos because generated models, reports, and MLflow runs are gitignored."
+            "in hosted demos because generated lab models, reports, parquet files, and MLflow runs are gitignored."
         )
         st.markdown("Run locally from the repo root:")
         _code_block("python scripts/mlops_run_pipeline.py")
@@ -805,7 +811,8 @@ def _render_evidence_pack() -> None:
     )
     st.info(
         "Evidence snapshots do not include joblib model files, `mlruns/`, secrets, uploaded CSVs, "
-        "or local absolute paths. They do not change the public weighted XGBoost threshold `0.29` app truth."
+        "or local absolute paths. They complement the local/dev runbooks and do not change the public "
+        "Weighted XGBoost threshold `0.29` app truth."
     )
 
     evidence_files = [
@@ -920,6 +927,10 @@ def _render_training_mlflow() -> None:
         _code_block("python scripts/mlops_run_pipeline.py")
 
     _status_badge("MLflow run directory", (PROJECT_ROOT / "mlruns").exists())
+    st.caption(
+        "This tab reflects local/dev tracking state. In hosted Streamlit, `mlruns/` is normally absent "
+        "because local MLflow runs are gitignored; use MLOps Evidence for the committed reviewer snapshot."
+    )
     st.markdown("Run the local MLflow UI outside Streamlit:")
     _code_block("mlflow ui")
     st.markdown("Local-only MLflow URL, when started on your machine: http://localhost:5000")
@@ -937,7 +948,7 @@ def _render_fastapi() -> None:
     st.info(
         "`127.0.0.1` / `localhost` only works when FastAPI is running in the same local "
         "environment as Streamlit. In hosted Streamlit, it points to the hosted app container, "
-        "not the viewer's laptop. Hosted CSV Insight does not require FastAPI."
+        "not the viewer's laptop. Hosted CSV Insight and packaged demo model inference do not require FastAPI."
     )
 
     if st.button("Check local API status"):
@@ -969,7 +980,22 @@ def _render_fastapi() -> None:
     else:
         st.info("If the local API is offline, start it with one of these commands outside Streamlit.")
 
-    _code_block("python -m uvicorn api.main:app --reload")
+    st.markdown("Beginner-friendly local sequence:")
+    _code_block(
+        "\n".join(
+            [
+                "python scripts/mlops_run_pipeline.py",
+                "python -m uvicorn api.main:app --reload",
+            ]
+        )
+    )
+    st.markdown(
+        "- Open local API docs: http://127.0.0.1:8000/docs\n"
+        "- Check health: http://127.0.0.1:8000/health\n"
+        "- Check model metadata: http://127.0.0.1:8000/model-info"
+    )
+    st.caption("Manual local prediction endpoints are `POST /predict` and `POST /batch-predict`.")
+    st.markdown("Docker alternative:")
     _code_block("docker compose up api")
 
     with st.expander("Example /predict payload for manual local API testing"):
@@ -992,6 +1018,11 @@ def _render_online_csv_insight() -> None:
     st.subheader("Online CSV Insight")
     st.markdown(ONLINE_SANDBOX_NOTE)
     st.info(HEURISTIC_BOUNDARY_NOTE)
+    st.caption(
+        "Use heuristic scoring for transparent rule-based review logic. Use packaged demo model scoring "
+        "to test hosted model inference without an external API. In both modes, `uploaded_row_id` is "
+        "generated by the app and is not an employee identifier."
+    )
     template_cols = st.columns(2)
     with template_cols[0]:
         st.download_button(
@@ -1109,7 +1140,8 @@ def _render_online_csv_insight() -> None:
     st.markdown("**Packaged demo model scoring**")
     st.caption(
         "Optional hosted model inference uses a committed MLOps Lab demo model artifact. "
-        "It does not call FastAPI and does not replace the public weighted XGBoost threshold 0.29 app truth."
+        "It does not call FastAPI and does not replace the public Weighted XGBoost threshold 0.29 app truth. "
+        "The returned probability is a review-support signal, not an employment-decision score."
     )
     model_aggregate: dict[str, Any] | None = None
     model_available = ONLINE_MODEL_PATH.exists() and ONLINE_MODEL_METADATA_PATH.exists()
@@ -1199,12 +1231,12 @@ def _render_online_csv_insight() -> None:
 def _render_docker() -> None:
     st.subheader("Docker Compose")
     st.markdown("Docker is an optional local/dev demo. It is not required for Streamlit Cloud.")
-    st.markdown("Common local commands:")
+    st.markdown("Beginner-friendly local sequence:")
     _code_block(
         "\n".join(
             [
-                "docker compose build",
-                "docker compose up",
+                "docker compose config",
+                "python scripts/mlops_run_pipeline.py",
                 "docker compose up api",
                 "docker compose up streamlit",
                 "docker compose --profile mlflow up mlflow",
@@ -1220,7 +1252,8 @@ def _render_docker() -> None:
     st.info(
         "These URLs are for local Docker Desktop usage only. They are not expected to work from "
         "the hosted Streamlit app. The API container mounts local `mlops/` artifacts; generated "
-        "models are not baked into the image."
+        "models are not baked into the image. Run the MLOps pipeline first when you want the API "
+        "container to find a local lab champion model."
     )
 
 
@@ -1235,6 +1268,11 @@ def _render_airflow() -> None:
         "No Airflow service is expected to be running in the hosted app. The DAG is included as "
         "a local/dev orchestration scaffold and validated statically. Streamlit does not trigger "
         "DAG runs, and the DAG does not write to public app artifacts."
+    )
+    st.caption(
+        "PACE mapping for review only: Analyze = prepare data; Construct = train and evaluate; "
+        "Execute = validate API contracts and package reviewer evidence. This is not an official "
+        "PACE automation tool."
     )
 
 
@@ -1271,8 +1309,9 @@ def _render_boundaries() -> None:
         "- This is a portfolio demonstration, not production HR infrastructure.\n"
         "- Outputs support human review only and are not employment decisions.\n"
         "- The hosted CSV Insight score is a transparent heuristic, not a model probability.\n"
+        "- The packaged demo model probability is a review-support signal, not an employment-decision score.\n"
         "- The lab model and public app model are intentionally separate.\n"
-        "- The public app remains weighted XGBoost at threshold `0.29`.\n"
+        "- The public app remains Weighted XGBoost at threshold `0.29`.\n"
         "- The original eight app pages remain artifact-backed and do not depend on the MLOps lab.\n"
         "- Streamlit does not run training, Docker, MLflow, Airflow, git, CI, shell commands, or background jobs."
     )

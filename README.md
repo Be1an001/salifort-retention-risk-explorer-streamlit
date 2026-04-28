@@ -83,7 +83,7 @@ If row-level artifacts are missing, selected app views can fall back to a simple
 - **Methods & Limitations:** Explains the architecture, artifacts, fallback logic, PACE, retrieval, Airflow scaffold, agent shell, and production boundaries.
 - **MLOps Lab:** Shows the optional local/dev MLOps extension, including CLI pipeline outputs, MLflow tracking, FastAPI serving, Docker Compose, Airflow DAG, and CI checks.
 - **MLOps Evidence:** Shows committed, sanitized evidence snapshots for pipeline runs, training/evaluation, FastAPI examples, Docker Compose validation, Airflow validation, and GitHub Actions checks.
-- **MLOps Lab Online CSV Insight:** In hosted Streamlit, reviewers can upload a small Salifort-style CSV and receive a transparent review-priority heuristic summary without FastAPI, Docker, MLflow, Airflow, or generated joblib artifacts. Optional AI briefings use compact aggregate summaries rather than raw CSV rows.
+- **MLOps Lab Online CSV Insight:** In hosted Streamlit, reviewers can upload a small Salifort-style CSV, run transparent heuristic review scoring, and run packaged demo model inference without FastAPI, Docker, MLflow, Airflow, Render, or an external API. Optional AI briefings use compact aggregate summaries rather than raw CSV rows.
 - **MLOps Lab Packaged Model Scoring:** Uses a committed MLOps Lab demo model artifact under `artifacts/mlops_lab_online/` for hosted Streamlit inference. It is separate from the public weighted XGBoost threshold `0.29` app truth.
 
 ## Suggested Reading Order
@@ -95,8 +95,8 @@ If row-level artifacts are missing, selected app views can fall back to a simple
 5. Explainability
 6. Manager Action View
 7. Methods & Limitations
-8. PACE Navigator if you want the advanced reviewer layer
-9. MLOps Lab if you want the local/dev MLOps extension and CI surface
+8. PACE Navigator if you want the advanced governed reviewer layer
+9. MLOps Lab if you want hosted CSV insight, packaged demo inference, and local/dev MLOps evidence
 
 ## What PACE Means Here
 
@@ -143,9 +143,21 @@ The hosted MLOps Lab no longer requires `SALIFORT_API_URL` or `SALIFORT_API_TOKE
 
 The hosted packaged model scoring path uses `scikit-learn`, `xgboost`, and `joblib` in `requirements.txt`. Local/dev MLOps tooling such as MLflow, FastAPI, and pytest remains in `requirements-mlops.txt`.
 
+Optional local/dev MLOps path:
+
+```bash
+pip install -r requirements-mlops.txt
+python scripts/mlops_run_pipeline.py
+python scripts/export_mlops_evidence_pack.py
+python scripts/export_streamlit_model_artifact.py
+python -m uvicorn api.main:app --reload
+python scripts/validate_mlops_airflow_dag.py
+```
+
 Optional Docker demo:
 
 ```bash
+docker compose config
 docker compose up
 ```
 

@@ -71,7 +71,7 @@ conda activate salifort-streamlit
 pip install -r requirements.txt
 ```
 
-Current runtime dependencies are defined in `requirements.txt` and support the app itself. They are not meant to reproduce every offline modeling dependency used by the builders. The OpenAI Python package is included for optional hosted reviewer briefings that use compact aggregate summaries only.
+Current runtime dependencies are defined in `requirements.txt` and support the hosted app itself. They are not meant to reproduce every offline modeling dependency used by the builders. The OpenAI Python package is included for optional hosted reviewer briefings that use compact aggregate summaries only. `scikit-learn`, `xgboost`, and `joblib` are included so Streamlit Cloud can load the committed packaged MLOps Lab demo model artifact under `artifacts/mlops_lab_online/`.
 
 The optional MLOps Mini-Lab dependencies live in `requirements-mlops.txt`. They are for local/dev data prep, training, FastAPI serving, MLflow tracking, and tests. They are not required for the standard Streamlit app runtime.
 
@@ -196,7 +196,7 @@ OPENAI_API_KEY = "your_openai_api_key_here"
 OPENAI_SUMMARY_MODEL = "gpt-5.4-mini"
 ```
 
-The hosted Online CSV Insight sandbox runs directly in Streamlit Cloud. It does not require `SALIFORT_API_URL`, `SALIFORT_API_TOKEN`, FastAPI, Docker, MLflow, Airflow, or generated joblib model artifacts. It sends only compact aggregate JSON to OpenAI for optional briefings; raw uploaded CSV rows and identifier-like fields are not sent.
+The hosted Online CSV Insight sandbox runs directly in Streamlit Cloud. It supports transparent heuristic scoring and packaged demo model inference from the committed artifact in `artifacts/mlops_lab_online/`. It does not require `SALIFORT_API_URL`, `SALIFORT_API_TOKEN`, FastAPI, Docker, MLflow, Airflow, Render, or any external scoring API. It sends only compact aggregate JSON to OpenAI for optional briefings; raw uploaded CSV rows and identifier-like fields are not sent.
 
 ### 4. Deploy and smoke-test
 
@@ -226,9 +226,28 @@ The accurate posture is:
 
 ## Hosted MLOps Lab CSV Insight
 
-The MLOps Lab includes a hosted Streamlit-only CSV Insight sandbox. Visitors can upload a small Salifort-style CSV, validate the schema, run a transparent review-priority heuristic in pandas, download a review summary CSV, and optionally generate an OpenAI-assisted briefing from compact aggregate statistics.
+The MLOps Lab includes a hosted Streamlit-only CSV Insight sandbox. Visitors can upload a small Salifort-style CSV, validate the schema, run a transparent review-priority heuristic in pandas, run packaged demo model inference when the committed online artifact is present, download a review summary CSV, and optionally generate an OpenAI-assisted briefing from compact aggregate statistics.
 
 This hosted path does not deploy or call FastAPI. Local/dev FastAPI, Docker Compose, MLflow, and Airflow remain valid technical review components, but they are not required for Streamlit Community Cloud and are not run inside visitor sessions.
+
+## Optional Local MLOps Commands
+
+Install local/dev tooling only when you want to reproduce the MLOps Mini-Lab:
+
+```bash
+pip install -r requirements-mlops.txt
+python scripts/mlops_run_pipeline.py
+python scripts/export_mlops_evidence_pack.py
+python scripts/export_streamlit_model_artifact.py
+python -m uvicorn api.main:app --reload
+docker compose config
+docker compose up api
+docker compose up streamlit
+docker compose --profile mlflow up mlflow
+python scripts/validate_mlops_airflow_dag.py
+```
+
+These commands are for a development machine. Streamlit Community Cloud does not run training, FastAPI, Docker, MLflow, or Airflow for visitor sessions.
 
 ## Troubleshooting
 
