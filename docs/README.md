@@ -52,7 +52,7 @@ Use it when you want more detail than the root `README.md` provides.
 - [User Manual](user-guide/user-manual.md): how to use the app responsibly and what each page is for.
 - [Streamlit App Walkthrough](user-guide/streamlit-app-walkthrough.md): page-by-page review flow and what to look for.
 - MLOps Lab is covered in the walkthrough as an optional technical-review page for the local/dev extension.
-- The [MLOps Mini-Lab Demo Guide](mlops-demo-guide.md) gives a concise reviewer script for the hosted Online CSV Insight sandbox and local/dev evidence.
+- The [MLOps Mini-Lab Demo Guide](mlops-demo-guide.md) gives a concise reviewer script for hosted Online CSV Insight, packaged demo model inference, static MLOps Evidence, and local/dev pipeline/API/Docker/MLflow/Airflow evidence.
 
 ## Advanced Navigator Documentation
 

@@ -4,7 +4,7 @@ This folder is reserved for the local/dev MLOps Mini-Lab extension.
 
 It is separate from `artifacts/v2/` and does not replace the public Streamlit app story:
 
-- public reference model: weighted XGBoost
+- public reference model: Weighted XGBoost
 - selected public threshold: `0.29`
 - current app runtime: artifact-backed Streamlit pages
 
@@ -24,10 +24,10 @@ Phase 7 adds GitHub Actions CI checks for app compile safety, MLOps contract tes
 
 Phase 8 adds a read-only Streamlit MLOps Lab page. The page displays local lab status and documentation context but does not execute training, Docker, MLflow, Airflow, git, CI, or background jobs.
 
-Hosted Streamlit mode adds an Online CSV Insight sandbox inside the MLOps Lab page. It works without a deployed FastAPI backend: uploads are processed in memory, a transparent pandas heuristic creates a review-priority queue, identifier-like fields are excluded from summaries, and only compact aggregate statistics are sent to OpenAI for optional briefings.
+Hosted Streamlit mode adds an Online CSV Insight sandbox inside the MLOps Lab page. It works without a deployed FastAPI backend: uploads are processed in memory, a transparent pandas heuristic can create a review-priority queue, a packaged demo model artifact under `artifacts/mlops_lab_online/` can score rows directly in Streamlit, identifier-like fields are excluded from summaries, and only compact aggregate statistics are sent to OpenAI for optional briefings.
 
 Local/dev FastAPI remains part of the MLOps showcase for technical review, but it is not required for the hosted Streamlit CSV Insight workflow.
 
 The committed MLOps Evidence Pack under `docs/demo-assets/mlops-evidence/` summarizes selected local/dev outputs for online reviewers. It is sanitized, lightweight, and excludes joblib model files, `mlruns/`, uploaded CSVs, secrets, and local absolute paths.
 
-Hosted Streamlit packaged model inference uses a separate exported artifact under `artifacts/mlops_lab_online/`. That artifact is created from the local/dev lab champion for online demonstration only and still does not replace the public weighted XGBoost threshold `0.29` app truth.
+Hosted Streamlit packaged model inference uses a separate exported artifact under `artifacts/mlops_lab_online/`. That artifact is created from the local/dev lab champion for online demonstration only and still does not replace the public Weighted XGBoost threshold `0.29` app truth.

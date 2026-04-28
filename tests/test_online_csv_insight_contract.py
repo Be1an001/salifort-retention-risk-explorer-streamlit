@@ -110,8 +110,8 @@ def test_mode_a_does_not_require_external_fastapi_secrets() -> None:
 
     assert "SALIFORT_API_URL" not in text
     assert "SALIFORT_API_TOKEN" not in text
-    assert "/batch-predict" not in text
     assert "Online API Scoring" not in text
+    assert "external API" in text
 
 
 def test_packaged_model_artifact_metadata_is_hosted_safe() -> None:
@@ -272,4 +272,4 @@ def test_packaged_model_ui_does_not_restore_external_fastapi_mode() -> None:
     assert "Run packaged demo model scoring" in text
     assert "streamlit_packaged_model" in text
     assert "Packaged MLOps Lab demo model" in text
-    assert "/batch-predict" not in text
+    assert "Hosted CSV Insight and packaged demo model inference do not require FastAPI" in text

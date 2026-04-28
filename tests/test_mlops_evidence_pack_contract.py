@@ -49,7 +49,7 @@ def test_json_evidence_contains_public_boundary() -> None:
     fastapi_info = json.loads(_text(EVIDENCE_DIR / "fastapi_model_info_example.json"))
 
     combined = f"{pipeline} {training} {fastapi_info}"
-    assert "weighted XGBoost" in combined
+    assert "weighted xgboost" in combined.lower()
     assert "0.29" in combined
     assert "not production" in combined.lower() or "not an employment decision" in combined.lower()
 
@@ -79,7 +79,7 @@ def test_demo_guide_covers_hosted_and_local_evidence_paths() -> None:
     ]
     for section in required_sections:
         assert section in guide
-    assert "weighted XGBoost" in guide
+    assert "weighted xgboost" in guide.lower()
     assert "0.29" in guide
 
 

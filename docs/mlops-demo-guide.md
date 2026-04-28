@@ -26,7 +26,12 @@ Use this path for the fastest portfolio review.
 7. Optionally generate the OpenAI briefing if `OPENAI_API_KEY` is configured.
 8. Download the review summary CSV.
 
-The hosted sandbox uses a transparent pandas heuristic. It does not call FastAPI, Docker, MLflow, Airflow, joblib model artifacts, or training scripts.
+The hosted sandbox supports two Streamlit-native scoring modes:
+
+- transparent pandas heuristic scoring for rule-based review priority
+- packaged demo model inference from `artifacts/mlops_lab_online/`
+
+It does not call FastAPI, Docker, MLflow, Airflow, external API services, or training scripts during a visitor session.
 
 ## Hosted Packaged Model Inference
 
@@ -36,7 +41,7 @@ The MLOps Lab can also run Streamlit-native packaged model inference in hosted d
 - It is exported from the local/dev MLOps Mini-Lab champion with `python scripts/export_streamlit_model_artifact.py`.
 - Streamlit Cloud loads the artifact directly and does not require Render, Railway, Fly.io, `SALIFORT_API_URL`, or `SALIFORT_API_TOKEN`.
 - The artifact is a packaged MLOps Lab demo model, not the public artifact-backed app model.
-- The public app story remains weighted XGBoost at threshold `0.29`.
+- The public app story remains Weighted XGBoost at threshold `0.29`.
 - Inference dependencies for this hosted mode live in `requirements.txt`; local/dev MLOps tooling remains in `requirements-mlops.txt`.
 - FastAPI remains useful as local/dev API evidence, but it is not required for hosted scoring.
 
@@ -144,5 +149,5 @@ CI does not deploy, publish Docker images, upload model artifacts, or run produc
 - It is not an employment decision system.
 - It does not autonomously retrain or deploy models.
 - It does not host Airflow or MLflow as production services.
-- It does not replace the public weighted XGBoost reference model or selected threshold `0.29`.
+- It does not replace the public Weighted XGBoost reference model or selected threshold `0.29`.
 - It does not send raw uploaded CSV rows or identifier-like fields to OpenAI.

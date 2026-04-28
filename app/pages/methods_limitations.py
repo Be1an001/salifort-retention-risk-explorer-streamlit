@@ -53,7 +53,8 @@ def render() -> None:
         "- **Cleaning:** the app loader standardizes column names and removes duplicates before showing metrics.\n"
         "- **Generated artifacts:** files in `artifacts/v2/` hold model metadata, row-level scores, threshold tables, department exposure, and SHAP summaries.\n"
         "- **Static figures:** PNGs in `outputs/figures/` preserve the original visual story for EDA, validation, threshold tuning, and explainability.\n"
-        "- **Streamlit runtime:** Streamlit reads local files and renders pages; it does not train models or run background workflows."
+        "- **Streamlit runtime:** Streamlit reads local files and renders pages; it does not train models or run background workflows.\n"
+        "- **MLOps Lab:** the ninth page adds hosted Online CSV Insight, packaged demo model inference, and committed MLOps Evidence Pack snapshots while keeping local/dev pipeline, MLflow, FastAPI, Docker, Airflow, and CI tooling separate from public app runtime."
     )
 
     st.subheader("Dataset Note")
@@ -79,6 +80,9 @@ def render() -> None:
             "- Model visuals are loaded from existing project artifacts rather than regenerated inside the app.\n"
             "- The app does not retrain models or recalculate SHAP values while it runs.\n"
             + explorer_limit_note
+            + "- Online CSV Insight heuristic scores are transparent review-priority signals, not model probabilities.\n"
+            + "- Packaged demo model probabilities are MLOps Lab online demo signals, not the public weighted XGBoost threshold `0.29` model story.\n"
+            + "- Optional OpenAI briefings use compact aggregate JSON only; raw uploaded rows and identifier-like fields are excluded.\n"
             + "- This is an educational project, not a real company HR system, audit, or production employment workflow."
         )
     )
@@ -103,7 +107,8 @@ def render() -> None:
         "- **OpenAI API use:** the API is used for embeddings when building or querying the local retrieval index. The key must come from a local environment variable and is never stored in the repo.\n"
         "- **Answer assembly:** fixed questions can produce structured answers from retrieved evidence, with citations and caveats separated.\n"
         "- **Airflow scaffold:** the repo includes local workflow scaffolding for future orchestration review. Streamlit does not run Airflow jobs.\n"
-        "- **Agent shell:** the Navigator includes a controlled plan-preview area. It maps fixed request types to known workflows but does not execute them."
+        "- **Agent shell:** the Navigator includes a controlled plan-preview area. It maps fixed request types to known workflows but does not execute them.\n"
+        "- **MLOps Lab:** hosted CSV insight and static evidence are reviewer surfaces; local/dev FastAPI, Docker, MLflow, and Airflow are not required for the app to open."
     )
 
     st.subheader("Production-Like vs Portfolio-Only")

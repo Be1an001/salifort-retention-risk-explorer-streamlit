@@ -182,11 +182,11 @@ What to inspect:
 How to interpret it:
 
 - the page is read-only and does not run training, Docker, MLflow, Airflow, git, or CI commands
-- the hosted Online CSV Insight sandbox runs directly in Streamlit and does not require FastAPI, Docker, MLflow, Airflow, or generated model artifacts
+- the hosted Online CSV Insight sandbox runs directly in Streamlit and does not require FastAPI, Docker, MLflow, Airflow, Render, or external scoring APIs
 - packaged demo model scoring runs in Streamlit from `artifacts/mlops_lab_online/` and does not require Render or `SALIFORT_API_URL`
 - the MLOps Evidence tab is static evidence, not live production infrastructure
 - the sandbox score is a transparent heuristic, not the public weighted XGBoost model probability
-- the packaged demo model is an MLOps Lab online demo artifact, not the public app model
+- the packaged demo model probability is a review-support signal from an MLOps Lab online demo artifact, not the public app model
 - generated lab artifacts are optional, local/dev, and gitignored
 - the lab model and lab threshold do not replace the public weighted XGBoost threshold `0.29` story
 - this is technical portfolio review support, not production HR infrastructure

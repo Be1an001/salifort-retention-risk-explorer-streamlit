@@ -20,6 +20,12 @@ If the lab model is missing, the API still starts. `/health` and `/model-info` r
 
 ## Build Images
 
+Before starting services, validate the Compose file:
+
+```powershell
+docker compose config
+```
+
 ```powershell
 docker compose build
 ```
@@ -32,6 +38,12 @@ docker compose build streamlit
 ```
 
 ## Run Services
+
+If you want the API container to find a local lab champion model, generate local lab artifacts first:
+
+```powershell
+python scripts/mlops_run_pipeline.py
+```
 
 Run the API service:
 
