@@ -21,6 +21,21 @@ That separation is one of the main technical truths of the repo.
 
 ## High-Level Architecture
 
+```mermaid
+flowchart LR
+    A["Checked-in data"] --> B["Offline artifact builders"]
+    B --> C["artifacts/v2 public app artifacts"]
+    C --> D["Streamlit app/app.py"]
+    E["outputs/figures static PNGs"] --> D
+    F["navigator registries and retrieval assets"] --> D
+    G["artifacts/mlops_lab_online packaged demo model"] --> H["MLOps Lab Online CSV Insight"]
+    H --> D
+    I["Local/dev MLOps tools"] --> J["Evidence Pack and optional services"]
+    J --> D
+```
+
+The hosted Streamlit app reads committed files and renders review surfaces. It does not train, start services, trigger workflows, or mutate project artifacts during a visitor session.
+
 ### 1. App runtime layer
 
 Located mainly in:
@@ -113,6 +128,7 @@ Responsibilities:
 3. Pages prefer generated artifacts in `artifacts/v2/` when they exist.
 4. Static figures in `outputs/figures/` support EDA, storytelling, and fallback visuals.
 5. PACE Navigator builds advanced review context through `app/viewmodels/navigator_read_model.py` and the service layer under `app/services/`.
+6. MLOps Lab reads static evidence, optional local status files, and the packaged online demo model artifact without calling external scoring services in hosted mode.
 
 ### Offline flow
 
@@ -131,6 +147,17 @@ The public reference model remains:
 - **selected threshold: `0.29`**
 
 This truth is preserved in the generated metadata and supporting docs even though local reruns may produce a different metric leader.
+
+### MLOps Lab packaged demo truth
+
+The hosted MLOps Lab packaged model is separate:
+
+- artifact folder: `artifacts/mlops_lab_online/`
+- model scope: `mlops-lab-online-demo`
+- current lab threshold: `0.60`
+- source: exported from the local/dev MLOps Mini-Lab champion
+
+This model enables Streamlit-native hosted inference for the Online CSV Insight sandbox. It does not replace the public Weighted XGBoost threshold `0.29` story in `artifacts/v2/`.
 
 ### Artifact-backed runtime truth
 
@@ -207,6 +234,60 @@ The MLOps lab is intentionally separate from the artifact-backed public app:
 - The lab champion and lab threshold may differ from the public model story.
 - The public app truth remains Weighted XGBoost at threshold `0.29` unless a separate governed artifact update changes it.
 
+### Hosted Online CSV Insight flow
+
+```mermaid
+sequenceDiagram
+    participant U as "Reviewer"
+    participant S as "Streamlit MLOps Lab"
+    participant H as "Heuristic scoring"
+    participant M as "Packaged demo model"
+    participant O as "OpenAI optional briefing"
+
+    U->>S: "Upload small Salifort-style CSV"
+    S->>S: "Normalize schema and exclude identifier-like fields"
+    S->>H: "Build transparent review-priority queue"
+    S->>M: "Optionally score with artifacts/mlops_lab_online"
+    S->>U: "Show High, Medium, Low bands and downloadable summaries"
+    S->>O: "Optional compact aggregate JSON only"
+    O->>S: "Briefing text"
+```
+
+The upload is read in memory. The sandbox caps upload size, validates required fields, keeps `uploaded_row_id` as a session-only review index, and does not write uploaded CSVs to the repository.
+
+### Packaged model inference contract
+
+The packaged model path:
+
+1. loads `artifacts/mlops_lab_online/model_metadata.json`
+2. loads `artifacts/mlops_lab_online/champion_model.joblib` through `joblib`
+3. prepares the uploaded rows with `src/salifort_mlops/predict.py`
+4. calls `predict_proba`
+5. applies the lab threshold from metadata, currently `0.60`
+6. returns review-support probabilities, High/Medium/Low bands, and download columns
+
+The path runs inside Streamlit and does not require `SALIFORT_API_URL`, `SALIFORT_API_TOKEN`, Render, FastAPI, Docker, MLflow, or Airflow.
+
+### Local/dev MLOps flow
+
+```mermaid
+flowchart TD
+    A["python scripts/mlops_run_pipeline.py"] --> B["mlops/data processed splits"]
+    A --> C["mlops/models champion_model.joblib"]
+    A --> D["mlops/reports summaries and model card"]
+    A --> E["mlruns local tracking"]
+    C --> F["python -m uvicorn api.main:app --reload"]
+    D --> G["python scripts/export_mlops_evidence_pack.py"]
+    C --> H["python scripts/export_streamlit_model_artifact.py"]
+    F --> I["Local FastAPI endpoints"]
+    G --> J["docs/demo-assets/mlops-evidence"]
+    H --> K["artifacts/mlops_lab_online"]
+    L["docker compose config"] --> M["Local Docker validation"]
+    N["python scripts/validate_mlops_airflow_dag.py"] --> O["Airflow static validation"]
+```
+
+Generated local/dev outputs under `mlops/data`, `mlops/models`, `mlops/reports`, and `mlruns/` are not required for hosted Streamlit and should remain gitignored except for intentionally exported sanitized evidence.
+
 ## PACE Navigator Technical Design
 
 PACE in this repo is mainly a workflow framing system: **Plan, Analyze, Construct, Execute**. It helps organize the project and its advanced review surfaces.
@@ -247,8 +328,11 @@ The OpenAI API is used proportionally:
 
 - to build embeddings for the local retrieval index
 - to embed fixed reviewer queries for retrieval
+- to generate an optional MLOps Lab briefing from compact aggregate JSON only
 
-The app does not store API keys in the repo. Retrieval-backed review depends on environment variables such as `RAG_STREAMLIT_OPENAI_API_KEY` or `OPENAI_API_KEY`.
+The app does not store API keys in the repo. Retrieval-backed review depends on environment variables such as `RAG_STREAMLIT_OPENAI_API_KEY` or `OPENAI_API_KEY`. The hosted MLOps Lab aggregate briefing uses `OPENAI_API_KEY` and optional `OPENAI_SUMMARY_MODEL`.
+
+Privacy boundary: raw uploaded CSV rows and identifier-like fields are not sent to OpenAI. The MLOps Lab prompt receives compact aggregate counts, top drivers, department summaries, and responsible-use caveats only.
 
 ### Source preview and evidence design
 
@@ -300,7 +384,7 @@ Advanced retrieval-backed reviewer features may require:
 
 ### Community Cloud posture
 
-The repo is designed to be deployable as a public portfolio app on Streamlit Community Cloud using `app/app.py` as the entry point.
+The repo is designed to be deployable as a public portfolio app on Streamlit Community Cloud using `app/app.py` as the entry point. Hosted Streamlit uses `requirements.txt`; `requirements-mlops.txt`, FastAPI, Docker Compose, MLflow, and Airflow are local/dev extension tools.
 
 ## Technical Boundaries
 
@@ -310,6 +394,9 @@ The current repo should not be described as:
 - a production workflow system
 - a production Airflow deployment
 - an autonomous multi-agent application
+- a hosted FastAPI scoring platform
+- a system that sends raw CSV rows or PII to OpenAI
+- a production employment decision system
 
 The accurate description is:
 
@@ -325,3 +412,5 @@ The accurate description is:
 - [User Manual](../user-guide/user-manual.md)
 - [Streamlit App Walkthrough](../user-guide/streamlit-app-walkthrough.md)
 - [Navigator Notes](../navigator/README.md)
+- [MLOps Mini-Lab Demo Guide](../mlops-demo-guide.md)
+- [Formal Documentation Package](../formal/salifort-formal-document-package.md)

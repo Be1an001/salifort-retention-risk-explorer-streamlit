@@ -9,7 +9,7 @@ The DAG orchestrates existing CLI scripts for the lab pipeline. It does not run 
 ## Boundary
 
 - Local/dev orchestration only.
-- No production scheduler is configured in this phase.
+- No production scheduler is configured for this portfolio repo.
 - No automatic model deployment.
 - No HR alerts.
 - No Streamlit-triggered execution.
@@ -101,5 +101,5 @@ The validation script compiles the DAG and checks the expected DAG ID, task IDs,
 - The BashOperator commands assume a Linux-like Airflow runtime.
 - The validation task requires local test dependencies to be installed.
 - The DAG is not a deployment mechanism.
-- The DAG does not include Dockerized Airflow in this phase.
+- The DAG does not include Dockerized Airflow.
 - The DAG does not make the Streamlit app depend on Airflow.

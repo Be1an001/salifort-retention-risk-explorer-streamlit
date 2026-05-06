@@ -8,12 +8,13 @@ This is a portfolio and educational decision-support app. It is not a production
 
 ## Product Summary
 
-The app packages an employee-retention-risk analytics project into a multi-page Streamlit experience that is easy to review, discuss, and demonstrate. It combines:
+The app packages an employee-retention-risk analytics project into a nine-page Streamlit experience that is easy to review, discuss, and demonstrate. It combines:
 
 - a checked-in HR dataset
 - generated model and explanation artifacts
 - static project visuals
 - optional advanced reviewer tools for evidence, citations, retrieval, workflow review, and readiness inspection
+- a hosted MLOps Lab CSV sandbox with transparent heuristic scoring, packaged demo model inference, aggregate-only OpenAI briefing, and local/dev MLOps evidence
 
 The product goal is not only to show model outputs, but to make the full review path easier to understand for different audiences.
 
@@ -40,7 +41,7 @@ They need a clear portfolio story:
 - what the model does and does not claim
 - how the app demonstrates analytical, product, and communication skills
 
-### 2. HR, HRBP, and manager-style readers
+### 2. HR, HRBP, department managers, and manager-style readers
 
 They need a practical review tool:
 
@@ -49,7 +50,16 @@ They need a practical review tool:
 - explanation of risk drivers without causal overclaiming
 - clear responsible-use boundaries
 
-### 3. Technical reviewers
+### 3. Executives and senior stakeholders
+
+They need a concise management story:
+
+- what workforce risk pattern is being explored
+- what value the app provides as a decision-support demo
+- which risks require human review and governance
+- why the app should not be treated as a production HR or employment-decision system
+
+### 4. Technical reviewers
 
 They need architecture and auditability:
 
@@ -57,9 +67,9 @@ They need architecture and auditability:
 - generated artifact contracts
 - retrieval and citation behavior
 - workflow/readiness boundaries
-- preview-only orchestration and agent-shell layers
+- hosted Streamlit model inference versus local/dev FastAPI, Docker, MLflow, Airflow, and CI boundaries
 
-### 4. Developers and maintainers
+### 5. Developers and maintainers
 
 They need runnable, inspectable project structure:
 
@@ -80,6 +90,7 @@ The current product should help a visitor:
 6. Translate the analysis into department review priorities in Manager Action View.
 7. Understand architecture, limitations, and boundaries in Methods & Limitations.
 8. Optionally inspect advanced evidence and review tooling in PACE Navigator.
+9. Optionally review hosted CSV insight, packaged demo model inference, and local/dev MLOps evidence in MLOps Lab.
 
 ## Core Feature Set
 
@@ -164,6 +175,31 @@ Provides optional advanced review tools for technical inspection:
 - workflow contracts and readiness review
 - preview-only plan shell
 
+### MLOps Lab
+
+Provides the ninth Streamlit page and separates hosted reviewer features from local/dev engineering evidence:
+
+- Online CSV Insight for small Salifort-style uploads
+- transparent pandas heuristic review scoring
+- packaged MLOps Lab demo model inference from `artifacts/mlops_lab_online/`
+- optional OpenAI briefing from compact aggregate JSON only
+- static MLOps Evidence Pack snapshots
+- local/dev command guidance for the MLOps pipeline, FastAPI, Docker Compose, MLflow, Airflow DAG validation, and CI
+
+Important model boundary:
+
+- the public app truth remains Weighted XGBoost at threshold `0.29`
+- the MLOps Lab packaged demo model uses its own lab threshold, currently `0.60` in `artifacts/mlops_lab_online/model_metadata.json`
+- the lab model and threshold do not replace the public app model story
+
+## Representative User Stories
+
+- As an HR reader, I want a safe way to inspect departments and risk bands so I can identify where human review should start.
+- As a department manager, I want model outputs translated into review priorities so I can discuss workload, promotion, and team context before taking action.
+- As an executive reviewer, I want a concise view of value, governance, and limitations so I can understand the demo without reading code.
+- As a technical reviewer, I want to inspect architecture, artifacts, retrieval evidence, CI checks, and local/dev MLOps boundaries so I can evaluate engineering maturity.
+- As a portfolio interviewer, I want a short guided path through the nine pages so I can discuss the project in a limited interview window.
+
 ## Non-Goals
 
 The current repo does not aim to be:
@@ -174,6 +210,8 @@ The current repo does not aim to be:
 - a free-form chatbot
 - a production Airflow deployment
 - an autonomous multi-agent system
+- a hosted FastAPI, Docker, MLflow, or Airflow service
+- a system that sends raw uploaded CSV rows or PII to OpenAI
 
 ## Success Criteria
 
@@ -200,8 +238,10 @@ The advanced review layer should make sources, evidence, workflow contracts, and
 - Streamlit reads local files; it does not retrain models during a visitor session.
 - Fallback screening exists for resilience, but it is not the final model probability.
 - Retrieval-backed review is fixed-question and evidence-oriented, not open-ended chat.
-- OpenAI API use is limited to optional embedding-backed retrieval workflows when the user supplies a local key.
+- OpenAI API use is limited to optional embedding-backed retrieval workflows and optional MLOps Lab aggregate-only briefings when the user supplies a key.
+- Online CSV Insight sends compact aggregate JSON only for optional OpenAI briefings; raw uploaded CSV rows and identifier-like fields are excluded.
 - Airflow and agent surfaces are review-oriented scaffolds and previews, not app-executed automation.
+- FastAPI, Docker Compose, MLflow, and Airflow are local/dev MLOps components and do not run inside hosted Streamlit Community Cloud sessions.
 
 ## Future Opportunities
 
@@ -211,5 +251,6 @@ The repo leaves room for later expansion, such as:
 - richer threshold scenario simulation
 - more realistic multi-period workforce monitoring
 - deeper offline orchestration
+- clearer reviewer packaging for screenshots and slide assets
 
 Those are future directions, not current product commitments.
