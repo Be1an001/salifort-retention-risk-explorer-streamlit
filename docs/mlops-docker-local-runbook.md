@@ -103,7 +103,7 @@ Generated models, reports, parquet files, and `mlruns/` remain gitignored.
 - Streamlit does not trigger training, MLflow, Docker, or Airflow.
 - The FastAPI model is a local/dev MLOps lab model only.
 - Predictions are portfolio demonstration and human-review support only, not employment decisions.
-- Airflow is not included in this phase.
+- Airflow is not included in this Docker Compose stack. Use the Airflow local runbook for the separate local/dev DAG scaffold.
 
 ## Troubleshooting
 

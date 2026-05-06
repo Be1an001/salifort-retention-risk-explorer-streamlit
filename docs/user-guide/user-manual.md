@@ -13,6 +13,8 @@ It is especially useful for:
 
 This app supports review and discussion. It should not be treated as an automated employment decision system.
 
+One-sentence system intro: the app is a portfolio-grade decision-support demo that helps reviewers explore employee retention-risk patterns, model trade-offs, explanations, and MLOps evidence without automating HR decisions.
+
 ## What the App Helps You Do
 
 The app helps you:
@@ -26,6 +28,23 @@ The app helps you:
 - inspect the MLOps Lab for hosted CSV insight, packaged demo model inference, and local/dev MLOps evidence
 
 It also includes optional advanced review tooling in the PACE Navigator for visitors who want to inspect evidence, citations, workflow structure, and readiness details.
+
+## App Layout
+
+### Sidebar and navigation
+
+Use the left sidebar to move across the nine Streamlit pages. The pages are grouped by review intent:
+
+- **Start Here:** Overview and PACE Navigator.
+- **Interactive Analysis:** Workforce Explorer and EDA & Patterns.
+- **Decision Support:** Model & Threshold Lab, Explainability, Manager Action View, and Methods & Limitations.
+- **Governance & Ops:** MLOps Lab.
+
+The sidebar tells you where you are in the product. It does not change data, retrain models, or run MLOps commands.
+
+### Main panel
+
+The main panel is where each page shows filters, charts, tables, interpretation notes, and responsible-use warnings. Read the captions and warning boxes closely because they explain whether a view is using generated model artifacts, fallback screening logic, hosted CSV sandbox scoring, or local/dev MLOps evidence.
 
 ## Suggested Reading Order
 
@@ -106,6 +125,13 @@ Interpret carefully:
 - threshold choice is a review-design decision, not just a technical metric
 - accuracy alone is not enough in an attrition-risk setting
 
+Business-language metrics:
+
+- **Recall:** among employees who actually left in the test data, how many the model caught for review.
+- **Precision:** among employees flagged for review, how many were actual leavers in the test data.
+- **Threshold:** the probability cutoff used to decide how many cases should enter review.
+- Lowering the threshold usually catches more true leavers but also sends more people into review who may not leave.
+
 ### Explainability
 
 Use this page to understand which features most influence the model signal.
@@ -119,6 +145,7 @@ Interpret carefully:
 
 - SHAP explains model behavior
 - SHAP does not prove why an employee left
+- feature importance is a guide to what the model relied on, not a causal HR finding
 
 ### Manager Action View
 
@@ -205,6 +232,22 @@ Fallback logic exists so the app remains explorable when some generated artifact
 
 The threshold controls how broadly the app flags likely risk cases for review. Lower thresholds can capture more true positives but can also increase false positives and review workload.
 
+In the public app, the selected threshold is `0.29` for the public weighted XGBoost story. In the MLOps Lab packaged demo model, the lab threshold is separate and currently `0.60`.
+
+### Risk probability
+
+A risk probability is a model score between 0 and 1. Higher values mean the model sees a stronger similarity to employees who left in the training history. It is a review cue, not a decision.
+
+### High / Medium / Low bands
+
+Where the app shows High, Medium, or Low bands, use them as prioritization labels:
+
+- **High:** review earlier and look for workload, promotion, salary, manager, or team-context issues.
+- **Medium:** watch and compare with department context before escalating.
+- **Low:** no immediate model-driven priority, but still consider normal HR context.
+
+Online CSV Insight heuristic bands come from transparent rules. Packaged demo model bands come from the lab model threshold. Neither banding system replaces the public app threshold `0.29`.
+
 ### Explainability
 
 SHAP helps explain what the model is responding to. It should be used to guide discussion, not to make causal claims.
@@ -234,6 +277,16 @@ No. The app reads checked-in data, generated artifacts, static figures, and adva
 
 Not for the core pages. Some advanced PACE Navigator retrieval-backed reviewer features may require a local OpenAI API key.
 
+The MLOps Lab optional AI briefing also needs `OPENAI_API_KEY` if you want generated summary text. Without a key, the deterministic CSV insight tables and packaged demo model scoring still work when their artifacts are present.
+
+### Does OpenAI receive uploaded CSV rows?
+
+No. Online CSV Insight sends only compact aggregate JSON for the optional briefing. Raw uploaded CSV rows and identifier-like fields are excluded.
+
+### Does hosted Streamlit require FastAPI, Docker, MLflow, or Airflow?
+
+No. Those are local/dev MLOps components for technical review. Hosted Streamlit uses the app entry point `app/app.py`, reads committed artifacts, and runs Online CSV Insight directly inside Streamlit.
+
 ### Is PACE the app name?
 
 No. The app name is **Salifort Motors Retention Risk Explorer**. PACE is the workflow framing used in the advanced Navigator.
@@ -242,6 +295,8 @@ No. The app name is **Salifort Motors Retention Risk Explorer**. PACE is the wor
 
 - [Root README](../../README.md)
 - [Documentation Guide](../README.md)
+- [HR Quick Start](hr-quick-start.md)
+- [Executive Summary](../executive/executive-summary.md)
 - [Streamlit App Walkthrough](streamlit-app-walkthrough.md)
 - [Technical Design and Architecture](../technical/technical-design-and-architecture.md)
 - [Environment Setup and Deployment Guide](../deployment/environment-setup-and-deployment-guide.md)

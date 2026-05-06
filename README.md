@@ -57,6 +57,9 @@ Use these documents when you want more detail than this README:
 - [Technical Design and Architecture](docs/technical/technical-design-and-architecture.md): runtime layers, artifacts, retrieval design, workflow contracts, and boundaries.
 - [Environment Setup and Deployment Guide](docs/deployment/environment-setup-and-deployment-guide.md): local setup, optional API configuration, and deployment steps.
 - [User Manual](docs/user-guide/user-manual.md): how to use the app responsibly and what each page is for.
+- [HR Quick Start](docs/user-guide/hr-quick-start.md): one-page business guide for HR and department-manager style review.
+- [Executive Summary](docs/executive/executive-summary.md): non-technical management summary and governance framing.
+- [Formal Documentation Package](docs/formal/salifort-formal-document-package.md): formal docs index, document-control table, screenshot placeholders, and maintenance rules.
 - [Streamlit App Walkthrough](docs/user-guide/streamlit-app-walkthrough.md): page-by-page review order and guidance.
 - [Navigator Notes](docs/navigator/README.md): advanced reviewer documentation for the PACE Navigator.
 - [MLOps Mini-Lab Demo Guide](docs/mlops-demo-guide.md): hosted and local/dev demonstration paths for the MLOps extension.
@@ -73,6 +76,8 @@ If row-level artifacts are missing, selected app views can fall back to a simple
 
 ## Page Guide
 
+The Streamlit sidebar contains nine pages:
+
 - **Overview:** Explains the project question, dataset, model, threshold, and suggested review path. Start here.
 - **PACE Navigator:** Gives a guided project map first, then optional advanced review tools for fixed-question answers, citations, retrieval evidence, workflow readiness, and plan preview.
 - **Workforce Explorer:** Lets reviewers filter departments, salary bands, tenure bands, and risk flags to inspect workforce slices and department exposure.
@@ -81,10 +86,7 @@ If row-level artifacts are missing, selected app views can fall back to a simple
 - **Explainability:** Uses SHAP outputs to explain which features influence the model signal, while keeping causal claims off-limits.
 - **Manager Action View:** Turns exposure patterns into practical review priorities and responsible-use guidance.
 - **Methods & Limitations:** Explains the architecture, artifacts, fallback logic, PACE, retrieval, Airflow scaffold, agent shell, and production boundaries.
-- **MLOps Lab:** Shows the optional local/dev MLOps extension, including CLI pipeline outputs, MLflow tracking, FastAPI serving, Docker Compose, Airflow DAG, and CI checks.
-- **MLOps Evidence:** Shows committed, sanitized evidence snapshots for pipeline runs, training/evaluation, FastAPI examples, Docker Compose validation, Airflow validation, and GitHub Actions checks.
-- **MLOps Lab Online CSV Insight:** In hosted Streamlit, reviewers can upload a small Salifort-style CSV, run transparent heuristic review scoring, and run packaged demo model inference without FastAPI, Docker, MLflow, Airflow, Render, or an external API. Optional AI briefings use compact aggregate summaries rather than raw CSV rows.
-- **MLOps Lab Packaged Model Scoring:** Uses a committed MLOps Lab demo model artifact under `artifacts/mlops_lab_online/` for hosted Streamlit inference. It is separate from the public weighted XGBoost threshold `0.29` app truth.
+- **MLOps Lab:** Shows the hosted Online CSV Insight sandbox, packaged demo model inference, MLOps Evidence Pack, and local/dev pipeline, MLflow, FastAPI, Docker Compose, Airflow DAG, and CI checks. Hosted CSV Insight does not require FastAPI, Docker, MLflow, Airflow, Render, or an external API. Optional AI briefings use compact aggregate summaries rather than raw CSV rows.
 
 ## Suggested Reading Order
 
@@ -129,7 +131,7 @@ The agent shell is a controlled plan-preview surface. It maps fixed request type
 
 ```bash
 pip install -r requirements.txt
-streamlit run app/app.py
+python -m streamlit run app/app.py
 ```
 
 Some advanced retrieval-backed reviewer features require a local OpenAI API key supplied through environment variables such as `RAG_STREAMLIT_OPENAI_API_KEY` or `OPENAI_API_KEY`. No API key or secret should be committed to this repository.
@@ -158,7 +160,9 @@ Optional Docker demo:
 
 ```bash
 docker compose config
-docker compose up
+docker compose up api
+docker compose up streamlit
+docker compose --profile mlflow up mlflow
 ```
 
 See the [Docker local runbook](docs/mlops-docker-local-runbook.md) for API, Streamlit, and MLflow service details.
@@ -181,7 +185,7 @@ CI details are available in the [CI runbook](docs/mlops-ci-runbook.md).
 - `artifacts/v2/`: generated model and explanation artifacts consumed by the app.
 - `navigator/`: registries, retrieval packs, readiness contracts, and advanced review metadata.
 - `scripts/`: offline builders and validation scripts.
-- `docs/`: walkthroughs and Navigator implementation notes.
+- `docs/`: PRD, TDD, deployment guide, user guides, formal package, runbooks, evidence snapshots, and Navigator implementation notes.
 
 ## Portfolio vs Production Boundary
 

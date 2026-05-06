@@ -1,33 +1,58 @@
 # Salifort MLOps Mini-Lab
 
-This folder is reserved for the local/dev MLOps Mini-Lab extension.
+This folder supports the local/dev MLOps Mini-Lab extension for the Salifort Motors Retention Risk Explorer.
 
 It is separate from `artifacts/v2/` and does not replace the public Streamlit app story:
 
 - public reference model: Weighted XGBoost
 - selected public threshold: `0.29`
-- current app runtime: artifact-backed Streamlit pages
+- public app runtime: artifact-backed Streamlit pages
+- MLOps Lab packaged demo threshold: `0.60` in `artifacts/mlops_lab_online/model_metadata.json`
 
-Future phases may write processed lab datasets, trained lab models, and report files here. Those outputs are for local development and portfolio demonstration only.
+## Current Role
 
-The existing Streamlit pages should not depend on this folder to open, and Streamlit should not trigger training, Docker, Airflow, MLflow, or FastAPI workflows.
+Local/dev MLOps commands can write processed lab datasets, trained lab models, reports, and MLflow runs to this area and to `mlruns/`. Those outputs are for local development and portfolio demonstration only. They are intentionally gitignored and should not be committed.
 
-Phase 3 adds local training and MLflow tracking for lab-only candidate models. Those runs write to `mlruns/`, `mlops/models/`, and `mlops/reports/`; they are intentionally ignored by git and do not update `artifacts/v2/` or the public weighted XGBoost threshold `0.29` story.
+The hosted Streamlit app does not depend on generated files in this folder to open. Streamlit should not trigger training, Docker, Airflow, MLflow, FastAPI, git, CI, or shell workflows.
 
-Phase 4 adds an optional FastAPI serving layer under `api/`. The service loads the lab champion model from `mlops/models/` when available, returns controlled missing-model messages when it is not available, and remains separate from the existing Streamlit runtime.
+## Local/Dev Components
 
-Phase 5 adds optional Docker Compose infrastructure for local demos. Compose mounts generated lab artifacts from this folder instead of committing or baking them into images. The existing Streamlit app still runs independently with `streamlit run app/app.py`.
+- **Pipeline:** `python scripts/mlops_run_pipeline.py` prepares data, trains lab-only candidates, evaluates them, logs MLflow runs, and writes local reports.
+- **MLflow:** `mlflow ui` can inspect local runs under `mlruns/`.
+- **FastAPI:** `python -m uvicorn api.main:app --reload` serves the local lab champion when `mlops/models/champion_model.joblib` exists and returns controlled missing-model messages otherwise.
+- **Docker Compose:** `docker compose config`, `docker compose up api`, `docker compose up streamlit`, and `docker compose --profile mlflow up mlflow` validate or run local demo services.
+- **Airflow DAG scaffold:** `python scripts/validate_mlops_airflow_dag.py` validates the local/dev DAG contract under `orchestration/airflow/dags/`.
+- **CI:** GitHub Actions compiles app/MLOps files, runs contract tests, validates the Airflow DAG statically, and checks Docker Compose config. CI does not deploy or publish artifacts.
 
-Phase 6 adds an optional Airflow DAG scaffold under `orchestration/airflow/dags/`. It orchestrates the existing MLOps CLI scripts for local/dev review only; Streamlit does not trigger it, and it does not write to `artifacts/v2/`.
+## Hosted Streamlit MLOps Lab
 
-Phase 7 adds GitHub Actions CI checks for app compile safety, MLOps contract tests, static Airflow DAG validation, and Docker Compose configuration. CI does not deploy, publish images, or require generated lab artifacts.
+Hosted Streamlit mode includes an Online CSV Insight sandbox inside the MLOps Lab page. It works without a deployed FastAPI backend:
 
-Phase 8 adds a read-only Streamlit MLOps Lab page. The page displays local lab status and documentation context but does not execute training, Docker, MLflow, Airflow, git, CI, or background jobs.
+- uploads are processed in memory
+- transparent pandas heuristic scoring creates a review-priority queue
+- packaged demo model inference scores rows from `artifacts/mlops_lab_online/`
+- identifier-like fields are excluded from displayed/downloaded summaries
+- optional OpenAI briefings use compact aggregate JSON only
+- raw CSV rows and PII are not sent to OpenAI
 
-Hosted Streamlit mode adds an Online CSV Insight sandbox inside the MLOps Lab page. It works without a deployed FastAPI backend: uploads are processed in memory, a transparent pandas heuristic can create a review-priority queue, a packaged demo model artifact under `artifacts/mlops_lab_online/` can score rows directly in Streamlit, identifier-like fields are excluded from summaries, and only compact aggregate statistics are sent to OpenAI for optional briefings.
+Local/dev FastAPI remains useful for technical review, but it is not required for the hosted Streamlit CSV Insight workflow.
 
-Local/dev FastAPI remains part of the MLOps showcase for technical review, but it is not required for the hosted Streamlit CSV Insight workflow.
+## Evidence and Exports
 
 The committed MLOps Evidence Pack under `docs/demo-assets/mlops-evidence/` summarizes selected local/dev outputs for online reviewers. It is sanitized, lightweight, and excludes joblib model files, `mlruns/`, uploaded CSVs, secrets, and local absolute paths.
 
-Hosted Streamlit packaged model inference uses a separate exported artifact under `artifacts/mlops_lab_online/`. That artifact is created from the local/dev lab champion for online demonstration only and still does not replace the public Weighted XGBoost threshold `0.29` app truth.
+The hosted packaged model artifact under `artifacts/mlops_lab_online/` is created from the local/dev lab champion with:
+
+```bash
+python scripts/export_streamlit_model_artifact.py
+```
+
+That artifact enables hosted Streamlit demo inference only. It still does not replace the public Weighted XGBoost threshold `0.29` app truth.
+
+## Boundaries
+
+- Not a production HR system.
+- Not an employment decision system.
+- Not a hosted FastAPI, Docker, MLflow, or Airflow deployment.
+- Not a mechanism for updating `artifacts/v2/` from Streamlit.
+- Human review support and technical portfolio evidence only.

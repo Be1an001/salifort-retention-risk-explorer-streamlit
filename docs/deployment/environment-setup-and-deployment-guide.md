@@ -80,6 +80,12 @@ The optional MLOps Mini-Lab dependencies live in `requirements-mlops.txt`. They 
 Start the Streamlit app from the repo root:
 
 ```bash
+python -m streamlit run app/app.py
+```
+
+Equivalent shortcut:
+
+```bash
 streamlit run app/app.py
 ```
 
@@ -207,7 +213,9 @@ After deployment, verify:
 - Explainability and Manager Action View show their expected artifacts
 - Methods & Limitations renders without missing content
 - PACE Navigator loads
+- MLOps Lab loads, including Online CSV Insight, MLOps Evidence, and Responsible Use tabs
 - advanced retrieval-backed features either work correctly with a key or show a clear blocked/setup-needed state without one
+- optional Online CSV Insight AI briefing works only when `OPENAI_API_KEY` is configured and uses compact aggregate JSON only
 
 ## Deployment Boundaries
 
@@ -240,6 +248,7 @@ python scripts/mlops_run_pipeline.py
 python scripts/export_mlops_evidence_pack.py
 python scripts/export_streamlit_model_artifact.py
 python -m uvicorn api.main:app --reload
+mlflow ui
 docker compose config
 docker compose up api
 docker compose up streamlit
@@ -291,3 +300,5 @@ Check:
 - [Technical Design and Architecture](../technical/technical-design-and-architecture.md)
 - [User Manual](../user-guide/user-manual.md)
 - [Streamlit App Walkthrough](../user-guide/streamlit-app-walkthrough.md)
+- [MLOps Mini-Lab Demo Guide](../mlops-demo-guide.md)
+- [Formal Documentation Package](../formal/salifort-formal-document-package.md)

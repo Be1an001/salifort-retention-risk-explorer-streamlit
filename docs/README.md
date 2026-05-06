@@ -11,12 +11,21 @@ Use it when you want more detail than the root `README.md` provides.
 1. [Root README](../README.md)
 2. [Streamlit App Walkthrough](user-guide/streamlit-app-walkthrough.md)
 3. [User Manual](user-guide/user-manual.md)
+4. [Executive Summary](executive/executive-summary.md)
+
+### For HR, department managers, and executives
+
+1. [Executive Summary](executive/executive-summary.md)
+2. [HR Quick Start](user-guide/hr-quick-start.md)
+3. [User Manual](user-guide/user-manual.md)
+4. [Product Requirements Document](product/product-requirements-document.md)
 
 ### For technical reviewers
 
 1. [Technical Design and Architecture](technical/technical-design-and-architecture.md)
 2. [Navigator Notes](navigator/README.md)
 3. [Demo Readiness Walkthrough](navigator/demo-readiness-walkthrough.md)
+4. [MLOps Mini-Lab Demo Guide](mlops-demo-guide.md)
 
 ### For developers who want to run or deploy the app
 
@@ -28,11 +37,21 @@ Use it when you want more detail than the root `README.md` provides.
 6. [MLOps CI Runbook](mlops-ci-runbook.md)
 7. [MLOps Mini-Lab Demo Guide](mlops-demo-guide.md)
 
+### For formal documentation review
+
+1. [Formal Documentation Package](formal/salifort-formal-document-package.md)
+2. [Product Requirements Document](product/product-requirements-document.md)
+3. [Technical Design and Architecture](technical/technical-design-and-architecture.md)
+4. [Environment Setup and Deployment Guide](deployment/environment-setup-and-deployment-guide.md)
+5. [User Manual](user-guide/user-manual.md)
+
 ## Core Documents
 
 ### Product and project framing
 
 - [Product Requirements Document](product/product-requirements-document.md): product goals, audiences, scope, non-goals, and success criteria.
+- [Executive Summary](executive/executive-summary.md): non-technical management summary, product value, governance, and one-slide-style summary.
+- [Formal Documentation Package](formal/salifort-formal-document-package.md): document-control index, canonical document map, screenshot placeholders, and maintenance rules.
 
 ### Technical design
 
@@ -50,8 +69,9 @@ Use it when you want more detail than the root `README.md` provides.
 ### User-facing guidance
 
 - [User Manual](user-guide/user-manual.md): how to use the app responsibly and what each page is for.
+- [HR Quick Start](user-guide/hr-quick-start.md): one-page business guide for HR, HRBP, department managers, and executives.
 - [Streamlit App Walkthrough](user-guide/streamlit-app-walkthrough.md): page-by-page review flow and what to look for.
-- MLOps Lab is covered in the walkthrough as an optional technical-review page for the local/dev extension.
+- MLOps Lab is covered in the walkthrough as an optional technical-review page for hosted CSV insight, packaged demo model inference, and local/dev MLOps evidence.
 - The [MLOps Mini-Lab Demo Guide](mlops-demo-guide.md) gives a concise reviewer script for hosted Online CSV Insight, packaged demo model inference, static MLOps Evidence, and local/dev pipeline/API/Docker/MLflow/Airflow evidence.
 
 ## Advanced Navigator Documentation
@@ -68,10 +88,20 @@ Use it when you want more detail than the root `README.md` provides.
 - [Navigator metadata guide](../navigator/README.md)
 - [Scripts guide](../scripts/README.md)
 
+## Scope Notes and Duplicate Handling
+
+- `README.md` is the concise public entry point.
+- `docs/README.md` is the canonical documentation index.
+- `docs/user-guide/streamlit-app-walkthrough.md` is the current page-by-page walkthrough.
+- `docs/streamlit-app-walkthrough.md` is only a compatibility redirect to the canonical walkthrough.
+- `docs/navigator/wp*.md` files are implementation-history notes for the PACE Navigator and should not replace the PRD, TDD, or user manual.
+- MLOps runbooks are intentionally narrow local/dev guides; the deployment guide remains the canonical setup and Streamlit Cloud document.
+
 ## Documentation Principles in This Repo
 
 - The root `README.md` stays the main entry point.
-- Formal docs live under `docs/`.
+- Formal docs live under `docs/`, with the formal package at `docs/formal/salifort-formal-document-package.md`.
 - Advanced Navigator notes remain available, but they are not the first stop for most visitors.
 - The repo is described as a portfolio and educational decision-support app, not a production HR platform.
-- Retrieval, OpenAI usage, Airflow, and the agent shell are documented accurately and proportionally.
+- Retrieval, OpenAI usage, MLOps Lab, FastAPI, Docker, MLflow, Airflow, and the agent shell are documented accurately and proportionally.
+- Hosted Streamlit does not require `SALIFORT_API_URL`, `SALIFORT_API_TOKEN`, FastAPI, Docker, MLflow, Airflow, or Render for Online CSV Insight.
