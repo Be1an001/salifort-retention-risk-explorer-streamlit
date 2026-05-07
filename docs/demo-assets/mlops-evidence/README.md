@@ -25,7 +25,7 @@ Excluded by design:
 
 Boundary: Local/dev MLOps Mini-Lab evidence only; not production HR and not an employment decision system.
 
-Public app truth: Public app truth remains weighted XGBoost at threshold 0.29.
+Public app truth: weighted XGBoost at threshold 0.29.
 
 Regenerate locally after running the MLOps pipeline:
 
