@@ -1,6 +1,6 @@
 # Salifort Motors Retention Risk Explorer
 
-Portfolio Streamlit app for reviewing employee retention risk in the Salifort Motors HR dataset.
+Portfolio Streamlit app for reviewing employee retention risk in a Salifort-style HR capstone dataset.
 
 Live app: https://salifort-retention-risk-explorer.streamlit.app/
 
@@ -16,7 +16,7 @@ How can Salifort Motors spot early retention risk, focus manager attention, and 
 
 ## What the App Does
 
-- Explores workforce patterns in the cleaned Salifort HR dataset.
+- Explores workforce patterns in the cleaned Salifort-style HR capstone dataset.
 - Shows model and threshold trade-offs for the public reference model.
 - Uses SHAP outputs to explain why the model flags risk.
 - Shows department exposure to support manager review.
@@ -126,7 +126,7 @@ This is retrieval-backed review support, not a chatbot and not open-ended answer
 
 ## Airflow and Agent Shell Boundaries
 
-The repo includes workflow contracts and an Airflow-ready scaffold so reviewers can inspect how future offline jobs could be organized. Streamlit does not run Airflow jobs.
+The repo includes workflow contracts and an Airflow-ready scaffold so reviewers can inspect how optional offline jobs are organized. Streamlit does not run Airflow jobs.
 
 The agent shell is a controlled plan-preview surface. It maps fixed request types to known workflows and blockers. It does not execute workflows, trigger background jobs, or act autonomously.
 
@@ -144,7 +144,7 @@ The hosted MLOps Lab can also use these optional secrets:
 - `OPENAI_API_KEY` for aggregate-only AI briefings.
 - `OPENAI_SUMMARY_MODEL`, defaulting to `gpt-5.4-mini`.
 
-The hosted MLOps Lab no longer requires `SALIFORT_API_URL` or `SALIFORT_API_TOKEN`. Local/dev FastAPI remains available for technical review, but it is not required for the hosted CSV Insight sandbox.
+The hosted MLOps Lab does not require `SALIFORT_API_URL` or `SALIFORT_API_TOKEN`. Local/dev FastAPI remains available for technical review, but it is not required for the hosted CSV Insight sandbox.
 
 The hosted packaged model scoring path uses `scikit-learn`, `xgboost`, and `joblib` in `requirements.txt`. Local/dev MLOps tooling such as MLflow, FastAPI, and pytest remains in `requirements-mlops.txt`.
 

@@ -17,7 +17,7 @@ Most visitors do not need to read these files directly. They are here so the app
 
 - `retrieval_pack/`: prepared documents and chunks for retrieval.
 - `retrieval_index/`: local embedding index artifacts generated from the retrieval pack.
-- `orchestration/`: workflow and task contracts for future scheduling or orchestration review.
+- `orchestration/`: workflow and task contracts for offline scheduling or orchestration review.
 - `agent/`: controlled request catalog and plan-preview policy.
 - `system/`: readiness and approval-gate metadata.
 

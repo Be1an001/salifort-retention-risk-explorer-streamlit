@@ -21,6 +21,8 @@ Use this folder when you want a deeper technical review of the advanced Navigato
 2. `../technical/technical-design-and-architecture.md` for the system-level technical view.
 3. The `wp*.md` note files in this folder if you want implementation-history detail for the Navigator build-out.
 
+The `wp*.md` files preserve phase-time wording. When an older note says "future" or "later phases," read that relative to the work package date; current canonical behavior is summarized in this README, the root README, and the technical design document.
+
 ## Scope of These Notes
 
 These notes help explain:

@@ -6,9 +6,9 @@
 | --- | --- |
 | Document number | SALIFORT-DOC-PACK-001 |
 | Project | Salifort Motors Retention Risk Explorer |
-| Repository branch | `docs/formal-docs-refresh` |
-| Version | 1.0 |
-| Status | Portfolio documentation package |
+| Repository branch | `main` |
+| Version | 1.1 |
+| Status | Portfolio documentation package; formal docs and agent/eval guidance completed on main |
 | Last reviewed | 2026-05-07 |
 
 ## Version Table
@@ -16,14 +16,15 @@
 | Version | Date | Change Summary | Owner |
 | --- | --- | --- | --- |
 | 1.0 | 2026-05-07 | 建立正式文件索引、business-facing summary、HR quick start 與 maintenance rules | Project owner |
+| 1.1 | 2026-05-07 | Updated document-control status after `docs/formal-docs-refresh` and `docs/add-agent-guidance-evals` were merged into `main` | Project owner |
 
 ## Prepared / Reviewed / Approved
 
 | Role | Name | Status | Notes |
 | --- | --- | --- | --- |
 | Prepared by | Project owner | Drafted | Portfolio documentation refresh |
-| Reviewed by | Not confirmed from project files | Pending | 可於 PR review 或 portfolio review 時補齊 |
-| Approved by | Not confirmed from project files | Pending | 不代表真實公司核准 |
+| Reviewed by | Not confirmed from project files | Not confirmed | 可於 portfolio review 時補齊；不代表真實公司審核 |
+| Approved by | Not confirmed from project files | Not applicable | Portfolio demo 文件，不代表真實公司核准 |
 
 ## Purpose
 

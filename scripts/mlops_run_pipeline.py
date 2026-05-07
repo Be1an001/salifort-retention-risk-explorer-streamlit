@@ -24,7 +24,10 @@ def main() -> int:
     print_training_summary(training_payload)
     evaluation_summary = run_evaluation_summary()
     print_evaluation_summary(evaluation_summary)
-    print("Later phases not implemented: FastAPI, Docker, Airflow, Streamlit page registration.")
+    print(
+        "Local/dev MLOps surfaces are available separately: FastAPI, Docker Compose, "
+        "Airflow DAG scaffold, Streamlit MLOps Lab, and the MLOps Evidence Pack."
+    )
     return 0
 
 
