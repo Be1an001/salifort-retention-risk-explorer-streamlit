@@ -63,6 +63,9 @@ Use these documents when you want more detail than this README:
 - [Streamlit App Walkthrough](docs/user-guide/streamlit-app-walkthrough.md): page-by-page review order and guidance.
 - [Navigator Notes](docs/navigator/README.md): advanced reviewer documentation for the PACE Navigator.
 - [MLOps Mini-Lab Demo Guide](docs/mlops-demo-guide.md): hosted and local/dev demonstration paths for the MLOps extension.
+- [Repository Agent Guidance](AGENTS.md): repo-scoped instructions for Codex and future coding agents.
+- [Repo-Scoped Skills](.agents/skills/): focused review workflows for audits, docs refreshes, Streamlit page review, MLOps validation, and responsible AI review.
+- [Responsible-Use Eval Cases](evals/README.md): lightweight JSONL cases for AI briefing and safety-boundary review.
 
 ## Model and Threshold Truth
 
@@ -186,6 +189,8 @@ CI details are available in the [CI runbook](docs/mlops-ci-runbook.md).
 - `navigator/`: registries, retrieval packs, readiness contracts, and advanced review metadata.
 - `scripts/`: offline builders and validation scripts.
 - `docs/`: PRD, TDD, deployment guide, user guides, formal package, runbooks, evidence snapshots, and Navigator implementation notes.
+- `.agents/skills/`: repo-scoped Codex skills for repeatable review workflows.
+- `evals/`: lightweight responsible-use and AI briefing behavior cases.
 
 ## Portfolio vs Production Boundary
 

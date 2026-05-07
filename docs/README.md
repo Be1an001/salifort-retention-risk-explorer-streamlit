@@ -37,6 +37,12 @@ Use it when you want more detail than the root `README.md` provides.
 6. [MLOps CI Runbook](mlops-ci-runbook.md)
 7. [MLOps Mini-Lab Demo Guide](mlops-demo-guide.md)
 
+### For coding agents and responsible-use review
+
+1. [Repository Agent Guidance](../AGENTS.md)
+2. [Repo-Scoped Skills](../.agents/skills/)
+3. [Responsible-Use Eval Cases](../evals/README.md)
+
 ### For formal documentation review
 
 1. [Formal Documentation Package](formal/salifort-formal-document-package.md)
@@ -65,6 +71,12 @@ Use it when you want more detail than the root `README.md` provides.
 - [MLOps CI Runbook](mlops-ci-runbook.md): GitHub Actions checks for app runtime, MLOps tests, Airflow static validation, and Docker Compose config.
 - [MLOps Mini-Lab Demo Guide](mlops-demo-guide.md): hosted CSV Insight walkthrough plus local/dev pipeline, API, Docker, MLflow, Airflow, and CI evidence path.
 - [MLOps Evidence Pack](demo-assets/mlops-evidence/README.md): committed, sanitized proof snapshots for online reviewers.
+
+### Repository guidance and lightweight evals
+
+- [Repository Agent Guidance](../AGENTS.md): repo-scoped guidance for Codex and future coding agents, including commands, artifact safety, and done criteria.
+- [Repo-Scoped Skills](../.agents/skills/): focused instruction-only workflows for audits, documentation refreshes, Streamlit page review, MLOps validation, and responsible AI review.
+- [Responsible-Use Eval Cases](../evals/README.md): JSONL behavior cases for Online CSV Insight AI briefings, no-PII handling, threshold separation, and responsible-use language.
 
 ### User-facing guidance
 
