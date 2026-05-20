@@ -37,7 +37,7 @@ Salifort Motors Retention Risk Explorer 用 portfolio demo 的形式回答一個
 - Optional OpenAI briefing 只接收 compact aggregate JSON；raw CSV rows 與 PII 不會送出。
 - SHAP 只說明 model behavior，不證明 attrition cause。
 
-## One-Slide Style Summary
+## Management Summary Table
 
 | Area | Summary |
 | --- | --- |

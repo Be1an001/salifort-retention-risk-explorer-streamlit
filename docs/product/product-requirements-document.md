@@ -32,14 +32,14 @@ How can Salifort Motors identify early retention risk, focus manager attention o
 
 ## Target Audiences
 
-### 1. Recruiters, hiring managers, and interviewers
+### 1. Portfolio and project reviewers
 
-They need a clear portfolio story:
+They need a clear project story:
 
 - what the project solves
 - what pages are worth opening first
 - what the model does and does not claim
-- how the app demonstrates analytical, product, and communication skills
+- how the app demonstrates analytical, product, and communication choices
 
 ### 2. HR, HRBP, department managers, and manager-style readers
 
@@ -198,7 +198,7 @@ Important model boundary:
 - As a department manager, I want model outputs translated into review priorities so I can discuss workload, promotion, and team context before taking action.
 - As an executive reviewer, I want a concise view of value, governance, and limitations so I can understand the demo without reading code.
 - As a technical reviewer, I want to inspect architecture, artifacts, retrieval evidence, CI checks, and local/dev MLOps boundaries so I can evaluate engineering maturity.
-- As a portfolio interviewer, I want a short guided path through the nine pages so I can discuss the project in a limited interview window.
+- As a project reviewer, I want a short guided path through the nine pages so I can understand the main app flow without running notebooks or local services.
 
 ## Non-Goals
 
@@ -207,9 +207,9 @@ The current repo does not aim to be:
 - a production HR platform
 - a live HR monitoring system
 - an automated employment decision engine
-- a free-form chatbot
+- a general chat assistant
 - a production Airflow deployment
-- an autonomous multi-agent system
+- an autonomous workflow system
 - a hosted FastAPI, Docker, MLflow, or Airflow service
 - a system that sends raw uploaded CSV rows or PII to OpenAI
 
@@ -227,7 +227,7 @@ A first-time reviewer should be able to explain:
 
 ### Portfolio usability
 
-The app should support a short interview/demo path without requiring notebooks or local model training.
+The app should support a short review path without requiring notebooks or local model training.
 
 ### Technical transparency
 
@@ -237,7 +237,7 @@ The advanced review layer should make sources, evidence, workflow contracts, and
 
 - Streamlit reads local files; it does not retrain models during a visitor session.
 - Fallback screening exists for resilience, but it is not the final model probability.
-- Retrieval-backed review is fixed-question and evidence-oriented, not open-ended chat.
+- Retrieval-backed review is fixed-question and evidence-oriented, not arbitrary chat.
 - OpenAI API use is limited to optional embedding-backed retrieval workflows and optional MLOps Lab aggregate-only briefings when the user supplies a key.
 - Online CSV Insight sends compact aggregate JSON only for optional OpenAI briefings; raw uploaded CSV rows and identifier-like fields are excluded.
 - Airflow and agent surfaces are review-oriented scaffolds and previews, not app-executed automation.
@@ -251,6 +251,6 @@ The repo leaves room for later expansion, such as:
 - richer threshold scenario simulation
 - more realistic multi-period workforce monitoring
 - deeper offline orchestration
-- clearer reviewer packaging for screenshots and slide assets
+- clearer reviewer packaging for screenshots and documentation assets
 
 Those are future directions, not current product commitments.

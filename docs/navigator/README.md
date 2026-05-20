@@ -1,8 +1,8 @@
 # Navigator Notes
 
-This folder documents the **PACE Navigator**, the advanced reviewer layer inside the portfolio app.
+This folder documents the **PACE Navigator**, the governed review layer inside the portfolio app.
 
-The Navigator starts as a guided project map and then offers optional tools for reviewers who want to inspect project truth, drift, retrieval evidence, source previews, audit exports, workflow contracts, readiness notes, and preview-only planning.
+The Navigator starts as a guided project map and then offers optional tools for project truth, drift, retrieval evidence, source previews, audit exports, workflow contracts, readiness notes, and preview-only planning.
 
 ## When to Read These Notes
 
@@ -13,7 +13,7 @@ Start elsewhere first if you are new to the repo:
 - [User Manual](../user-guide/user-manual.md)
 - [Streamlit App Walkthrough](../user-guide/streamlit-app-walkthrough.md)
 
-Use this folder when you want a deeper technical review of the advanced Navigator layer.
+Use this folder when you want a deeper technical review of the Navigator layer.
 
 ## Recommended Reading Order
 
@@ -33,4 +33,4 @@ These notes help explain:
 - why the agent shell is preview-only
 - why Airflow visibility in this repo is scaffold-level rather than runtime execution
 
-The Navigator is not a chatbot, production scheduler, or autonomous agent. Its advanced features are meant to make the portfolio project easier to audit.
+The Navigator does not answer arbitrary chat prompts, schedule production workflows, or act autonomously. Its advanced features make the portfolio project easier to inspect and audit.

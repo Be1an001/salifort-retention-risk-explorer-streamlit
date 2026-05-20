@@ -13,7 +13,7 @@ This repository is a Streamlit portfolio app with a layered local-file architect
 The design separates:
 
 - **offline build and validation work**
-- **Streamlit runtime presentation**
+- **Streamlit runtime app layer**
 - **advanced reviewer metadata and retrieval support**
 - **optional local/dev MLOps Mini-Lab tooling**
 
@@ -62,7 +62,7 @@ Located mainly in:
 Responsibilities:
 
 - provide model metadata, threshold tables, exposure summaries, row-level scores, and SHAP summaries
-- provide stable presentation figures
+- provide stable app figures
 - keep app runtime lightweight by avoiding model retraining during a visitor session
 
 ### 3. Navigator metadata and reviewer layer
@@ -199,7 +199,7 @@ The artifact contract lives in `artifacts/v2/schemas/artifact_contract.json`.
 
 ### Static figure layer
 
-The app also uses stable PNG figures under `outputs/figures/` for EDA, validation, threshold, and explainability storytelling. These are presentation assets, not the main structured truth when generated tables exist.
+The app also uses stable PNG figures under `outputs/figures/` for EDA, validation, threshold, and explainability summaries. These are visual summary assets, not the main structured truth when generated tables exist.
 
 ## Streamlit Page Roles
 
@@ -320,7 +320,7 @@ The retrieval flow is fixed-question and review-oriented:
 3. the query is matched against the local chunk vector index
 4. the answer-assembly layer returns a structured answer with citations, evidence, caveats, and coverage
 
-This is not a chatbot and not free-form generation.
+This does not answer arbitrary chat prompts and does not perform free-form generation.
 
 ### OpenAI API role
 
@@ -393,14 +393,14 @@ The current repo should not be described as:
 - a live HR monitoring platform
 - a production workflow system
 - a production Airflow deployment
-- an autonomous multi-agent application
+- an autonomous workflow system
 - a hosted FastAPI scoring platform
 - a system that sends raw CSV rows or PII to OpenAI
 - a production employment decision system
 
 The accurate description is:
 
-- a portfolio/demo decision-support app
+- a portfolio Streamlit decision-support app
 - with artifact-backed runtime behavior
 - plus optional advanced reviewer tooling for retrieval, citations, workflow inspection, and readiness review
 

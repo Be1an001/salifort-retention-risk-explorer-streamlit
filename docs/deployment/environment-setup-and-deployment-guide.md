@@ -224,11 +224,11 @@ This repo should not be described as:
 - a production HR platform
 - a live Airflow deployment
 - a system that runs workflows from Streamlit
-- a fully autonomous agent application
+- a system with autonomous workflow execution
 
 The accurate posture is:
 
-- a public portfolio/demo Streamlit app
+- a public portfolio Streamlit decision-support app
 - with optional advanced reviewer features
 - and explicit runtime boundaries around model training, retrieval, workflow review, and secrets handling
 

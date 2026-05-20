@@ -1,7 +1,6 @@
 # Demo Readiness Walkthrough
 
-This walkthrough describes the current governed PACE Analytics System Navigator
-demo posture.
+This walkthrough describes the current PACE Navigator demo posture and review boundaries.
 
 ## What To Show
 
@@ -24,7 +23,7 @@ demo posture.
    - export review
    - retrieval inspector
 6. Show **Governed Orchestration Contracts** to explain task/workflow boundaries.
-7. Show **Governed PACE Agent Shell** to demonstrate preview-only planning.
+7. Show **Governed PACE Agent Shell** to demonstrate preview-only planning. The shell maps known request types to known workflow information; it does not execute work.
 
 ## What Requires API Key
 
@@ -54,6 +53,6 @@ not execute workflows, trigger Airflow, or mutate repository files.
 
 ## Demo-Ready Summary
 
-The system is ready to demo as a governed, retrieval-backed, reviewer-grade PACE
-analytics navigator with explicit approval boundaries and no autonomous
-execution.
+The Navigator is ready to review as a governed project-inspection surface with
+fixed-question retrieval support, explicit approval boundaries, and no
+autonomous execution.

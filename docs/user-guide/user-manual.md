@@ -8,12 +8,12 @@ It is especially useful for:
 
 - HR-style readers
 - manager-style readers
-- interviewers and portfolio reviewers
+- portfolio and technical reviewers
 - anyone who wants a clear guide before opening the more technical Navigator features
 
 This app supports review and discussion. It should not be treated as an automated employment decision system.
 
-One-sentence system intro: the app is a portfolio-grade decision-support demo that helps reviewers explore employee retention-risk patterns, model trade-offs, explanations, and MLOps evidence without automating HR decisions.
+One-sentence system intro: the app is a portfolio Streamlit decision-support demo that helps reviewers explore employee retention-risk patterns, model trade-offs, explanations, and MLOps evidence without automating HR decisions.
 
 ## What the App Helps You Do
 
@@ -191,13 +191,13 @@ What it offers:
 
 What it does not do:
 
-- it is not a chatbot
+- it does not answer arbitrary chat prompts
 - it does not run Airflow jobs
 - it does not execute workflows or act autonomously
 
 ### MLOps Lab
 
-Use this page if you want to review the technical portfolio extension.
+Use this page if you want to review the local/dev technical extension.
 
 What it offers:
 
@@ -254,14 +254,14 @@ SHAP helps explain what the model is responding to. It should be used to guide d
 
 ### Retrieval-backed review
 
-Some PACE Navigator features use a prepared retrieval corpus and optional OpenAI embeddings to help a reviewer inspect evidence behind fixed review questions. This is review support, not open-ended AI chat.
+Some PACE Navigator features use a prepared retrieval corpus and optional OpenAI embeddings to help a reviewer inspect evidence behind fixed review questions. This is review support, not arbitrary AI chat.
 
 ## Recommended Responsible Use
 
 - Treat risk outputs as review cues, not final decisions.
 - Pair model outputs with manager context, workload context, promotion history, and business reality.
 - Use department-level patterns to focus attention before jumping to individual conclusions.
-- Read Methods & Limitations before presenting conclusions as if they were production-ready outputs.
+- Read Methods & Limitations before presenting conclusions as if they were operational HR outputs.
 
 ## Common Questions
 

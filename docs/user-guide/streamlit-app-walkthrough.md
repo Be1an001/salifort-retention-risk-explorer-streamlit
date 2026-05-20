@@ -1,6 +1,8 @@
 # Streamlit App Walkthrough
 
-Use this walkthrough when reviewing the **Salifort Motors Retention Risk Explorer** for the first time.
+Use this walkthrough when opening the **Salifort Motors Retention Risk Explorer** for the first time.
+
+The app is a portfolio Streamlit decision-support tool. It supports review, explanation, and discussion; it is not a production HR platform or an employment decision system.
 
 ## Recommended Order
 
@@ -136,7 +138,7 @@ This page also explains advanced terms such as PACE, retrieval/RAG, Airflow scaf
 
 ## 8. PACE Navigator
 
-Use this page after the main app pages, especially if you are doing a technical review.
+Use this page after the main app pages, especially when you want to inspect the governed review layer.
 
 Beginner-friendly areas:
 
@@ -152,14 +154,14 @@ Advanced review tools:
 - source preview eligibility
 - multi-query audit export
 - workflow contracts and readiness
-- controlled plan-preview shell
+- preview-only Agent Shell for known request types and workflow blockers
 
 How to interpret retrieval features:
 
 - retrieval uses prepared project chunks, not arbitrary web search
 - OpenAI embeddings support retrieval when the reviewer chooses a fixed question and retrieval depth
 - the answer viewer assembles a structured answer with evidence, citations, caveats, and coverage notes
-- it is not a chatbot and does not execute jobs
+- it does not answer arbitrary chat prompts and does not execute jobs
 
 ## 9. MLOps Lab
 
@@ -172,7 +174,7 @@ What to inspect:
 - transparent review-priority heuristic summary and optional aggregate AI briefing
 - Streamlit-native packaged demo model scoring without external FastAPI hosting
 - deterministic priority rows, department review summary, and review-driver summaries without requiring OpenAI
-- MLOps Evidence tab with committed, sanitized proof snapshots for reviewers who cannot run local services
+- MLOps Evidence tab with committed, sanitized proof snapshots for readers who cannot run local services
 - package and CLI pipeline status
 - generated local lab artifact availability
 - lab champion and MLflow tracking summary when local reports exist
@@ -189,7 +191,7 @@ How to interpret it:
 - the packaged demo model probability is a review-support signal from an MLOps Lab online demo artifact, not the public app model
 - generated lab artifacts are optional, local/dev, and gitignored
 - the lab model and lab threshold do not replace the public weighted XGBoost threshold `0.29` story
-- this is technical portfolio review support, not production HR infrastructure
+- this is technical review support, not production HR infrastructure
 
 ## Static, Artifact-Backed, and Retrieval-Backed Outputs
 
@@ -205,9 +207,9 @@ Mainly the generated runtime artifacts in `artifacts/v2/`, including model metad
 
 Only the advanced PACE Navigator review tools that use the governed retrieval pack and embedding index. These may require a local OpenAI API key.
 
-## Short Interview Path
+## Short Review Path
 
-For a short interview walkthrough:
+For a short review of the app:
 
 1. Show Overview for project framing.
 2. Use Workforce Explorer filters to show interactivity.
@@ -215,8 +217,8 @@ For a short interview walkthrough:
 4. Open Explainability to discuss SHAP responsibly.
 5. Open Manager Action View to show practical review framing.
 6. Open Methods & Limitations to show architecture and boundaries.
-7. Open PACE Navigator only if the reviewer wants advanced audit and retrieval details.
-8. Open MLOps Lab only if the reviewer wants local/dev MLOps implementation details.
+7. Open PACE Navigator only if advanced audit and retrieval details are useful.
+8. Open MLOps Lab only if local/dev MLOps implementation details are useful.
 
 ## Related Documents
 
